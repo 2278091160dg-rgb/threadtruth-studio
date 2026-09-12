@@ -16,6 +16,36 @@ ALLOWED_LEGACY_FILES = {
 
 
 class RepositoryContractTests(unittest.TestCase):
+    def test_demo_evidence_pipeline_is_development_only_and_locally_isolated(self):
+        ignored = (ROOT / ".gitignore").read_text().splitlines()
+        self.assertIn(".threadtruth/", ignored)
+        self.assertTrue((ROOT / "tools" / "demo-media.py").is_file())
+        self.assertTrue((ROOT / "tools" / "demo_media.py").is_file())
+        self.assertFalse((SKILL / "tools" / "demo-media.py").exists())
+
+    def test_demo_evidence_schemas_are_versioned_and_machine_readable(self):
+        candidate = json.loads(
+            (ROOT / "tools" / "schemas" / "demo-candidate-v1.schema.json").read_text()
+        )
+        rights = json.loads((ROOT / "docs" / "demo" / "rights-v1.schema.json").read_text())
+        self.assertEqual(candidate["$schema"], "https://json-schema.org/draft/2020-12/schema")
+        self.assertEqual(candidate["properties"]["schema_version"]["const"], "1.0")
+        self.assertIn("human_review", candidate["required"])
+        self.assertEqual(rights["properties"]["status"]["const"], "promoted")
+        self.assertEqual(rights["properties"]["role"]["const"], "auxiliary")
+        self.assertIn("media_license", rights["required"])
+
+    def test_demo_media_policy_states_rights_and_beta_boundaries(self):
+        policy = (ROOT / "docs" / "demo" / "MEDIA-POLICY.md").read_text()
+        for phrase in (
+            "CC0-only",
+            "does not imply endorsement",
+            "Apache-2.0 does not cover media",
+            "human review",
+            "does not count toward the 30-day Beta",
+        ):
+            self.assertIn(phrase, policy)
+
     def test_plugin_manifest_has_public_identity(self):
         manifest = json.loads((ROOT / ".codex-plugin" / "plugin.json").read_text())
         self.assertEqual(manifest["name"], "threadtruth-studio")

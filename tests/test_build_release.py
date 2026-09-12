@@ -1,4 +1,6 @@
 import importlib.util
+import json
+import shutil
 import tempfile
 import unittest
 import zipfile
@@ -34,6 +36,74 @@ class ReleaseBuildTests(unittest.TestCase):
             self.assertFalse(any("/evals/" in name for name in names))
             self.assertFalse(any("/tests/" in name for name in names))
             self.assertFalse(any("/tools/" in name for name in names))
+            self.assertFalse(any("/.threadtruth/" in name for name in names))
+
+    def test_release_fails_when_public_demo_rights_are_invalid(self):
+        spec = importlib.util.spec_from_file_location("build_release", SCRIPT)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            clone = Path(temp_dir) / "repo"
+            shutil.copytree(
+                ROOT,
+                clone,
+                ignore=shutil.ignore_patterns(".git", "dist", ".threadtruth", "__pycache__"),
+            )
+            case = clone / "docs" / "demo" / "cases" / "bad-case"
+            case.mkdir(parents=True)
+            (case / "source.jpg").write_bytes(b"tampered")
+            (case / "source-metadata.json").write_text(
+                json.dumps({"objectID": 1, "isPublicDomain": False, "primaryImage": ""})
+            )
+            (case / "rights.json").write_text(
+                json.dumps(
+                    {
+                        "status": "promoted",
+                        "role": "auxiliary",
+                        "source_license": {"id": "CC-BY-4.0"},
+                        "media_license": {"id": "CC-BY-4.0"},
+                        "asset": {"sha256": "wrong"},
+                        "source": {"object_id": 1},
+                    }
+                )
+            )
+            (case / "README.md").write_text("invalid")
+            with self.assertRaisesRegex(ValueError, "public demo rights validation failed"):
+                module.build_release(clone, Path(temp_dir) / "out")
+
+    def test_release_rejects_unregistered_demo_media(self):
+        spec = importlib.util.spec_from_file_location("build_release", SCRIPT)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            clone = Path(temp_dir) / "repo"
+            shutil.copytree(
+                ROOT,
+                clone,
+                ignore=shutil.ignore_patterns(".git", "dist", ".threadtruth", "__pycache__"),
+            )
+            for name in ("unregistered.jpg", "unregistered.jfif", "unregistered.mp4", "unregistered"):
+                path = clone / "docs" / "demo" / name
+                path.write_bytes(b"not registered")
+                with self.assertRaisesRegex(ValueError, "unregistered demo"):
+                    module.build_release(clone, Path(temp_dir) / "out")
+                path.unlink()
+
+    def test_release_rejects_stale_rights_index_without_cases_directory(self):
+        spec = importlib.util.spec_from_file_location("build_release", SCRIPT)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            clone = Path(temp_dir) / "repo"
+            shutil.copytree(
+                ROOT,
+                clone,
+                ignore=shutil.ignore_patterns(".git", "dist", ".threadtruth", "__pycache__"),
+            )
+            shutil.rmtree(clone / "docs" / "demo" / "cases", ignore_errors=True)
+            (clone / "docs" / "demo" / "RIGHTS.md").write_text("stale")
+            with self.assertRaisesRegex(ValueError, "rights index is stale"):
+                module.build_release(clone, Path(temp_dir) / "out")
 
 
 if __name__ == "__main__":

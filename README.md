@@ -35,6 +35,8 @@ docs/                              Public evidence and project notes
 USER-GUIDE.html                    Offline bilingual-friendly guide
 ```
 
+The development-only [demo media pipeline](docs/demo/README.md) can collect The Met Open Access CC0 garment candidates into an ignored local quarantine. It verifies metadata, JPEG evidence, hashes, expiry, and state transitions; promotion requires a complete human rights review. Auxiliary institutional media never substitutes for the maintainer-owned primary demo. Apache-2.0 covers code and documentation, not demo media; see the [media policy](docs/demo/MEDIA-POLICY.md).
+
 ## Local validation
 
 Python 3.10+ is sufficient for the repository tests and tools.
@@ -65,6 +67,7 @@ The first Beta Release will add the final marketplace command after a clean-envi
 - Public repository and required GitHub Actions checks: active and passing.
 - Maintainer-machine Plugin lifecycle: install, discovery, upgrade, uninstall, and legacy rollback verified; `v1.0.0-beta.1` restored and enabled.
 - Rights-cleared public demo: `sample-blocked`, awaiting maintainer-owned source images.
+- Reproducible The Met CC0 auxiliary-media evidence pipeline: implemented; no candidate has been human-approved or promoted.
 - External clean-environment validation: pending; the maintainer preflight does not count toward Beta adoption.
 - Known runtime issue: a minimal implicit missing-image request may skip Skill loading; see [Issue #1](https://github.com/2278091160dg-rgb/threadtruth-studio/issues/1). Explicit invocation is the Beta workaround.
 - GitHub Release and published checksums: pending the rights-cleared demo and remaining release gates.

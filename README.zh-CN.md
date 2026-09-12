@@ -31,4 +31,6 @@ python3 tools/build-release.py
 
 目前请从包含 `.codex-plugin/plugin.json` 的仓库根目录进行本地 Plugin 测试，不要把内层 Skill 当作独立发行单元。完整操作、状态和回滚说明见 [离线用户指南](USER-GUIDE.html)。
 
+开发层已提供仅面向 The Met Open Access 的 CC0 辅助 Demo 素材证据流水线。候选素材先进入被 Git 忽略的本地隔离区，经过元数据、JPEG、哈希、期限和状态机检查后，仍必须由维护者完成无人物、无 Logo、无水印、实物服饰和非敏感语境的人工核验，才能公开提升。此类素材不替代自有实拍主案例，也不计入 Beta 采用数据。Apache-2.0 不覆盖媒体，详见 [媒体政策](docs/demo/MEDIA-POLICY.md)。当前尚未批准或提升任何候选。
+
 公开发布前不会写入姓名、ChatGPT 邮箱、GitHub 用户名或 OpenAI Organization ID。许可证为 [Apache-2.0](LICENSE)。

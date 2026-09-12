@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/2278091160dg-rgb/threadtruth-studio/raw/main/tools/schemas/demo-candidate-v1.schema.json",
+  "title": "ThreadTruth Studio demo candidate evidence v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "candidate_id",
+    "state",
+    "source",
+    "license",
+    "asset",
+    "machine_audit",
+    "human_review"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "candidate_id": { "type": "string", "pattern": "^met-[1-9][0-9]*$" },
+    "state": {
+      "enum": [
+        "discovered",
+        "fetched",
+        "machine-passed",
+        "human-approved",
+        "promoted",
+        "rights-rejected",
+        "expired"
+      ]
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "provider",
+        "object_id",
+        "api_url",
+        "object_url",
+        "primary_image_url",
+        "department",
+        "is_public_domain",
+        "fetched_at",
+        "raw_metadata_sha256"
+      ],
+      "properties": {
+        "provider": { "const": "met" },
+        "object_id": { "type": "integer", "minimum": 1 },
+        "api_url": { "type": "string", "format": "uri" },
+        "object_url": { "type": "string" },
+        "primary_image_url": { "type": "string" },
+        "department": { "type": "string" },
+        "is_public_domain": { "type": "boolean" },
+        "fetched_at": { "type": "string", "format": "date-time" },
+        "raw_metadata_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "license": {
+      "type": "object",
+      "required": ["id", "url", "policy_url"],
+      "properties": {
+        "id": { "enum": ["CC0-1.0", null] },
+        "url": { "const": "https://creativecommons.org/publicdomain/zero/1.0/" },
+        "policy_url": { "type": "string", "format": "uri" }
+      }
+    },
+    "asset": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["relative_path", "sha256", "mime", "bytes", "final_url"],
+          "properties": {
+            "relative_path": { "type": "string", "pattern": "^images/met-[1-9][0-9]*\\.jpg$" },
+            "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "mime": { "const": "image/jpeg" },
+            "bytes": { "type": "integer", "minimum": 1, "maximum": 52428800 },
+            "width": { "type": ["integer", "null"], "minimum": 1 },
+            "height": { "type": ["integer", "null"], "minimum": 1 },
+            "final_url": { "type": "string", "format": "uri" }
+          }
+        }
+      ]
+    },
+    "machine_audit": {
+      "type": "object",
+      "required": ["decision", "reason_codes"],
+      "properties": {
+        "decision": { "enum": ["pending", "pass", "reject"] },
+        "reason_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "human_review": {
+      "type": "object",
+      "required": ["decision", "reviewer", "reviewed_at", "checks", "confirmation", "note"],
+      "properties": {
+        "decision": { "enum": ["pending", "approved", "rejected"] },
+        "reviewer": { "type": ["string", "null"] },
+        "reviewed_at": { "type": ["string", "null"], "format": "date-time" },
+        "checks": {
+          "type": "object",
+          "required": ["no_person", "no_logo", "no_watermark", "physical_garment", "not_sensitive"],
+          "properties": {
+            "no_person": { "type": ["boolean", "null"] },
+            "no_logo": { "type": ["boolean", "null"] },
+            "no_watermark": { "type": ["boolean", "null"] },
+            "physical_garment": { "type": ["boolean", "null"] },
+            "not_sensitive": { "type": ["boolean", "null"] }
+          }
+        },
+        "confirmation": { "type": ["string", "null"] },
+        "note": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

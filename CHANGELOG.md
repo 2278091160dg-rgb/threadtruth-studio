@@ -31,6 +31,7 @@ System Skill validation, official Plugin validation, production strict/runtime c
 - Allowlist release builder, repository contract tests, CI, community files, and Beta evidence templates.
 - Competitive boundary and Codex for Open Source readiness packet.
 - Public GitHub repository, passing GitHub Actions, and a privacy-safe local lifecycle verification record.
+- Development-only The Met Open Access CC0 evidence pipeline with quarantine, machine audit, offline human-review gallery, governed promotion, schemas, and release-time rights validation.
 
 #### Changed
 
@@ -42,3 +43,5 @@ System Skill validation, official Plugin validation, production strict/runtime c
 #### Security
 
 - Preserved the R1–R7 safety boundary, explicit paid-action consent, six-call cap, and no API/CLI/third-party fallback.
+- Release validation rejects unregistered demo media, stale rights indexes, incomplete human review evidence, undersized or oversized files, malformed JPEGs, metadata drift, and hash mismatch.
+- Candidate paths and redirects are fail-closed; expired approvals cannot be promoted but may be explicitly rejected and pruned.
