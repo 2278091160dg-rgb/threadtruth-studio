@@ -50,9 +50,13 @@ The generated release archive is allowlist-built into `dist/`; development evals
 
 ## Install for local testing
 
-Until a public GitHub URL and signed Beta release exist, test from this checkout using Codex's local Plugin source workflow and select this repository root. Do not install the inner skill directory directly: the distributable unit is the repository containing `.codex-plugin/plugin.json`.
+Clone the source into your local plugins directory. Do not install the inner skill directory directly: the distributable unit is the repository containing `.codex-plugin/plugin.json`.
 
-After publication, the commands and exact source URL will be added here before the Beta tag is signed. See [USER-GUIDE.html](USER-GUIDE.html) for the interaction model and [MIGRATION.md](MIGRATION.md) for safe coexistence and rollback.
+```bash
+git clone https://github.com/2278091160dg-rgb/threadtruth-studio.git "$HOME/plugins/threadtruth-studio"
+```
+
+The first Beta Release will add the final marketplace command after a clean-environment installation proves it. Until then, use the local Plugin source workflow and select this repository root. See [USER-GUIDE.html](USER-GUIDE.html) for the interaction model and [MIGRATION.md](MIGRATION.md) for safe coexistence and rollback.
 
 ## Development status
 
@@ -60,7 +64,7 @@ After publication, the commands and exact source URL will be added here before t
 - Static, trigger, privacy, and allowlist packaging checks: implemented.
 - Rights-cleared public demo: `sample-blocked`, awaiting maintainer-owned source images.
 - Global old-skill migration: not performed; requires separate authorization.
-- GitHub repository, Release, and checksums: not published; requires separate authorization.
+- GitHub Release and published checksums: pending the rights-cleared demo and clean installation gate.
 - Codex for Open Source application: not submitted; requires stable `v1.0.0`, threshold evidence, and final user authorization.
 
 ## Community

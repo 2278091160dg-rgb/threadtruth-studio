@@ -4,7 +4,7 @@
 
 ThreadTruth Studio 是独立社区项目，不是 OpenAI 官方产品。它以用户提供的真实服饰图为唯一商品事实源，完成识别、24 风格确定性路由、显式生图授权、六张独立成片与商业 QA。
 
-当前为 `v1.0.0-beta.1` 候选：运行时、风格包和回归测试已就绪；公开发布权清晰的案例素材、30 天 Beta 数据、GitHub Release 和最终申请尚未完成。
+当前为 `v1.0.0-beta.1` 候选：运行时、风格包和回归测试已就绪；公开发布权清晰的案例素材、30 天 Beta 数据、GitHub Release 和最终申请尚未完成。源码仓库为 [2278091160dg-rgb/threadtruth-studio](https://github.com/2278091160dg-rgb/threadtruth-studio)。
 
 ## 核心能力
 

@@ -21,6 +21,10 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertEqual(manifest["name"], "threadtruth-studio")
         self.assertEqual(manifest["version"], "1.0.0-beta.1")
         self.assertEqual(manifest["license"], "Apache-2.0")
+        self.assertEqual(
+            manifest["repository"],
+            "https://github.com/2278091160dg-rgb/threadtruth-studio",
+        )
         self.assertEqual(manifest["skills"], "./skills/")
         self.assertEqual(manifest["interface"]["displayName"], "ThreadTruth Studio")
         self.assertIsInstance(manifest["interface"]["defaultPrompt"], list)

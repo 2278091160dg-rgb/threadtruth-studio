@@ -6,9 +6,9 @@ Security fixes target the latest published Beta or stable release. No release ha
 
 ## Reporting a vulnerability
 
-After GitHub publication, use a private GitHub Security Advisory for credential exposure, unsafe file access, authorization bypass, prompt-injection persistence, or policy-gate bypass. Do not include real secrets, customer media, or complete private logs in a public Issue.
+Use a [private GitHub Security Advisory](https://github.com/2278091160dg-rgb/threadtruth-studio/security/advisories/new) for credential exposure, unsafe file access, authorization bypass, prompt-injection persistence, or policy-gate bypass. Do not include real secrets, customer media, or complete private logs in a public Issue.
 
-Until a private channel is configured, retain the report locally and contact the maintainer through the future repository profile. Publishing the first Beta is blocked until this document names a working private channel.
+If GitHub temporarily cannot create a private advisory, retain the report locally and contact the maintainer through the repository profile without disclosing vulnerability details in public.
 
 ## Runtime security contract
 
