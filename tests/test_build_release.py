@@ -71,6 +71,40 @@ class ReleaseBuildTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "public demo rights validation failed"):
                 module.build_release(clone, Path(temp_dir) / "out")
 
+    def test_release_rejects_unregistered_demo_media(self):
+        spec = importlib.util.spec_from_file_location("build_release", SCRIPT)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            clone = Path(temp_dir) / "repo"
+            shutil.copytree(
+                ROOT,
+                clone,
+                ignore=shutil.ignore_patterns(".git", "dist", ".threadtruth", "__pycache__"),
+            )
+            for name in ("unregistered.jpg", "unregistered.jfif", "unregistered.mp4", "unregistered"):
+                path = clone / "docs" / "demo" / name
+                path.write_bytes(b"not registered")
+                with self.assertRaisesRegex(ValueError, "unregistered demo"):
+                    module.build_release(clone, Path(temp_dir) / "out")
+                path.unlink()
+
+    def test_release_rejects_stale_rights_index_without_cases_directory(self):
+        spec = importlib.util.spec_from_file_location("build_release", SCRIPT)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            clone = Path(temp_dir) / "repo"
+            shutil.copytree(
+                ROOT,
+                clone,
+                ignore=shutil.ignore_patterns(".git", "dist", ".threadtruth", "__pycache__"),
+            )
+            shutil.rmtree(clone / "docs" / "demo" / "cases", ignore_errors=True)
+            (clone / "docs" / "demo" / "RIGHTS.md").write_text("stale")
+            with self.assertRaisesRegex(ValueError, "rights index is stale"):
+                module.build_release(clone, Path(temp_dir) / "out")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -19,14 +19,23 @@ def load_module():
 
 
 def minimal_jpeg(width=640, height=960):
-    app0 = b"\xff\xe0\x00\x10" + b"0" * 14
+    app0 = b"\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00"
+    dqt = b"\xff\xdb\x00\x43\x00" + bytes([1]) * 64
     sof = (
         b"\xff\xc0\x00\x11\x08"
         + height.to_bytes(2, "big")
         + width.to_bytes(2, "big")
         + b"\x03\x01\x11\x00\x02\x11\x00\x03\x11\x00"
     )
-    return b"\xff\xd8" + app0 + sof + b"\xff\xd9"
+    counts = bytes([1] + [0] * 15)
+    dht = b"\xff\xc4\x00\x26" + b"\x00" + counts + b"\x00" + b"\x10" + counts + b"\x00"
+    sos = b"\xff\xda\x00\x0c\x03\x01\x00\x02\x00\x03\x00\x00\x3f\x00"
+    encoded_bits = ((width + 7) // 8) * ((height + 7) // 8) * 3 * 2
+    whole_bytes, remaining_bits = divmod(encoded_bits, 8)
+    entropy = bytearray(whole_bytes)
+    if remaining_bits:
+        entropy.append((1 << (8 - remaining_bits)) - 1)
+    return b"\xff\xd8" + app0 + dqt + sof + dht + sos + bytes(entropy) + b"\xff\xd9"
 
 
 def met_item(object_id=159228):
@@ -94,7 +103,7 @@ class DemoMediaModuleTests(unittest.TestCase):
             run_id=run_id,
         )
         module.fetch_run(root, run_id, client, fetched_at="2026-09-12T00:01:00Z")
-        module.audit_run(root, run_id)
+        module.audit_run(root, run_id, audited_at="2026-09-12T00:02:00Z")
         return client
 
     def test_development_module_exists_outside_runtime_skill(self):
@@ -149,7 +158,34 @@ class DemoMediaModuleTests(unittest.TestCase):
 
     def test_jpeg_parser_rejects_corrupt_or_png_data(self):
         module = load_module()
-        for data in (b"", b"not-an-image", b"\x89PNG\r\n\x1a\n"):
+        complete = minimal_jpeg(1200, 1600)
+        header_only = complete.split(b"\xff\xda", 1)[0] + b"\xff\xd9"
+        sos_offset = complete.index(b"\xff\xda")
+        sos_length = int.from_bytes(complete[sos_offset + 2 : sos_offset + 4], "big")
+        scan_start = sos_offset + 2 + sos_length
+        truncated_scan = complete[:scan_start] + b"\x00\xff\xd9"
+        sof_start = complete.index(b"\xff\xc0")
+        sof_end = sof_start + 2 + int.from_bytes(
+            complete[sof_start + 2 : sof_start + 4], "big"
+        )
+        empty_tables_and_scan = (
+            b"\xff\xd8"
+            + complete[2 : complete.index(b"\xff\xdb")]
+            + b"\xff\xdb\x00\x02"
+            + complete[sof_start:sof_end]
+            + b"\xff\xc4\x00\x02"
+            + b"\xff\xda\x00\x02"
+            + bytes(23000)
+            + b"\xff\xd9"
+        )
+        for data in (
+            b"",
+            b"not-an-image",
+            b"\x89PNG\r\n\x1a\n",
+            header_only,
+            truncated_scan,
+            empty_tables_and_scan,
+        ):
             with self.assertRaisesRegex(ValueError, "IMAGE_CORRUPT"):
                 module.jpeg_dimensions(data)
 
@@ -250,6 +286,10 @@ class DemoMediaModuleTests(unittest.TestCase):
             self.assertEqual(run["state"], "discovered")
             self.assertEqual(run["expires_at"], "2026-09-19T00:00:00Z")
             self.assertEqual(client.download_calls, [])
+            self.assertEqual(
+                run["search_response_sha256"],
+                module.sha256_bytes((run_dir / "raw" / "search.json").read_bytes()),
+            )
 
             module.fetch_run(root, run_id, client, fetched_at="2026-09-12T00:01:00Z")
             good_record = json.loads(
@@ -259,6 +299,10 @@ class DemoMediaModuleTests(unittest.TestCase):
                 (run_dir / "candidates" / "met-999.json").read_text()
             )
             self.assertEqual(good_record["state"], "fetched")
+            self.assertEqual(
+                good_record["source"]["raw_metadata_sha256"],
+                module.sha256_bytes((run_dir / "raw" / "met-159228.json").read_bytes()),
+            )
             self.assertEqual(bad_record["state"], "rights-rejected")
             self.assertIn(
                 "METADATA_NOT_PUBLIC_DOMAIN",
@@ -266,7 +310,7 @@ class DemoMediaModuleTests(unittest.TestCase):
             )
             self.assertEqual(len(client.download_calls), 1)
 
-            module.audit_run(root, run_id)
+            module.audit_run(root, run_id, audited_at="2026-09-12T00:02:00Z")
             good_record = json.loads(
                 (run_dir / "candidates" / "met-159228.json").read_text()
             )
@@ -390,6 +434,16 @@ class DemoMediaModuleTests(unittest.TestCase):
             )
             self.assertEqual(record["state"], "human-approved")
             self.assertEqual(record["human_review"]["decision"], "approved")
+            run = json.loads(
+                (
+                    root
+                    / ".threadtruth"
+                    / "demo-candidates"
+                    / "review-test"
+                    / "run.json"
+                ).read_text()
+            )
+            self.assertEqual(run["approved_candidates"], ["met-159228"])
 
             for index, (broken_checks, confirmation) in enumerate(
                 (
@@ -409,6 +463,33 @@ class DemoMediaModuleTests(unittest.TestCase):
                         confirmation=confirmation,
                         reviewed_at="2026-09-12T01:00:00Z",
                     )
+
+            broken_time = copy.deepcopy(record)
+            broken_time["human_review"]["reviewed_at"] = None
+            self.assertIn(
+                "HUMAN_REVIEW_INCOMPLETE",
+                module.validate_human_approval(broken_time),
+            )
+
+            placeholder = copy.deepcopy(record)
+            placeholder["human_review"]["reviewer"] = "github:YOUR-HANDLE"
+            self.assertIn(
+                "HUMAN_REVIEW_INCOMPLETE",
+                module.validate_human_approval(placeholder),
+            )
+
+            early_run = "early-review"
+            self.create_audited_run(module, root, run_id=early_run)
+            with self.assertRaisesRegex(ValueError, "predates"):
+                module.approve_candidate(
+                    root,
+                    early_run,
+                    "met-159228",
+                    reviewer="github:2278091160dg-rgb",
+                    checks=checks,
+                    confirmation=module.APPROVAL_CONFIRMATION,
+                    reviewed_at="2026-09-11T23:59:59Z",
+                )
 
     def test_human_rejection_uses_known_reason_and_is_terminal(self):
         module = load_module()
@@ -434,6 +515,25 @@ class DemoMediaModuleTests(unittest.TestCase):
                     reviewer="github:2278091160dg-rgb",
                     reviewed_at="2026-09-12T01:01:00Z",
                 )
+
+    def test_expired_approved_candidate_can_be_rejected_then_pruned(self):
+        module = load_module()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            self.approve_test_candidate(module, root, run_id="approved-expired")
+            record = module.reject_candidate(
+                root,
+                "approved-expired",
+                "met-159228",
+                reason="CULTURAL_OR_SENSITIVE_CONTEXT",
+                reviewer="github:2278091160dg-rgb",
+                reviewed_at="2026-09-20T00:00:00Z",
+            )
+            self.assertEqual(record["state"], "rights-rejected")
+            removed = module.prune_expired_runs(
+                root, now=datetime(2026, 9, 20, tzinfo=timezone.utc)
+            )
+            self.assertEqual(removed, ["approved-expired"])
 
             rejected_run = "invalid-reviewer"
             self.create_audited_run(module, root, run_id=rejected_run)
@@ -477,9 +577,14 @@ class DemoMediaModuleTests(unittest.TestCase):
             self.assertEqual(result["status"], "promoted")
             self.assertEqual(result["role"], "auxiliary")
             self.assertEqual(result["media_license"]["id"], "CC0-1.0")
+            self.assertNotIn("note", result["human_review"])
             self.assertTrue((case_dir / "source.jpg").is_file())
             self.assertTrue((case_dir / "source-metadata.json").is_file())
             self.assertTrue((case_dir / "rights.json").is_file())
+            self.assertEqual(
+                result["source"]["metadata_sha256_at_promotion"],
+                module.sha256_bytes((case_dir / "source-metadata.json").read_bytes()),
+            )
             self.assertIn("not endorsed by The Metropolitan Museum of Art", (case_dir / "README.md").read_text())
             rights_index = (root / "docs" / "demo" / "RIGHTS.md").read_text()
             self.assertIn("met-coat-159228", rights_index)
@@ -496,6 +601,36 @@ class DemoMediaModuleTests(unittest.TestCase):
             )
             self.assertEqual(repeated["asset"]["sha256"], result["asset"]["sha256"])
 
+            record_path = (
+                root
+                / ".threadtruth"
+                / "demo-candidates"
+                / "promote-test"
+                / "candidates"
+                / "met-159228.json"
+            )
+            run_path = record_path.parents[1] / "run.json"
+            recovered_record = json.loads(record_path.read_text())
+            recovered_record["state"] = "human-approved"
+            record_path.write_text(json.dumps(recovered_record))
+            recovered_run = json.loads(run_path.read_text())
+            recovered_run["state"] = "human-approved"
+            run_path.write_text(json.dumps(recovered_run))
+            (root / "docs" / "demo" / "RIGHTS.md").write_text("stale")
+            module.promote_candidate(
+                root,
+                "promote-test",
+                "met-159228",
+                "met-coat-159228",
+                client,
+                promoted_at="2026-09-12T02:02:00Z",
+            )
+            self.assertEqual(json.loads(record_path.read_text())["state"], "promoted")
+            self.assertEqual(json.loads(run_path.read_text())["promoted_cases"], ["met-coat-159228"])
+            self.assertIn(
+                "met-coat-159228", (root / "docs" / "demo" / "RIGHTS.md").read_text()
+            )
+
     def test_promote_fails_closed_on_metadata_drift_or_missing_approval(self):
         module = load_module()
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -511,6 +646,87 @@ class DemoMediaModuleTests(unittest.TestCase):
                     client,
                     promoted_at="2026-09-12T02:00:00Z",
                 )
+
+    def test_promote_rejects_candidate_object_id_mismatch(self):
+        module = load_module()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            client = self.approve_test_candidate(module, root, run_id="id-mismatch")
+            record_path = (
+                root
+                / ".threadtruth"
+                / "demo-candidates"
+                / "id-mismatch"
+                / "candidates"
+                / "met-159228.json"
+            )
+            record = json.loads(record_path.read_text())
+            record["candidate_id"] = "met-999"
+            record_path.write_text(json.dumps(record))
+            with self.assertRaisesRegex(ValueError, "OBJECT_ID_MISMATCH"):
+                module.promote_candidate(
+                    root,
+                    "id-mismatch",
+                    "met-159228",
+                    "mismatched-case",
+                    client,
+                    promoted_at="2026-09-12T02:00:00Z",
+                )
+
+    def test_promote_rejects_tampered_discovery_metadata_file(self):
+        module = load_module()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            client = self.approve_test_candidate(module, root, run_id="raw-tamper")
+            raw_path = (
+                root
+                / ".threadtruth"
+                / "demo-candidates"
+                / "raw-tamper"
+                / "raw"
+                / "met-159228.json"
+            )
+            raw_path.write_text("{}\n")
+            with self.assertRaisesRegex(ValueError, "EVIDENCE_INCOMPLETE"):
+                module.promote_candidate(
+                    root,
+                    "raw-tamper",
+                    "met-159228",
+                    "tampered-raw-case",
+                    client,
+                    promoted_at="2026-09-12T02:00:00Z",
+                )
+
+    def test_public_case_validator_checks_size_limit_and_jpeg_structure(self):
+        module = load_module()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            client = self.approve_test_candidate(module, root)
+            module.promote_candidate(
+                root,
+                "promote-test",
+                "met-159228",
+                "met-coat-159228",
+                client,
+                promoted_at="2026-09-12T02:00:00Z",
+            )
+            case_dir = root / "docs" / "demo" / "cases" / "met-coat-159228"
+            tiny = minimal_jpeg(100, 100)
+            (case_dir / "source.jpg").write_bytes(tiny)
+            rights_path = case_dir / "rights.json"
+            rights = json.loads(rights_path.read_text())
+            rights["asset"].update(
+                {
+                    "sha256": module.sha256_bytes(tiny),
+                    "bytes": len(tiny),
+                    "width": 100,
+                    "height": 100,
+                }
+            )
+            rights_path.write_text(json.dumps(rights))
+            module.render_rights_index(root)
+            findings = module.validate_public_cases(root)
+            self.assertTrue(any("too small" in finding.lower() for finding in findings))
             self.assertFalse((root / "docs" / "demo" / "cases" / "drift-case").exists())
 
             self.create_audited_run(module, root, run_id="unapproved-test")
@@ -565,12 +781,14 @@ class DemoMediaModuleTests(unittest.TestCase):
             rights_path = case_dir / "rights.json"
             rights = json.loads(rights_path.read_text())
             rights["human_review"]["checks"]["no_logo"] = False
+            rights["human_review"]["reviewed_at"] = "2026-09-13T00:00:00Z"
             rights["source"]["metadata_sha256_at_promotion"] = "0" * 64
             rights_path.write_text(json.dumps(rights))
             (root / "docs" / "demo" / "RIGHTS.md").write_text("stale index")
             findings = module.validate_public_cases(root)
             self.assertTrue(any("human review" in finding.lower() for finding in findings))
             self.assertTrue(any("metadata hash" in finding.lower() for finding in findings))
+            self.assertTrue(any("postdates promotion" in finding.lower() for finding in findings))
             self.assertTrue(any("rights index" in finding.lower() for finding in findings))
 
     def test_audit_rejects_candidate_image_path_escape(self):

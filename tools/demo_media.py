@@ -27,6 +27,8 @@ DEFAULT_LIMIT = 8
 MAX_LIMIT = 12
 MAX_IMAGE_BYTES = 50 * 1024 * 1024
 MIN_LONG_EDGE = 1200
+DEMO_ROOT_FILES = {"MEDIA-POLICY.md", "README.md", "RIGHTS.md", "rights-v1.schema.json"}
+PUBLIC_CASE_FILES = {"README.md", "rights.json", "source-metadata.json", "source.jpg"}
 CC0_ID = "CC0-1.0"
 CC0_URL = "https://creativecommons.org/publicdomain/zero/1.0/"
 MET_POLICY_URL = "https://www.metmuseum.org/policies/image-resources"
@@ -105,7 +107,7 @@ def validate_identifier(value: str) -> str:
 
 
 def validate_reviewer(value: str) -> str:
-    if not isinstance(value, str) or not re.fullmatch(
+    if value == "github:YOUR-HANDLE" or not isinstance(value, str) or not re.fullmatch(
         r"github:(?=.{1,39}$)[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?", value
     ):
         raise ValueError("HUMAN_REVIEW_INCOMPLETE: reviewer must be a public GitHub handle")
@@ -134,17 +136,15 @@ def read_json(path: Path) -> dict[str, object]:
 
 def write_json(path: Path, value: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.write_bytes(serialized_json_bytes(value))
 
 
 def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def canonical_json_bytes(value: object) -> bytes:
-    return json.dumps(
-        value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
-    ).encode("utf-8")
+def serialized_json_bytes(value: object) -> bytes:
+    return (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
 
 
 def trusted_https_url(value: object) -> bool:
@@ -278,7 +278,7 @@ def metadata_rejection_codes(object_id: int, item: dict[str, object]) -> list[st
 def candidate_from_metadata(
     object_id: int, item: dict[str, object], fetched_at: str
 ) -> dict[str, object]:
-    metadata_digest = sha256_bytes(canonical_json_bytes(item))
+    metadata_digest = sha256_bytes(serialized_json_bytes(item))
     return {
         "schema_version": SCHEMA_VERSION,
         "candidate_id": f"met-{object_id}",
@@ -364,6 +364,7 @@ def search_run(
         "created_at": created_at,
         "expires_at": iso_z(now + timedelta(days=7)),
         "counts": {"discovered": len(object_ids)},
+        "search_response_sha256": sha256_bytes(serialized_json_bytes(raw_search)),
     }
     write_json(destination / "raw" / "search.json", raw_search)
     write_json(destination / "run.json", run)
@@ -572,7 +573,10 @@ def parse_iso_z(value: str) -> datetime:
 
 def ensure_run_active(root: Path, run_id: str, at: str) -> dict[str, object]:
     run = read_json(run_path(root, run_id) / "run.json")
-    if parse_iso_z(at) >= parse_iso_z(str(run["expires_at"])):
+    checked_at = parse_iso_z(at)
+    if checked_at < parse_iso_z(str(run["created_at"])):
+        raise ValueError("EVIDENCE_INCOMPLETE: action predates the candidate run")
+    if checked_at >= parse_iso_z(str(run["expires_at"])):
         raise ValueError("RUN_EXPIRED: candidate run is older than seven days")
     return run
 
@@ -619,7 +623,12 @@ def approve_candidate(
     }
     write_json(path, record)
     run["state"] = "human-approved"
-    run["approved_candidate"] = candidate_id
+    approved_candidates = run.get("approved_candidates")
+    if not isinstance(approved_candidates, list):
+        approved_candidates = []
+    if candidate_id not in approved_candidates:
+        approved_candidates.append(candidate_id)
+    run["approved_candidates"] = approved_candidates
     write_json(run_path(root, run_id) / "run.json", run)
     return record
 
@@ -637,7 +646,10 @@ def reject_candidate(
     if reason not in REJECTION_CODES or reason == "STATE_TRANSITION_INVALID":
         raise ValueError(f"unknown rejection reason: {reason}")
     validate_reviewer(reviewer)
-    ensure_run_active(root, run_id, reviewed_at)
+    run = read_json(run_path(root, run_id) / "run.json")
+    reviewed = parse_iso_z(reviewed_at)
+    if reviewed < parse_iso_z(str(run["created_at"])):
+        raise ValueError("EVIDENCE_INCOMPLETE: review predates the candidate run")
     path = candidate_path(root, run_id, candidate_id)
     record = read_json(path)
     if record.get("state") not in {"discovered", "fetched", "machine-passed", "human-approved"}:
@@ -659,6 +671,18 @@ def reject_candidate(
     )
     record["human_review"] = human_review
     write_json(path, record)
+    rejected_candidates = run.get("rejected_candidates")
+    if not isinstance(rejected_candidates, list):
+        rejected_candidates = []
+    if candidate_id not in rejected_candidates:
+        rejected_candidates.append(candidate_id)
+    run["rejected_candidates"] = rejected_candidates
+    approved_candidates = run.get("approved_candidates")
+    if isinstance(approved_candidates, list):
+        run["approved_candidates"] = [
+            value for value in approved_candidates if value != candidate_id
+        ]
+    write_json(run_path(root, run_id) / "run.json", run)
     return record
 
 
@@ -681,14 +705,14 @@ def generate_gallery(root: Path, run_id: str) -> Path:
         source_url = html.escape(str(source.get("object_url", "")), quote=True)
         approve_command = (
             f"python3 tools/demo-media.py approve --run {quote(run_id)} "
-            f"--candidate {quote(candidate_id)} --reviewer github:2278091160dg-rgb "
+            f"--candidate {quote(candidate_id)} --reviewer github:YOUR-HANDLE "
             "--no-person --no-logo --no-watermark --physical-garment --not-sensitive "
             f"--confirm {quote(APPROVAL_CONFIRMATION)}"
         )
         reject_command = (
             f"python3 tools/demo-media.py reject --run {quote(run_id)} "
             f"--candidate {quote(candidate_id)} --reason LOGO_OR_TRADEMARK "
-            "--reviewer github:2278091160dg-rgb"
+            "--reviewer github:YOUR-HANDLE"
         )
         reasons = record.get("machine_audit", {}).get("reason_codes", [])
         cards.append(
@@ -725,6 +749,7 @@ a:focus{{outline:3px solid #005fcc}} .missing{{padding:2rem;background:#eee}}
 <a href="#candidates">Skip to candidates</a>
 <h1>ThreadTruth Studio · local rights review</h1>
 <p>Run {html.escape(run_id)} · query {html.escape(str(run.get('query', '')))}. This local page does not approve media.</p>
+<p>Replace <code>github:YOUR-HANDLE</code> with the public handle of the person who actually performs the review.</p>
 <main id="candidates">{''.join(cards)}</main>
 </body></html>
 """
@@ -742,6 +767,10 @@ def validate_human_approval(record: dict[str, object]) -> list[str]:
         findings.append("HUMAN_REVIEW_INCOMPLETE")
     if review.get("confirmation") != APPROVAL_CONFIRMATION:
         findings.append("HUMAN_REVIEW_INCOMPLETE")
+    try:
+        parse_iso_z(str(review.get("reviewed_at", "")))
+    except ValueError:
+        findings.append("HUMAN_REVIEW_INCOMPLETE")
     checks = review.get("checks")
     if not isinstance(checks, dict) or any(checks.get(name) is not True for name in REVIEW_CHECKS):
         findings.append("HUMAN_REVIEW_INCOMPLETE")
@@ -753,12 +782,24 @@ def validate_human_approval(record: dict[str, object]) -> list[str]:
 
 
 def promotion_evidence_findings(
-    record: dict[str, object], image_data: bytes, current_item: dict[str, object]
+    record: dict[str, object],
+    image_data: bytes,
+    current_item: dict[str, object],
+    *,
+    promoted_at: str,
 ) -> list[str]:
     findings = validate_human_approval(record)
     source = record.get("source") if isinstance(record.get("source"), dict) else {}
     license_record = record.get("license") if isinstance(record.get("license"), dict) else {}
     asset = record.get("asset") if isinstance(record.get("asset"), dict) else {}
+    review = record.get("human_review") if isinstance(record.get("human_review"), dict) else {}
+    try:
+        if parse_iso_z(str(review.get("reviewed_at", ""))) > parse_iso_z(
+            promoted_at
+        ):
+            findings.append("HUMAN_REVIEW_INCOMPLETE")
+    except ValueError:
+        findings.append("HUMAN_REVIEW_INCOMPLETE")
     object_id = source.get("object_id")
     if not isinstance(object_id, int):
         findings.append("EVIDENCE_INCOMPLETE")
@@ -816,9 +857,7 @@ def build_public_rights_record(
             "api_url": source["api_url"],
             "primary_image_url": source["primary_image_url"],
             "metadata_sha256_at_discovery": source["raw_metadata_sha256"],
-            "metadata_sha256_at_promotion": sha256_bytes(
-                canonical_json_bytes(current_item)
-            ),
+            "metadata_sha256_at_promotion": sha256_bytes(serialized_json_bytes(current_item)),
         },
         "source_license": {
             "id": CC0_ID,
@@ -838,7 +877,11 @@ def build_public_rights_record(
             "width": asset["width"],
             "height": asset["height"],
         },
-        "human_review": record["human_review"],
+        "human_review": {
+            key: value
+            for key, value in record["human_review"].items()
+            if key != "note"
+        },
         "promoted_at": promoted_at,
         "notices": [
             "This project is not endorsed by The Metropolitan Museum of Art.",
@@ -929,8 +972,30 @@ def promote_candidate(
     source = record.get("source")
     if not isinstance(source, dict) or not isinstance(source.get("object_id"), int):
         raise ValueError("EVIDENCE_INCOMPLETE: source object id is missing")
+    expected_candidate_id = f"met-{source['object_id']}"
+    if candidate_id != expected_candidate_id or record.get("candidate_id") != candidate_id:
+        raise ValueError("OBJECT_ID_MISMATCH: candidate id does not match source object id")
+    discovery_path = run_path(root, run_id) / "raw" / f"{candidate_id}.json"
+    try:
+        discovery_bytes = discovery_path.read_bytes()
+        discovery_item = json.loads(discovery_bytes)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError("EVIDENCE_INCOMPLETE: discovery metadata is unreadable") from exc
+    if source.get("raw_metadata_sha256") != sha256_bytes(discovery_bytes):
+        raise ValueError("EVIDENCE_INCOMPLETE: discovery metadata hash does not match")
+    for source_key, discovery_key in (
+        ("object_id", "objectID"),
+        ("object_url", "objectURL"),
+        ("primary_image_url", "primaryImage"),
+        ("department", "department"),
+        ("is_public_domain", "isPublicDomain"),
+    ):
+        if source.get(source_key) != discovery_item.get(discovery_key):
+            raise ValueError("EVIDENCE_INCOMPLETE: discovery metadata record drifted")
     current_item = client.get_object(source["object_id"])
-    findings = promotion_evidence_findings(record, image_data, current_item)
+    findings = promotion_evidence_findings(
+        record, image_data, current_item, promoted_at=promoted_at
+    )
     if findings:
         if "SOURCE_METADATA_CHANGED" in findings:
             reject_record(record, ["SOURCE_METADATA_CHANGED"])
@@ -953,6 +1018,29 @@ def promote_candidate(
             != rights["asset"]["sha256"]
         ):
             raise FileExistsError(f"public case collision: {case_id}")
+        if record.get("state") == "human-approved":
+            validate_transition("human-approved", "promoted")
+        elif record.get("state") != "promoted":
+            raise ValueError(
+                f"STATE_TRANSITION_INVALID: {record.get('state')} -> promoted"
+            )
+        record["state"] = "promoted"
+        record["public_case"] = {
+            "case_id": case_id,
+            "relative_path": f"docs/demo/cases/{case_id}",
+            "promoted_at": existing.get("promoted_at"),
+        }
+        write_json(path, record)
+        run = read_json(run_path(root, run_id) / "run.json")
+        run["state"] = "promoted"
+        promoted_cases = run.get("promoted_cases")
+        if not isinstance(promoted_cases, list):
+            promoted_cases = []
+        if case_id not in promoted_cases:
+            promoted_cases.append(case_id)
+        run["promoted_cases"] = promoted_cases
+        write_json(run_path(root, run_id) / "run.json", run)
+        render_rights_index(root)
         return existing
 
     public_case_root(root).mkdir(parents=True, exist_ok=True)
@@ -977,7 +1065,12 @@ def promote_candidate(
     write_json(path, record)
     run = read_json(run_path(root, run_id) / "run.json")
     run["state"] = "promoted"
-    run["promoted_case"] = case_id
+    promoted_cases = run.get("promoted_cases")
+    if not isinstance(promoted_cases, list):
+        promoted_cases = []
+    if case_id not in promoted_cases:
+        promoted_cases.append(case_id)
+    run["promoted_cases"] = promoted_cases
     write_json(run_path(root, run_id) / "run.json", run)
     render_rights_index(root)
     return rights
@@ -985,12 +1078,42 @@ def promote_candidate(
 
 def validate_public_cases(root: Path) -> list[str]:
     findings: list[str] = []
+    demo_root = root.resolve() / "docs" / "demo"
     cases_root = public_case_root(root)
-    if not cases_root.exists():
-        return findings
-    for case_dir in sorted(path for path in cases_root.iterdir() if path.is_dir()):
+    if demo_root.exists():
+        for entry in sorted(demo_root.iterdir()):
+            if entry.is_symlink():
+                findings.append(f"{entry.name}: symlinks are forbidden")
+            elif entry.is_file() and entry.name not in DEMO_ROOT_FILES:
+                findings.append(f"{entry.name}: unregistered demo artifact")
+            elif entry.is_dir() and entry.name != "cases":
+                findings.append(f"{entry.name}: unregistered demo directory")
+    cases_available = cases_root.is_dir() and not cases_root.is_symlink()
+    if cases_available:
+        for entry in sorted(cases_root.iterdir()):
+            if entry.is_symlink():
+                findings.append(f"{entry.name}: symlinks are forbidden")
+            elif entry.is_file():
+                findings.append(f"{entry.name}: unregistered case entry")
+    case_dirs = (
+        sorted(
+            path
+            for path in cases_root.iterdir()
+            if path.is_dir() and not path.is_symlink()
+        )
+        if cases_available
+        else []
+    )
+    for case_dir in case_dirs:
         required = ("source.jpg", "source-metadata.json", "rights.json", "README.md")
         case_findings: list[str] = []
+        for entry in sorted(case_dir.iterdir()):
+            if entry.is_symlink():
+                case_findings.append(f"{case_dir.name}/{entry.name}: symlinks are forbidden")
+            elif not entry.is_file() or entry.name not in PUBLIC_CASE_FILES:
+                case_findings.append(
+                    f"{case_dir.name}/{entry.name}: unregistered demo case artifact"
+                )
         for name in required:
             if not (case_dir / name).is_file():
                 case_findings.append(f"{case_dir.name}: missing {name}")
@@ -1015,6 +1138,18 @@ def validate_public_cases(root: Path) -> list[str]:
         )
         if review_findings:
             findings.append(f"{case_dir.name}: human review evidence is incomplete")
+        try:
+            public_review = rights.get("human_review")
+            reviewed_time = parse_iso_z(
+                str(public_review.get("reviewed_at", ""))
+                if isinstance(public_review, dict)
+                else ""
+            )
+            promoted_time = parse_iso_z(str(rights.get("promoted_at", "")))
+            if reviewed_time > promoted_time:
+                findings.append(f"{case_dir.name}: human review postdates promotion")
+        except (AttributeError, ValueError):
+            findings.append(f"{case_dir.name}: review or promotion timestamp is invalid")
         for key in ("source_license", "media_license"):
             license_record = rights.get(key)
             if (
@@ -1027,11 +1162,15 @@ def validate_public_cases(root: Path) -> list[str]:
         if not isinstance(asset, dict) or asset.get("sha256") != sha256_bytes(image_data):
             findings.append(f"{case_dir.name}: source image hash does not match rights.json")
         else:
+            if len(image_data) > MAX_IMAGE_BYTES:
+                findings.append(f"{case_dir.name}: source image exceeds 50 MiB")
             try:
                 width, height = jpeg_dimensions(image_data)
             except ValueError:
                 findings.append(f"{case_dir.name}: source image is not a valid JPEG")
             else:
+                if max(width, height) < MIN_LONG_EDGE:
+                    findings.append(f"{case_dir.name}: source image is too small")
                 if (
                     asset.get("path") != "source.jpg"
                     or asset.get("mime") != "image/jpeg"
@@ -1050,7 +1189,7 @@ def validate_public_cases(root: Path) -> list[str]:
             findings.append(f"{case_dir.name}: source URL metadata mismatch")
         if not isinstance(source, dict) or source.get(
             "metadata_sha256_at_promotion"
-        ) != sha256_bytes(canonical_json_bytes(metadata)):
+        ) != sha256_bytes((case_dir / "source-metadata.json").read_bytes()):
             findings.append(f"{case_dir.name}: promotion metadata hash does not match")
         if metadata.get("isPublicDomain") is not True:
             findings.append(f"{case_dir.name}: source metadata is not public domain")
@@ -1126,25 +1265,76 @@ def audit_download(
     return candidate
 
 
+def parse_jpeg_quantization_tables(payload: bytes) -> set[int]:
+    table_ids: set[int] = set()
+    cursor = 0
+    while cursor < len(payload):
+        table_info = payload[cursor]
+        cursor += 1
+        precision = table_info >> 4
+        table_id = table_info & 0x0F
+        if precision not in {0, 1} or table_id > 3:
+            raise ValueError("IMAGE_CORRUPT: invalid JPEG quantization table")
+        table_size = 64 * (precision + 1)
+        if cursor + table_size > len(payload):
+            raise ValueError("IMAGE_CORRUPT: truncated JPEG quantization table")
+        raw_values = payload[cursor : cursor + table_size]
+        values = (
+            [
+                int.from_bytes(raw_values[index : index + 2], "big")
+                for index in range(0, table_size, 2)
+            ]
+            if precision == 1
+            else list(raw_values)
+        )
+        if any(value == 0 for value in values):
+            raise ValueError("IMAGE_CORRUPT: zero JPEG quantization value")
+        table_ids.add(table_id)
+        cursor += table_size
+    if not table_ids:
+        raise ValueError("IMAGE_CORRUPT: empty JPEG quantization segment")
+    return table_ids
+
+
+def parse_jpeg_huffman_tables(payload: bytes) -> tuple[set[int], set[int]]:
+    dc_tables: set[int] = set()
+    ac_tables: set[int] = set()
+    cursor = 0
+    while cursor < len(payload):
+        if cursor + 17 > len(payload):
+            raise ValueError("IMAGE_CORRUPT: truncated JPEG Huffman table")
+        table_info = payload[cursor]
+        cursor += 1
+        table_class = table_info >> 4
+        table_id = table_info & 0x0F
+        if table_class not in {0, 1} or table_id > 3:
+            raise ValueError("IMAGE_CORRUPT: invalid JPEG Huffman table selector")
+        counts = payload[cursor : cursor + 16]
+        cursor += 16
+        symbol_count = sum(counts)
+        if symbol_count == 0 or cursor + symbol_count > len(payload):
+            raise ValueError("IMAGE_CORRUPT: empty or truncated JPEG Huffman table")
+        remaining_codes = 1
+        for count in counts:
+            remaining_codes = remaining_codes * 2 - count
+            if remaining_codes < 0:
+                raise ValueError("IMAGE_CORRUPT: oversubscribed JPEG Huffman table")
+        cursor += symbol_count
+        (dc_tables if table_class == 0 else ac_tables).add(table_id)
+    return dc_tables, ac_tables
+
+
 def jpeg_dimensions(data: bytes) -> tuple[int, int]:
     if len(data) < 4 or data[:2] != b"\xff\xd8":
         raise ValueError("IMAGE_CORRUPT: missing JPEG SOI marker")
     offset = 2
-    sof_markers = {
-        0xC0,
-        0xC1,
-        0xC2,
-        0xC3,
-        0xC5,
-        0xC6,
-        0xC7,
-        0xC9,
-        0xCA,
-        0xCB,
-        0xCD,
-        0xCE,
-        0xCF,
-    }
+    dimensions: tuple[int, int] | None = None
+    sampling: list[tuple[int, int]] = []
+    frame_component_ids: set[int] = set()
+    frame_quantization_ids: set[int] = set()
+    quantization_tables: set[int] = set()
+    dc_huffman_tables: set[int] = set()
+    ac_huffman_tables: set[int] = set()
     while offset < len(data):
         if data[offset] != 0xFF:
             offset += 1
@@ -1155,25 +1345,147 @@ def jpeg_dimensions(data: bytes) -> tuple[int, int]:
             break
         marker = data[offset]
         offset += 1
-        if marker in {0xD8, 0xD9}:
-            continue
-        if marker == 0xDA:
+        if marker == 0xD9:
             break
+        if marker == 0xD8 or marker == 0x01 or 0xD0 <= marker <= 0xD7:
+            continue
         if offset + 2 > len(data):
             break
         segment_length = int.from_bytes(data[offset : offset + 2], "big")
         if segment_length < 2 or offset + segment_length > len(data):
             break
-        if marker in sof_markers:
-            if segment_length < 7:
+        payload = data[offset + 2 : offset + segment_length]
+        if marker == 0xDB:
+            quantization_tables.update(parse_jpeg_quantization_tables(payload))
+        elif marker == 0xC4:
+            dc_tables, ac_tables = parse_jpeg_huffman_tables(payload)
+            dc_huffman_tables.update(dc_tables)
+            ac_huffman_tables.update(ac_tables)
+        if marker == 0xDA:
+            if not payload:
+                break
+            scan_component_count = payload[0]
+            if (
+                scan_component_count != len(frame_component_ids)
+                or len(payload) != 1 + scan_component_count * 2 + 3
+            ):
+                break
+            scan_component_ids: set[int] = set()
+            scan_tables_valid = True
+            for scan_index in range(scan_component_count):
+                component_id = payload[1 + scan_index * 2]
+                table_selector = payload[2 + scan_index * 2]
+                if (
+                    component_id not in frame_component_ids
+                    or table_selector >> 4 not in dc_huffman_tables
+                    or table_selector & 0x0F not in ac_huffman_tables
+                ):
+                    scan_tables_valid = False
+                    break
+                scan_component_ids.add(component_id)
+            spectral = payload[-3:]
+            if (
+                not scan_tables_valid
+                or scan_component_ids != frame_component_ids
+                or spectral != b"\x00\x3f\x00"
+                or not frame_quantization_ids.issubset(quantization_tables)
+            ):
+                break
+            scan_start = offset + segment_length
+            entropy_bytes = 0
+            cursor = scan_start
+            while cursor + 1 < len(data):
+                if data[cursor] != 0xFF:
+                    entropy_bytes += 1
+                    cursor += 1
+                    continue
+                following = data[cursor + 1]
+                if following == 0x00:
+                    entropy_bytes += 1
+                    cursor += 2
+                    continue
+                if 0xD0 <= following <= 0xD7:
+                    cursor += 2
+                    continue
+                if following == 0xD9:
+                    if (
+                        dimensions is None
+                        or not sampling
+                        or not quantization_tables
+                        or not dc_huffman_tables
+                        or not ac_huffman_tables
+                    ):
+                        break
+                    width, height = dimensions
+                    max_horizontal = max(value[0] for value in sampling)
+                    max_vertical = max(value[1] for value in sampling)
+                    mcus_across = (width + 8 * max_horizontal - 1) // (
+                        8 * max_horizontal
+                    )
+                    mcus_down = (height + 8 * max_vertical - 1) // (
+                        8 * max_vertical
+                    )
+                    blocks_per_mcu = sum(
+                        horizontal * vertical for horizontal, vertical in sampling
+                    )
+                    minimum_entropy_bits = mcus_across * mcus_down * blocks_per_mcu * 2
+                    if entropy_bytes * 8 >= minimum_entropy_bits:
+                        return dimensions
+                    break
+                break
+            break
+        if marker == 0xC0:
+            if segment_length < 11 or data[offset + 2] != 8:
                 break
             height = int.from_bytes(data[offset + 3 : offset + 5], "big")
             width = int.from_bytes(data[offset + 5 : offset + 7], "big")
-            if width > 0 and height > 0:
-                return width, height
+            component_count = data[offset + 7]
+            if (
+                width <= 0
+                or height == 0
+                or component_count not in {1, 3, 4}
+                or segment_length != 8 + component_count * 3
+            ):
+                break
+            sampling = []
+            frame_component_ids = set()
+            frame_quantization_ids = set()
+            for component_index in range(component_count):
+                component_id = data[offset + 8 + component_index * 3]
+                sample_byte = data[offset + 9 + component_index * 3]
+                quantization_id = data[offset + 10 + component_index * 3]
+                horizontal = sample_byte >> 4
+                vertical = sample_byte & 0x0F
+                if (
+                    horizontal == 0
+                    or vertical == 0
+                    or component_id in frame_component_ids
+                    or quantization_id > 3
+                ):
+                    sampling = []
+                    break
+                frame_component_ids.add(component_id)
+                frame_quantization_ids.add(quantization_id)
+                sampling.append((horizontal, vertical))
+            if sampling:
+                dimensions = (width, height)
+        elif marker in {
+            0xC1,
+            0xC2,
+            0xC3,
+            0xC5,
+            0xC6,
+            0xC7,
+            0xC9,
+            0xCA,
+            0xCB,
+            0xCD,
+            0xCE,
+            0xCF,
+        }:
             break
         offset += segment_length
-    raise ValueError("IMAGE_CORRUPT: JPEG SOF dimensions are missing")
+    raise ValueError("IMAGE_CORRUPT: complete baseline JPEG evidence is missing")
 
 
 def prune_expired_runs(root: Path, *, now: datetime | None = None) -> list[str]:
