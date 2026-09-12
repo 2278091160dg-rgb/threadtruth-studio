@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/2278091160dg-rgb/threadtruth-studio/raw/main/docs/demo/rights-v1.schema.json",
+  "title": "ThreadTruth Studio promoted demo rights record v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "case_id",
+    "candidate_id",
+    "status",
+    "role",
+    "primary_demo_status",
+    "source",
+    "source_license",
+    "media_license",
+    "asset",
+    "human_review",
+    "promoted_at",
+    "notices"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "case_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$" },
+    "candidate_id": { "type": "string", "pattern": "^met-[1-9][0-9]*$" },
+    "status": { "const": "promoted" },
+    "role": { "const": "auxiliary" },
+    "primary_demo_status": { "const": "sample-blocked" },
+    "source": {
+      "type": "object",
+      "required": ["provider", "object_id", "object_url", "api_url", "primary_image_url", "metadata_sha256_at_discovery", "metadata_sha256_at_promotion"],
+      "properties": {
+        "provider": { "const": "The Metropolitan Museum of Art Open Access" },
+        "object_id": { "type": "integer", "minimum": 1 },
+        "object_url": { "type": "string", "format": "uri" },
+        "api_url": { "type": "string", "format": "uri" },
+        "primary_image_url": { "type": "string", "format": "uri" },
+        "metadata_sha256_at_discovery": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "metadata_sha256_at_promotion": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "source_license": { "$ref": "#/$defs/cc0" },
+    "media_license": { "$ref": "#/$defs/cc0" },
+    "asset": {
+      "type": "object",
+      "required": ["path", "sha256", "mime", "bytes", "width", "height"],
+      "properties": {
+        "path": { "const": "source.jpg" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "mime": { "const": "image/jpeg" },
+        "bytes": { "type": "integer", "minimum": 1, "maximum": 52428800 },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "human_review": { "type": "object" },
+    "promoted_at": { "type": "string", "format": "date-time" },
+    "notices": { "type": "array", "minItems": 3, "items": { "type": "string" } }
+  },
+  "$defs": {
+    "cc0": {
+      "type": "object",
+      "required": ["id", "url"],
+      "properties": {
+        "id": { "const": "CC0-1.0" },
+        "url": { "const": "https://creativecommons.org/publicdomain/zero/1.0/" }
+      }
+    }
+  }
+}

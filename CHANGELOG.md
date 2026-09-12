@@ -31,6 +31,7 @@ System Skill validation, official Plugin validation, production strict/runtime c
 - Allowlist release builder, repository contract tests, CI, community files, and Beta evidence templates.
 - Competitive boundary and Codex for Open Source readiness packet.
 - Public GitHub repository, passing GitHub Actions, and a privacy-safe local lifecycle verification record.
+- Development-only The Met Open Access CC0 evidence pipeline with quarantine, machine audit, offline human-review gallery, governed promotion, schemas, and release-time rights validation.
 
 #### Changed
 

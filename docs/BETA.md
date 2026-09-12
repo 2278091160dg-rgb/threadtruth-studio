@@ -8,6 +8,8 @@ The public repository and required CI are active. On the maintainer machine, `1.
 
 This preflight is not a non-maintainer installation, a real workflow case, or the start of the 30-day Beta clock.
 
+Institution-sourced CC0 auxiliary cases are also excluded from the installation and complete-case thresholds. They demonstrate reproducible rights handling only; the maintainer-owned publication-authorized main case remains a separate prerequisite.
+
 ## Exit criteria
 
 - At least five non-maintainer installations.

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import shutil
 import zipfile
@@ -31,6 +32,18 @@ PUBLIC_FILES = (
     "SECURITY.md",
 )
 SOURCE_DIRS = (".codex-plugin", "skills", "docs")
+
+
+def _validate_public_demo(root: Path) -> None:
+    module_path = Path(__file__).with_name("demo_media.py")
+    spec = importlib.util.spec_from_file_location("threadtruth_demo_media", module_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("cannot load public demo rights validator")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    findings = module.validate_public_cases(root)
+    if findings:
+        raise ValueError("public demo rights validation failed:\n" + "\n".join(findings))
 
 
 def _copy_allowlist(root: Path, stage: Path) -> None:
@@ -65,6 +78,7 @@ def _zip_tree(stage: Path, archive: Path) -> None:
 def build_release(root: Path, output_dir: Path) -> tuple[Path, Path]:
     root = root.resolve()
     output_dir = output_dir.resolve()
+    _validate_public_demo(root)
     manifest = json.loads((root / ".codex-plugin" / "plugin.json").read_text())
     version = manifest["version"]
     artifact_name = f"threadtruth-studio-{version}"
