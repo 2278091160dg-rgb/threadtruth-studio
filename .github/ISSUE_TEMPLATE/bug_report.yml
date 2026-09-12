@@ -1,0 +1,48 @@
+name: Bug report
+description: Report a reproducible workflow, routing, QA, or packaging defect
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not upload customer media, secrets, personal data, or private logs.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: 1.0.0-beta.1
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options: [low, medium, high]
+    validations:
+      required: true
+  - type: textarea
+    id: request
+    attributes:
+      label: Sanitized request and input class
+      description: Describe the request and garment category without private media.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected state or behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual state or behavior
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed secrets, private paths, customer content, and unlicensed media.
+          required: true

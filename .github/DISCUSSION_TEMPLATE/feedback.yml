@@ -1,0 +1,32 @@
+title: "Beta feedback: "
+labels: [feedback]
+body:
+  - type: markdown
+    attributes:
+      value: Share opt-in Beta feedback without customer media, private prompts, secrets, or full logs.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: 1.0.0-beta.1
+    validations:
+      required: true
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Workflow stage
+      options: [installation, discovery, recognition, routing, approval, preview, six-image set, QA, upgrade-or-rollback]
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Sanitized outcome
+    validations:
+      required: true
+  - type: checkboxes
+    id: publication
+    attributes:
+      label: Evidence consent
+      options:
+        - label: This sanitized report may be counted in the public Beta register.

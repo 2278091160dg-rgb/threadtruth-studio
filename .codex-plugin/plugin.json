@@ -1,0 +1,28 @@
+{
+  "name": "threadtruth-studio",
+  "version": "1.0.0-beta.1",
+  "description": "Source-faithful fashion portrait production for Codex",
+  "author": {
+    "name": "ThreadTruth Studio Maintainer"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "fashion",
+    "portrait",
+    "ecommerce",
+    "source-faithful",
+    "image-generation"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "ThreadTruth Studio",
+    "shortDescription": "Source-faithful fashion portrait production",
+    "longDescription": "Create six-image apparel portrait sets from a real garment photo with explicit approval, deterministic style routing, and commercial QA.",
+    "developerName": "ThreadTruth Studio Maintainer",
+    "category": "Creative",
+    "capabilities": ["fashion portrait planning", "24-style routing", "commercial QA"],
+    "defaultPrompt": [
+      "Use $threadtruth-studio to inspect my real garment photo, recommend a style, and wait for my explicit generation choice."
+    ]
+  }
+}

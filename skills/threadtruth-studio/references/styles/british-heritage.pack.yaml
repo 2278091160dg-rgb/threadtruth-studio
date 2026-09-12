@@ -1,0 +1,40 @@
+# british-heritage — 英伦传承风(v1 静态批量;纯视觉轴)。
+name: 英伦传承 / British Heritage
+slug: british-heritage
+version: 0.1.0
+maturity: DRAFT
+depends_on_core: ">=1.0"
+
+trigger_words: [英伦传承, 传统英伦, british heritage, heritage tailoring, tweed country, 英式复古]
+suitable_categories: [大衣, 西装, 针织, 衬衫, 风衣, 半裙, 皮具]
+anti_categories: [泳装, 瑜伽服, 机能冲锋衣, cosplay]
+
+visual_language: >
+  british heritage editorial; tweed, wool, countryside tailoring and polished layers only when
+  already present in the garment reference; otherwise express heritage through a restrained
+  aristocratic palette, classic interiors, composed framing and manor-house mood.
+model_persona: reserved confidence, poised refinement, quiet heritage attitude
+
+scenes:
+  - 英式庄园石墙外
+  - 木质壁炉休息室
+  - 阴天草地乡间小路
+  - 复古书房窗边
+  - 深色木门门廊
+  - 秋冬街角石板路
+lighting_palette: 阴天柔光/壁炉暖光,橄榄绿/驼色/深棕低饱和;格纹仅在参考服饰已有时强调
+pose_masters: inherit
+default_mode: C
+
+negative_delta_add: [no royal costume, no stage cosplay, no overdecorated vintage set]
+safety_delta:
+  cannot_relax: true
+  extra_constraints: []
+
+d0_preview: inherit-core
+d1_final: inherit-core
+d3_prompts: inherit-core
+qa_extra: [是否英伦传承底座到位, 参考图已有格纹/材质是否保真且不过度、未有则不新增, 是否避免古装 cosplay]
+
+samples_required: [preview-grid, look-1..6, README]
+evals: repo://evals/styles/british-heritage.json

@@ -1,0 +1,44 @@
+# quiet-luxury — 静奢风/当代低调奢华(Wave 1 第3包)。
+# 🔴 触发词与 old-money「低调奢华」、韩系「安静奢华/性冷淡」严格隔离(吸取 american-street 街头碰撞 + STEP14 L8 教训):
+#    只用独有词,裸「静奢」排除(它是「安静奢华」子串,会被韩系输入误触)。
+name: 静奢风 / Quiet Luxury
+slug: quiet-luxury
+version: 0.1.0
+maturity: DRAFT
+depends_on_core: ">=1.0"
+
+trigger_words: [quiet luxury, quiet-luxury, 静奢风, 静奢穿搭, 当代静奢]
+suitable_categories: [西装, 大衣, 针织, 衬衫, 半裙, 连衣裙, 阔腿裤]
+anti_categories: [冲锋衣, 瑜伽服, cosplay, 工装]
+
+visual_language: >
+  contemporary quiet luxury editorial; cashmere, silk, fine wool and minimal tailoring only when
+  already present in the garment reference; do not add or remove logos; express material-first elegance
+  through light and framing when those garment features are absent,
+  neutral earth tones of greige taupe cream and charcoal, restrained modern affluence,
+  calm refined atmosphere.
+model_persona: composed quiet confidence, understated modern poise, effortless refinement, no flashiness
+
+scenes:
+  - 极简高级公寓与大面积留白
+  - 当代艺术画廊
+  - 极简高级酒店大堂
+  - 落地窗城市天际线室内
+  - 设计师极简工作室
+  - 中性色调棚拍空间
+lighting_palette: 自然光为主,中性大地色低饱和,柔和均匀
+pose_masters: inherit
+default_mode: C
+
+negative_delta_add: [no added or invented visible logos, no added flashy bling, no added loud print, no added streetwear details]
+safety_delta:
+  cannot_relax: true
+  extra_constraints: []
+
+d0_preview: inherit-core
+d1_final: inherit-core
+d3_prompts: inherit-core
+qa_extra: [是否当代极简非复古世家, 参考图材质与已有 logo 是否保真且未发明新 logo, 是否中性大地色到位]
+
+samples_required: [preview-grid, look-1..6, README]
+evals: repo://evals/styles/quiet-luxury.json

@@ -1,0 +1,40 @@
+# athleisure — 运动休闲风(Wave 2 #1;验"加风格=纯数据,零改 core")。
+name: 运动休闲 / Athleisure
+slug: athleisure
+version: 0.1.0
+maturity: DRAFT
+depends_on_core: ">=1.0"
+
+trigger_words: [运动风, 瑜伽, athleisure, 运动休闲, 健身穿搭, sporty chic]
+suitable_categories: [运动套装, 卫衣, 瑜伽裤, legging, 机能夹克, 连帽衫]
+anti_categories: [婚纱, 西装正装, 旗袍, 晚礼服]
+
+visual_language: >
+  clean athletic editorial; sporty silhouette, technical-knit texture and activewear construction
+  only when already present in the garment reference; otherwise express athletic energy through
+  fresh daylight, gym-to-street palette, dynamic composition and relaxed posture.
+model_persona: energetic relaxed expression, healthy easygoing confidence, active composed attitude
+
+scenes:
+  - 城市晨跑滨江步道
+  - 极简健身房落地窗
+  - 瑜伽 studio 木地板
+  - 街区咖啡外带快走
+  - 公园草坪拉伸热身
+  - loft 训练角落
+lighting_palette: 自然日光为主,清爽中性微冷,通透高明度
+pose_masters: inherit
+default_mode: C
+
+negative_delta_add: [no overstyled look, no stiff studio pose, no glamorous evening glam]
+safety_delta:
+  cannot_relax: true
+  extra_constraints: []
+
+d0_preview: inherit-core
+d1_final: inherit-core
+d3_prompts: inherit-core
+qa_extra: [是否运动机能底座到位, 是否避免目录照, 是否清爽通透高明度]
+
+samples_required: [preview-grid, look-1..6, README]
+evals: repo://evals/styles/athleisure.json

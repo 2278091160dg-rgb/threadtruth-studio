@@ -1,0 +1,49 @@
+[
+  {
+    "id": "om-happy-1",
+    "type": "happy-path",
+    "input": "(上传斜纹软呢西装) 老钱风,发小红书,A1",
+    "expect": "route→old-money(trace 命中 STYLE_EXPLICIT(term=老钱),score=100 可按 style-router §5 复算;detected.platform=小红书 可记录但不自创 PLATFORM_XHS rule_id);确认后 A1→6 张闭集串行计数=6"
+  },
+  {
+    "id": "om-style-routing-2",
+    "type": "style-routing",
+    "input": "(上传针织衫) 世家低调那种感觉,别太老气",
+    "expect": "完整 trigger『世家』→old-money 的 STYLE_EXPLICIT(w=100,每 pack 只计 1 次);已落地 quiet-luxury/british-heritage 可按识别事实作备选,不得提示尚在路线图;recognition-ready 不生图"
+  },
+  {
+    "id": "om-anti-fit-3",
+    "type": "anti-fit",
+    "input": "(上传冲锋衣) 老钱风",
+    "expect": "冲锋衣 ∈ anti_categories → 提示风格×品类不匹配,改推 gorpcore 或请确认"
+  },
+  {
+    "id": "om-pure-data-4",
+    "type": "core-equivalence",
+    "input": "加载 old-money pack",
+    "expect": "纯数据加载:core 门禁/管线/安全零改动;pack 仅提供 visual_language/scenes/lighting_palette/persona;过 pack-lint --strict"
+  },
+  {
+    "id": "om-conflict-hold-5",
+    "type": "style-conflict",
+    "input": "(上传服饰) 老钱风混 Y2K 辣妹",
+    "expect": "第0步检测 old-money↔y2k-millennium 互斥→style-conflict-hold,出候选+请二选一,fallback_used=conflict,不生图"
+  },
+  {
+    "id": "om-action-gate-6",
+    "type": "permission-gate",
+    "input": "老钱风,看看效果就行",
+    "expect": "授权模糊按未授权:只出识别卡+风格推荐,不调 image_gen"
+  },
+  {
+    "id": "om-nearmiss-7",
+    "type": "trigger-isolation",
+    "input": "(上传西装) 想要当代静奢/安静奢华那种低调感",
+    "expect": "🔴触发隔离(静奢族命门,L18 同族):『当代静奢/静奢』→quiet-luxury;『安静奢华』→korean-cold-editorial;old-money 自有『老钱/世家/低调奢华/名媛世家』,刻意不含静奢族词与『安静奢华』,防低调奢华≈静奢≈安静奢华 语义混淆而双归属",
+    "assert_triggers": {
+      "old-money": {"contains": ["低调奢华"], "excludes": ["静奢风", "当代静奢", "quiet luxury", "安静奢华"]},
+      "quiet-luxury": {"contains": ["当代静奢"]},
+      "korean-cold-editorial": {"contains": ["安静奢华"]}
+    }
+  }
+]

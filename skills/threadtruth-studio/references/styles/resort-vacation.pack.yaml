@@ -1,0 +1,40 @@
+# resort-vacation — 度假风(v1 静态批量;纯视觉轴)。
+name: 度假 / Resort Vacation
+slug: resort-vacation
+version: 0.1.0
+maturity: DRAFT
+depends_on_core: ">=1.0"
+
+trigger_words: [度假风, resort, 海岛度假, 沙滩度假, resort vacation, 假日度假]
+suitable_categories: [连衣裙, 衬衫, 半裙, 宽松长裤, 草编包, 凉鞋, 泳装罩衫]
+anti_categories: [厚重大衣, 正式西装, 童装泳装, 古装戏服]
+
+visual_language: >
+  resort vacation editorial; breezy silhouette and linen or cotton texture only when already
+  present in the garment reference; otherwise express resort ease through a sunlit coastal palette,
+  airy composition, natural light and calm holiday atmosphere.
+model_persona: relaxed confident ease, serene holiday mood, natural composure
+
+scenes:
+  - 海边白墙酒店
+  - 棕榈树影下
+  - 度假阳台自然光
+  - 沙滩木栈道
+  - 海岛街边小店
+  - 泳池边浅色墙面
+lighting_palette: 光源=明亮海岸日光;方向=侧逆光或棕榈叶间斑驳侧光;阴影=轻盈清晰但不过硬、保留空气感;对比/曝光=明亮通透且高光不溢出,海蓝/沙白/亚麻米/棕榈绿
+pose_masters: inherit
+default_mode: C
+
+negative_delta_add: [no overtly sexualized beach pose, no bedroom setting, no added heavy winter styling beyond the reference garment]
+safety_delta:
+  cannot_relax: true
+  extra_constraints: []
+
+d0_preview: inherit-core
+d1_final: inherit-core
+d3_prompts: inherit-core
+qa_extra: [是否度假底座到位, 是否为海岸侧逆光或斑驳侧光且高光不过曝, 是否露肤非性感化, 是否轻盈通透]
+
+samples_required: [preview-grid, look-1..6, README]
+evals: repo://evals/styles/resort-vacation.json

@@ -1,0 +1,41 @@
+# italian-luxe — 意式奢华风(Wave 2 #3;验"加风格=纯数据,零改 core")。
+name: 意式奢华 / Italian Luxe
+slug: italian-luxe
+version: 0.1.0
+maturity: DRAFT
+depends_on_core: ">=1.0"
+
+trigger_words: [意式奢华, 意式优雅, 米兰风, 意大利风格, italian luxe, italian luxury]
+suitable_categories: [西装, 大衣, 真丝衬衫, 针织, 连衣裙, 皮具, 丝巾]
+anti_categories: [瑜伽服, 冲锋衣, 校服, cosplay]
+
+visual_language: >
+  opulent italian editorial elegance; sprezzatura tailoring and silk, cashmere or leather texture
+  only when already present in the garment reference; otherwise express Italian luxury through a
+  warm rich palette, golden mediterranean light, confident relaxed poise and heritage setting.
+model_persona: confident relaxed poise, understated charisma, composed sophistication
+
+scenes:
+  - 意式古典庭院回廊
+  - 米兰公寓暖调室内
+  - 地中海石墙街巷
+  - 大理石门厅一角
+  - 暖金夕照露台
+  - 古典油画墙前
+
+lighting_palette: 暖金地中海自然光,丰富暖调中高饱和,质感光影
+pose_masters: inherit
+default_mode: C
+
+negative_delta_add: [no overstyled look, no costume cosplay, no glossy commercial retouch]
+safety_delta:
+  cannot_relax: true
+  extra_constraints: []
+
+d0_preview: inherit-core
+d1_final: inherit-core
+d3_prompts: inherit-core
+qa_extra: [是否意式奢华底座到位, 是否避免目录照, 是否暖金质感光影]
+
+samples_required: [preview-grid, look-1..6, README]
+evals: repo://evals/styles/italian-luxe.json

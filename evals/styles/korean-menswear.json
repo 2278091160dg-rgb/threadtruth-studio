@@ -1,0 +1,48 @@
+[
+  {
+    "id": "km-happy-1",
+    "type": "happy-path",
+    "input": "(上传大衣) 韩国男装 korean menswear,A1",
+    "expect": "route→korean-menswear(trace 命中 STYLE_EXPLICIT(term=韩国男装/korean menswear,输入真实出现),score=100,可复算);确认后 A1→6 张闭集"
+  },
+  {
+    "id": "km-style-routing-2",
+    "type": "style-routing",
+    "input": "(上传西装) 想要冷感男装和首尔男装",
+    "expect": "命中 korean-menswear 主推(term=冷感男装/首尔男装→STYLE_EXPLICIT,均 input 字面出现且 §6 注册);recognition-ready 不生图"
+  },
+  {
+    "id": "km-anti-fit-3",
+    "type": "anti-fit",
+    "input": "(上传冲锋衣) 韩式男装",
+    "expect": "机能冲锋衣 ∈ anti_categories → 提示不匹配"
+  },
+  {
+    "id": "km-pure-data-4",
+    "type": "core-equivalence",
+    "input": "加载 korean-menswear pack",
+    "expect": "纯数据加载:pack 只管视觉轴;cannot_relax=true"
+  },
+  {
+    "id": "km-action-gate-5",
+    "type": "permission-gate",
+    "input": "韩式男装,先推荐一下",
+    "expect": "授权模糊按未授权:不调 image_gen"
+  },
+  {
+    "id": "km-nearmiss-6",
+    "type": "trigger-isolation",
+    "input": "(上传宽松衬衫) 都市男孩 casual menswear",
+    "expect": "触发隔离:都市男孩/casual menswear→cityboy,不落 korean-menswear",
+    "assert_triggers": {
+      "cityboy": {"contains": ["都市男孩"]},
+      "korean-menswear": {"contains": ["韩国男装"], "excludes": ["都市男孩", "宽松男装", "casual menswear"]}
+    }
+  },
+  {
+    "id": "km-lighting-7",
+    "type": "lighting-signature",
+    "input": "(上传黑色大衣) korean menswear,C3",
+    "expect": "STYLE_VISUAL 保留冷灰城市自然光/柔棚光→侧上方/玻璃漫射侧光→窄而柔的线条阴影→中低对比略压高光;不得把阴影误写成新廓形或把黑色大衣改成冷灰色"
+  }
+]

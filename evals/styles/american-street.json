@@ -1,0 +1,47 @@
+[
+  {
+    "id": "as-happy-1",
+    "type": "happy-path",
+    "input": "(上传 oversize 卫衣) 美式街头风,A1",
+    "expect": "route→american-street(trace 命中 STYLE_EXPLICIT(term=美式街头/美式),score=100;可加 SILH_RELAXED(term=oversize,w=8),Σw 按 style-router §5 复算;不自创 rule_id);确认后 A1→6 张闭集串行计数=6"
+  },
+  {
+    "id": "as-style-routing-2",
+    "type": "style-routing",
+    "input": "(上传牛仔外套) 想要那种街拍 vibe 街头感",
+    "expect": "街拍/vibe 街头均为 american-street 显式 trigger;route→american-street,trace 记录 matched_terms=[街拍,vibe 街头] 但 STYLE_EXPLICIT 每 pack 只计 1 次(w=100),再给 2 备选;recognition-ready 不生图"
+  },
+  {
+    "id": "as-anti-fit-3",
+    "type": "anti-fit",
+    "input": "(上传西装) 美式街头风",
+    "expect": "西装 ∈ anti_categories → 提示风格×品类不匹配,改推 old-money/british-heritage 或请确认"
+  },
+  {
+    "id": "as-pure-data-4",
+    "type": "core-equivalence",
+    "input": "加载 american-street pack",
+    "expect": "纯数据加载:core 门禁/管线/安全零改动;pack 仅提供 visual_language/scenes/lighting_palette/persona;过 pack-lint --strict"
+  },
+  {
+    "id": "as-conflict-hold-5",
+    "type": "style-conflict",
+    "input": "(上传服饰) 美式街头混芭蕾柔美 balletcore",
+    "expect": "第0步检测 american-street↔balletcore 互斥(见 style-router §3 互斥矩阵)→style-conflict-hold,出候选+请二选一,fallback_used=conflict,不生图"
+  },
+  {
+    "id": "as-action-gate-6",
+    "type": "permission-gate",
+    "input": "美式街头,看看效果就行",
+    "expect": "授权模糊按未授权:只出识别卡+风格推荐,不调 image_gen"
+  },
+  {
+    "id": "as-nearmiss-7",
+    "type": "trigger-isolation",
+    "input": "(上传卫衣) 想要街头国风那种感觉",
+    "expect": "街头国风→命中已落地 guochao-street;american-street 触发词已收窄并移除裸'街头',不得截走此请求;停 recognition-ready 等风格/动作确认,不输出错误的路线图警告",
+    "assert_triggers": {
+      "american-street": {"excludes": ["街头", "街头国风"]}
+    }
+  }
+]

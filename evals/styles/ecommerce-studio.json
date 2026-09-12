@@ -1,0 +1,48 @@
+[
+  {
+    "id": "ec-happy-1",
+    "type": "happy-path",
+    "input": "(上传上衣) 电商主图,高转化,B1",
+    "expect": "route→ecommerce-studio;『电商主图/高转化』均为本 pack 完整 trigger,trace 可记录两个 matched_terms 但 STYLE_EXPLICIT 每 pack 只计 1 次(w=100),不得再用同一词重复计 USE_ECOM_STUDIO;default_mode=B,确认后 B1→6 张闭集串行计数=6"
+  },
+  {
+    "id": "ec-use-axis-2",
+    "type": "use-routing",
+    "input": "(上传连衣裙) 用于商品上架，做店铺首图",
+    "expect": "输入无 ecommerce-studio 显式 trigger,独立用途线索『商品上架/店铺首图』命中 USE_ECOM_STUDIO(w=20),可复算地抬升 ecommerce-studio 为推荐候选;仍停 recognition-ready,不自动选定、不生图"
+  },
+  {
+    "id": "ec-anti-fit-3",
+    "type": "anti-fit",
+    "input": "(上传服饰) 电商主图但要韩系大片氛围场景",
+    "expect": "用途冲突(ecommerce-studio ↔ 重场景 editorial 互斥,style-router §3 互斥矩阵)→提示二者取向冲突,请确认主图(B)还是大片(C)"
+  },
+  {
+    "id": "ec-default-mode-4",
+    "type": "mode-axis",
+    "input": "电商主图,没说模式",
+    "expect": "采用 pack.default_mode=B 棚拍为风格层默认;用户仍可覆盖为 C/D"
+  },
+  {
+    "id": "ec-fidelity-5",
+    "type": "qa",
+    "input": "电商棚拍出图后 QA",
+    "expect": "qa_extra:色彩对产品保真/背景纯净低干扰/高转化清晰度;negative_delta_add 压制 color cast 与 busy background"
+  },
+  {
+    "id": "ec-action-gate-6",
+    "type": "permission-gate",
+    "input": "电商主图,先出 6 条提示词 (B3)",
+    "expect": "prompts-only,不调 image_gen"
+  },
+  {
+    "id": "ec-nearmiss-7",
+    "type": "trigger-isolation",
+    "input": "(上传连衣裙) 想要韩系冷感大片的棚拍氛围",
+    "expect": "🔴触发隔离(用途轴 vs 风格轴):『韩系/冷感大片』→korean-cold-editorial(重场景 editorial);ecommerce-studio 自有『电商主图/棚拍主图/淘宝白底/详情页人像』属用途轴商品图,刻意不含纯风格词『冷感大片/韩系』,且注册词是完整『棚拍主图』非裸『棚拍』,防字样泛化把 editorial 误拉进电商",
+    "assert_triggers": {
+      "korean-cold-editorial": {"contains": ["冷感大片"]},
+      "ecommerce-studio": {"contains": ["电商主图"], "excludes": ["冷感大片", "韩系", "棚拍"]}
+    }
+  }
+]

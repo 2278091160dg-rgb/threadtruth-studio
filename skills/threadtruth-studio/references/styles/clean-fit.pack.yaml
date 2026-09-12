@@ -1,0 +1,40 @@
+# clean-fit — 极简基础风(Wave 2 #2;验"加风格=纯数据,零改 core")。
+name: 极简基础 / Clean Fit
+slug: clean-fit
+version: 0.1.0
+maturity: DRAFT
+depends_on_core: ">=1.0"
+
+trigger_words: [极简基础, clean fit, 基础款, 简约基础, 极简版型, minimal basic]
+suitable_categories: [衬衫, 针织, 西装, 半裙, 连衣裙, 风衣, T恤]
+anti_categories: [婚纱, cosplay, 古装, 演出服]
+
+visual_language: >
+  clean minimal editorial; refined essential silhouette and basics styling only when already
+  present in the garment reference; otherwise express clean-fit restraint through a neutral
+  cool-toned palette, uncluttered studio-to-daylight light and calm composed framing.
+model_persona: calm composed expression, quiet confidence, understated easy attitude
+
+scenes:
+  - 极简纯色背景墙
+  - 落地窗自然光室内
+  - 水泥灰极简空间
+  - 白墙画廊一角
+  - 原木桌前静物感
+  - 街边干净立面
+lighting_palette: 光源=大窗自然光或大面积柔棚光;方向=正侧方均匀包裹光;阴影=浅而整洁、无硬边;对比/曝光=低对比偏高调,冷中性低饱和、干净通透
+pose_masters: inherit
+default_mode: C
+
+negative_delta_add: [no overstyled look, no busy background, no glossy commercial retouch]
+safety_delta:
+  cannot_relax: true
+  extra_constraints: []
+
+d0_preview: inherit-core
+d1_final: inherit-core
+d3_prompts: inherit-core
+qa_extra: [是否极简基础底座到位, 是否避免目录照, 是否为低对比包裹光且冷中性干净通透]
+
+samples_required: [preview-grid, look-1..6, README]
+evals: repo://evals/styles/clean-fit.json

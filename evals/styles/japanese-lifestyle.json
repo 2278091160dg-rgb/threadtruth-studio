@@ -1,0 +1,58 @@
+[
+  {
+    "id": "jl-happy-1",
+    "type": "happy-path",
+    "input": "(上传棉麻连衣裙) 日系生活感,A1",
+    "expect": "route→japanese-lifestyle(trace 命中 STYLE_EXPLICIT(term=日系/日系生活),score=100,可按 style-router §5 复算;不自创 rule_id);确认后 A1→6 张闭集串行计数=6"
+  },
+  {
+    "id": "jl-style-routing-2",
+    "type": "style-routing",
+    "input": "(上传针织衫) 想要那种无印风的日常感",
+    "expect": "完整 trigger『无印风』→japanese-lifestyle 的 STYLE_EXPLICIT(w=100,每 pack 只计 1 次);已落地 french-effortless/clean-fit 可按识别事实作备选,不得提示尚在路线图;recognition-ready 不生图"
+  },
+  {
+    "id": "jl-anti-fit-3",
+    "type": "anti-fit",
+    "input": "(上传婚纱) 日系",
+    "expect": "婚纱 ∈ anti_categories → 提示风格×品类不匹配(日系生活感不适配婚纱礼服),请确认或改推"
+  },
+  {
+    "id": "jl-pure-data-4",
+    "type": "core-equivalence",
+    "input": "加载 japanese-lifestyle pack",
+    "expect": "纯数据加载:core 门禁/管线/安全 R1–R7 零改动;pack 仅提供 visual_language/scenes/lighting_palette/persona;negative_delta_add 只 append、cannot_relax=true;过 pack-lint --strict"
+  },
+  {
+    "id": "jl-action-gate-5",
+    "type": "permission-gate",
+    "input": "日系,先看看效果就行",
+    "expect": "授权模糊按未授权:只出识别卡+风格推荐,不调 image_gen(沿用 core permission gate,pack 不放宽)"
+  },
+  {
+    "id": "jl-nearmiss-6",
+    "type": "trigger-isolation",
+    "input": "(上传大衣) 想要韩系 W Korea 那种冷感大片",
+    "expect": "🔴触发隔离:『韩系/W Korea/冷感』→korean-cold-editorial,不得落 japanese-lifestyle;日系≠韩系(暖调自然光生活感 vs 冷感杂志大片),无子串截断",
+    "assert_triggers": {
+      "korean-cold-editorial": {"contains": ["韩系"]},
+      "japanese-lifestyle": {"excludes": ["韩系"]}
+    }
+  },
+  {
+    "id": "jl-nearmiss-7",
+    "type": "trigger-isolation",
+    "input": "(上传衬衫) 日系简约男装 / 通勤日系穿搭",
+    "expect": "🔴触发隔离(依赖完整多字 trigger,禁止裸子串推断):『日系简约男装』由 cityboy 注册的完整多字 trigger『日系简约男』归 cityboy,且仍由 core 性别年龄/品类事实门确认男装事实,不得靠裸『日系』静默改模特性别;『通勤日系穿搭』默认归 japanese-lifestyle,『通勤』仅作场景/用途线索,不得强塞 office-commute-women;只有完整『职场通勤/通勤女装』等注册词且女装事实成立才进 office",
+    "assert_triggers": {
+      "japanese-lifestyle": {"contains": ["日系"], "excludes": ["生活感"]}
+    }
+  },
+  {
+    "id": "jl-visual-axis-8",
+    "type": "realmachine-anchor",
+    "input": "(上传棉麻连衣裙) 日系生活感,A1(D0 预览 + D1 成片)",
+    "expect": "A 级真机锚 D0/D1 等价验收口径:视觉底座=暖调自然柔光 + 燕麦/原木/淡橄榄中性(区别 korean-cold 冷白)+ 无印生活底色(区别 quiet-luxury 高奢);D0 单图、D1 6 张闭集串行 event_msg.image_generation_end 计数=6 + md5 互异 + 落盘正确 才 PASS;不达期望不标 PASS,maturity 不偷升",
+    "actual": "NOT-RUN(public Beta):私有前身的运行记录不作为公开证据;需用权利清单已批准的服饰素材重新执行并保留脱敏输出、哈希、QA 与用户确认后才能升级 maturity。"
+  }
+]

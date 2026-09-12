@@ -1,0 +1,40 @@
+# cityboy — 都市宽松男装风(v1 静态批量;纯视觉轴)。
+name: 都市宽松男装 / Cityboy
+slug: cityboy
+version: 0.1.0
+maturity: DRAFT
+depends_on_core: ">=1.0"
+
+trigger_words: [cityboy, 都市男孩, 宽松男装, 男装通勤, casual menswear, city casual, 日系简约男]
+suitable_categories: [衬衫, 针织, 宽松长裤, 风衣, 夹克, 乐福鞋, 托特包]
+anti_categories: [礼服婚纱, 女装礼服, 泳装, 儿童服饰]
+
+visual_language: >
+  cityboy casual editorial; relaxed proportions, loose layering, bags and shoes only when already
+  present in the garment reference; otherwise express cityboy ease through understated urban
+  composition, calm street-to-cafe atmosphere and low-saturation everyday color.
+model_persona: relaxed composed attitude, quiet city confidence, easygoing poise
+
+scenes:
+  - 城市咖啡店门口
+  - 安静街角斑马线
+  - 公寓楼下水泥墙
+  - 书店橱窗外
+  - 地铁口外自然光
+  - 公园长椅旁
+lighting_palette: 光源=柔和城市自然光;方向=侧前方或店窗漫射侧光;阴影=边缘柔和、不过度塑形;对比/曝光=低对比正常曝光,海军蓝/灰白/卡其/浅棕低饱和
+pose_masters: inherit
+default_mode: C
+
+negative_delta_add: [no exaggerated streetwear, no idol styling, no sharp formal suit look]
+safety_delta:
+  cannot_relax: true
+  extra_constraints: []
+
+d0_preview: inherit-core
+d1_final: inherit-core
+d3_prompts: inherit-core
+qa_extra: [是否 cityboy 城市松弛氛围到位, 是否为柔和城市侧光与低对比日常感, 参考图廓形比例是否保真且不强改宽松, 是否避免偶像化]
+
+samples_required: [preview-grid, look-1..6, README]
+evals: repo://evals/styles/cityboy.json

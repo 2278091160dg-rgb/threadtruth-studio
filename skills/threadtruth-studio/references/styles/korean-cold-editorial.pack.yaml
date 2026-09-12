@@ -1,0 +1,55 @@
+# korean-cold-editorial — 韩系冷感杂志风(基线 korean-fashion-editorial 行为等价迁移)。
+# 抽取自基线 modes-scenes.md §4 全局底座 + §3 六场景;**主体 `adult single female model` 已移除,由 core 按性别年龄轴注入**。
+# 行为等价铁律:visual_language 完整承载基线 §4 美学(减主体),core prompt-build 拼接后与基线逐字等价(G4 #4b)。
+
+# ---- 元数据 ----
+name: 韩系冷感杂志风 / Korean Cold Editorial
+slug: korean-cold-editorial
+version: 1.0.0
+maturity: DRAFT                              # 公开权利清单下的真机证据待补
+depends_on_core: ">=1.0"
+
+# ---- 适配 ----
+trigger_words: [韩系, 韩杂, 韩系杂志风, 韩国杂志, 韩国杂志人像, W Korea, Vogue Korea, 性冷淡, 安静奢华, 冷感大片]   # `quiet luxury` 已移交 quiet-luxury 包;korean 保留中文近义 安静奢华
+suitable_categories: [连衣裙, 半裙, 衬衫, 西装, 大衣, 针织, 通勤搭配]
+anti_categories: [冲锋衣, 瑜伽服, 比基尼, cosplay, 童装]
+
+# ---- 视觉(完整承载基线 §4 美学,减主体;含妆容词放此字段以避开 persona 净化误拦 nude) ----
+visual_language: >
+  Korean high-end fashion editorial portrait, W Korea and Vogue Korea inspired quiet luxury cold aesthetic,
+  restrained editorial mood, calm detached expression, subtle melancholy, no fake commercial smile, no influencer style,
+  soft even lighting, cold white, cold gray, pale beige and cream neutral palette,
+  medium format film photography texture, realistic native skin texture, subtle pores,
+  no excessive retouching, dewy translucent makeup, gray-brown and nude pink eye makeup,
+  dusty rose lips, natural flyaway hair, accessories only when already visible in the garment reference;
+  do not add, remove, replace or redesign any referenced accessory.
+model_persona: calm, detached, quietly confident; restrained editorial attitude; no aegyo, no influencer mugging
+# ↑ 仅气质/表情/状态;年龄/性别主体由 core 注入,严禁在此写 adult/female/age 等词。
+
+scenes:
+  - 高级公寓玄关 / 入户镜前
+  - 现代办公楼大堂 / 石材墙面
+  - 首尔极简咖啡馆窗边
+  - 浅灰城市街角 / 清晨人行道
+  - 极简画廊 / 艺术空间
+  - 酒店走廊 / 电梯厅
+lighting_palette: soft even lighting;cold white / cold gray / pale beige / cream 低饱和中性
+pose_masters: inherit                        # 继承 core 6 姿势母版
+default_mode: C                              # 场景版(基线韩系默认大片感)
+
+# ---- 安全(只增不减) ----
+# 韩系美学负面词(从基线 §3a 下沉;core §3a 只留通用项,core 在预览+成片两阶段 append 本组 → 与基线集合等价 G4 #4b)
+negative_delta_add: [no influencer style, no aegyo, no sweet idol smile, no e-commerce catalog look]
+safety_delta:
+  cannot_relax: true
+  extra_constraints: []
+
+# ---- 产出规则(引用 core) ----
+d0_preview: inherit-core
+d1_final: inherit-core
+d3_prompts: inherit-core
+qa_extra: [是否韩系冷感高级到位, 是否避免网红/目录照, 场景是否低干扰]
+
+# ---- 交付物 ----
+samples_required: [preview-grid, look-1..6, README]
+evals: repo://evals/styles/korean-cold-editorial.json

@@ -1,0 +1,49 @@
+# japanese-lifestyle — 日系生活感 / 无印风（公开 Beta DRAFT）。
+# 🔴 触发隔离(吸取 L8 韩系 / american-street 街头 / quiet-luxury 静奢 教训,python 双向子串自检):
+#    - 不注册裸「生活感」:语义过宽,易抢非日系的泛生活类请求。
+#    - `日系` 是 cityboy 完整触发词「日系简约男」的严格子串;router 先执行最长完整短语匹配,
+#      因此「日系简约男装」归 cityboy,不会被本包截走。
+#    - 「通勤日系」未命中 office 的完整词组时仍归本包;office 仅凭「职场通勤/通勤女装」等完整词并叠加性别品类事实。
+# 视觉差异化:暖调自然光 + 燕麦/原木中性(区别 korean-cold 的冷感),无印生活底色(区别 quiet-luxury 的高奢)。
+name: 日系生活感 / Japanese Lifestyle
+slug: japanese-lifestyle
+version: 0.1.0
+maturity: DRAFT                              # 公开权利清单下的真机证据待补
+
+depends_on_core: ">=1.0"
+
+trigger_words: [日系, 日系生活, 日杂, 无印感, 无印风, japanese lifestyle, muji style]
+suitable_categories: [连衣裙, 衬衫, 针织, 棉麻, 半裙, 阔腿裤, 衬衫裙, T恤, 大衣]
+anti_categories: [婚纱, 比基尼, 礼服, cosplay]
+
+visual_language: >
+  Japanese everyday lifestyle editorial, understated muji-like simplicity, warm natural daylight,
+  soft diffused window light, gentle documentary candid mood, lived-in calm everyday atmosphere,
+  muted earthy neutral palette of oatmeal beige warm white soft brown and faded olive,
+  fine film grain texture, realistic native skin texture with no heavy retouching,
+  unpretentious natural styling, quiet relaxed warmth, minimalist Japanese interior backdrop.
+model_persona: gentle natural ease, soft everyday calm, unguarded relaxed warmth, quiet understated presence, no posed glamour
+
+scenes:
+  - 洒满自然光的原木公寓 / 榻榻米房间
+  - 安静街角的日系咖啡馆窗边
+  - 无印风极简家居(布艺沙发 + 绿植)
+  - 清晨住宅区小巷 / 自行车旁
+  - 日式杂货店 / 文具店内
+  - 米色亚麻背景自然光棚拍
+lighting_palette: 自然柔光为主(暖白 / 正午散射),低饱和大地中性(燕麦 / 米 / 原木棕 / 淡橄榄)
+pose_masters: inherit
+default_mode: C
+
+negative_delta_add: [no high-gloss editorial polish, no heavy retouching, no luxury opulence, no cold studio glare, no influencer glam]
+safety_delta:
+  cannot_relax: true
+  extra_constraints: []
+
+d0_preview: inherit-core
+d1_final: inherit-core
+d3_prompts: inherit-core
+qa_extra: [是否暖调自然光非冷感, 是否日系生活无印底色非高奢, 是否避免重修图/网红感]
+
+samples_required: [preview-grid, look-1..6, README]
+evals: repo://evals/styles/japanese-lifestyle.json

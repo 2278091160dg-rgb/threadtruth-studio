@@ -1,0 +1,57 @@
+[
+  {
+    "id": "cf-happy-1",
+    "type": "happy-path",
+    "input": "(上传基础白衬衫) 极简基础 clean fit,A1",
+    "expect": "route→clean-fit(trace 命中 STYLE_EXPLICIT(term=极简基础/clean fit,输入真实出现),score=100,可按 style-router §5 复算;不自创 rule_id);确认后 A1→6 张闭集串行计数=6"
+  },
+  {
+    "id": "cf-style-routing-2",
+    "type": "style-routing",
+    "input": "(上传针织衫) 想要极简、基础款的日常版型",
+    "expect": "完整 trigger『基础款』先命中 clean-fit 的 STYLE_EXPLICIT(w=100,每 pack 只计 1 次);独立词『极简』可另命中 SILH_MINIMAL_CLEAN(w=14),不得用『基础款』再重复计轮廓分;已落地 nordic-minimal 可按识别事实作近义备选,recognition-ready 不生图"
+  },
+  {
+    "id": "cf-anti-fit-3",
+    "type": "anti-fit",
+    "input": "(上传婚纱) 极简基础",
+    "expect": "婚纱 ∈ anti_categories → 提示风格×品类不匹配(极简基础不适配婚纱礼服),请确认或改推"
+  },
+  {
+    "id": "cf-pure-data-4",
+    "type": "core-equivalence",
+    "input": "加载 clean-fit pack",
+    "expect": "纯数据加载:core 门禁/管线/安全 R1–R7 零改动;pack 仅提供 visual_language/scenes/lighting_palette/persona;negative_delta_add 只 append、cannot_relax=true;过 pack-lint --strict"
+  },
+  {
+    "id": "cf-action-gate-5",
+    "type": "permission-gate",
+    "input": "极简基础,先看看效果就行",
+    "expect": "授权模糊按未授权:只出识别卡+风格推荐,不调 image_gen(沿用 core permission gate,pack 不放宽)"
+  },
+  {
+    "id": "cf-nearmiss-6",
+    "type": "trigger-isolation",
+    "input": "(上传针织衫) 暖调无印日系生活感",
+    "expect": "🔴触发隔离:『无印/日系/生活感』→japanese-lifestyle(暖调自然光无印生活底色);clean-fit 自有『极简基础/极简版型/基础款』属冷调中性极简,刻意不含『日系/无印风』(暖调无印属 japanese)与『性冷淡』(属 korean;完整词『性冷淡极简』属已落地 nordic-minimal);区分冷调极简 vs 暖调无印,不得输出路线图警告",
+    "assert_triggers": {
+      "japanese-lifestyle": {"contains": ["日系"]},
+      "clean-fit": {"contains": ["极简基础"], "excludes": ["日系", "无印风", "性冷淡"]}
+    }
+  },
+  {
+    "id": "cf-nearmiss-7",
+    "type": "trigger-isolation",
+    "input": "(上传针织衫) 想要性冷淡极简那种冷淡感",
+    "expect": "🔴触发隔离(近邻命门):完整短语『性冷淡极简』→已落地 nordic-minimal,不落 clean-fit 也不因较短『性冷淡』误落 korean;clean-fit 自有『极简基础/极简版型』,裸『极简』只作 §5 SILH_MINIMAL_CLEAN 评分词;路由不得输出路线图警告",
+    "assert_triggers": {
+      "clean-fit": {"contains": ["极简基础"], "excludes": ["极简", "性冷淡极简"]}
+    }
+  },
+  {
+    "id": "cf-lighting-8",
+    "type": "lighting-signature",
+    "input": "(上传白色基础衬衫) clean fit,C3",
+    "expect": "STYLE_VISUAL 保留大窗/大面积柔棚光→均匀包裹光→浅而无硬边阴影→低对比偏高调;不得为了光影感增加硬阴影或让白色服饰过曝丢失材质与结构"
+  }
+]

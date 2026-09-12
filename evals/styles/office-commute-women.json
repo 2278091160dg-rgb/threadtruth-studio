@@ -1,0 +1,48 @@
+[
+  {
+    "id": "oc-happy-1",
+    "type": "happy-path",
+    "input": "(上传西装) 职场通勤 office commute,A1",
+    "expect": "route→office-commute-women(trace 命中 STYLE_EXPLICIT(term=职场通勤/office commute,输入真实出现),score=100,可复算);确认后 A1→6 张闭集"
+  },
+  {
+    "id": "oc-style-routing-2",
+    "type": "style-routing",
+    "input": "(上传衬衫半裙) 想要 OL通勤和商务女装",
+    "expect": "命中 office-commute-women 主推(term=OL通勤/商务女装→STYLE_EXPLICIT,均 input 字面出现且 §6 注册);recognition-ready 不生图"
+  },
+  {
+    "id": "oc-anti-fit-3",
+    "type": "anti-fit",
+    "input": "(上传瑜伽服) 职场通勤",
+    "expect": "运动瑜伽服 ∈ anti_categories → 提示不匹配"
+  },
+  {
+    "id": "oc-pure-data-4",
+    "type": "core-equivalence",
+    "input": "加载 office-commute-women pack",
+    "expect": "纯数据加载:pack 只管视觉轴;cannot_relax=true"
+  },
+  {
+    "id": "oc-action-gate-5",
+    "type": "permission-gate",
+    "input": "职场通勤,先看看效果",
+    "expect": "授权模糊按未授权:不调 image_gen"
+  },
+  {
+    "id": "oc-nearmiss-6",
+    "type": "trigger-isolation",
+    "input": "(上传衬衫) 男装通勤 cityboy",
+    "expect": "触发隔离:男装通勤/cityboy→cityboy,不落 office-commute-women",
+    "assert_triggers": {
+      "cityboy": {"contains": ["男装通勤"]},
+      "office-commute-women": {"contains": ["职场通勤"], "excludes": ["男装通勤", "cityboy", "宽松男装"]}
+    }
+  },
+  {
+    "id": "oc-lighting-7",
+    "type": "lighting-signature",
+    "input": "(上传驼色西装) office commute,C3",
+    "expect": "STYLE_VISUAL 保留写字楼窗光/柔棚光→侧前方克制塑形→不遮结构的清晰阴影→中低对比标准曝光;不得戏剧化压暗或改动西装颜色、材质和剪裁"
+  }
+]

@@ -1,0 +1,40 @@
+# neo-chinese — 新中式风(v1 静态批量;纯视觉轴)。
+name: 新中式 / Neo Chinese
+slug: neo-chinese
+version: 0.1.0
+maturity: DRAFT
+depends_on_core: ">=1.0"
+
+trigger_words: [新中式, 立领盘扣, neo chinese, modern chinese, 东方极简, 中式现代]
+suitable_categories: [衬衫, 连衣裙, 外套, 半裙, 西装, 针织, 套装]
+anti_categories: [古装, 汉服 cosplay, 戏服, 演出服]
+
+visual_language: >
+  modern chinese editorial; oriental structure, stand collar, knot buttons and tailoring cues only
+  when already present in the garment reference; otherwise express refined cultural minimalism
+  through light, palette, architecture and composition without adding Chinese garment elements.
+model_persona: composed refined presence, calm confidence, understated elegance
+
+scenes:
+  - 现代茶室木墙
+  - 白墙竹影庭院
+  - 深色屏风前
+  - 新中式酒店走廊
+  - 石材台阶与绿植
+  - 极简水墨背景墙
+lighting_palette: 柔和自然光/暖棚光,墨黑/米白/茶棕/竹青,克制雅致
+pose_masters: inherit
+default_mode: C
+
+negative_delta_add: [no historical costume, no opera makeup, no cosplay prop]
+safety_delta:
+  cannot_relax: true
+  extra_constraints: []
+
+d0_preview: inherit-core
+d1_final: inherit-core
+d3_prompts: inherit-core
+qa_extra: [是否新中式底座到位, 是否避免古装 cosplay, 是否现代化不戏服化]
+
+samples_required: [preview-grid, look-1..6, README]
+evals: repo://evals/styles/neo-chinese.json

@@ -1,0 +1,40 @@
+# korean-menswear — 韩式冷感男装风(v1 静态批量;纯视觉轴)。
+name: 韩式男装 / Korean Menswear
+slug: korean-menswear
+version: 0.1.0
+maturity: DRAFT
+depends_on_core: ">=1.0"
+
+trigger_words: [korean menswear, 韩国男装, 韩式男装, 冷感男装, 首尔男装, seoul menswear]
+suitable_categories: [西装, 大衣, 衬衫, 针织, 长裤, 皮鞋, 风衣]
+anti_categories: [礼服婚纱, 童装, 泳装, 机能冲锋衣]
+
+visual_language: >
+  seoul menswear editorial; restrained tailoring and long proportions only when already present in
+  the garment reference; otherwise express the clean line through monochrome and grey palette,
+  quiet magazine framing and polished urban minimalism.
+model_persona: calm composed confidence, understated cool attitude, editorial stillness
+
+scenes:
+  - 首尔街头冷灰立面
+  - 现代公寓大堂
+  - 黑白影棚背景
+  - 雨后城市街角
+  - 极简咖啡馆外
+  - 冷调玻璃建筑前
+lighting_palette: 光源=冷灰城市自然光或大面积柔棚光;方向=侧上方或玻璃建筑漫射侧光;阴影=窄而柔、强化线条但不改廓形;对比/曝光=中低对比略压高光,黑白灰/冷米色克制低饱和
+pose_masters: inherit
+default_mode: C
+
+negative_delta_add: [no idol fan-service styling, no sweet aegyo mood, no flashy streetwear]
+safety_delta:
+  cannot_relax: true
+  extra_constraints: []
+
+d0_preview: inherit-core
+d1_final: inherit-core
+d3_prompts: inherit-core
+qa_extra: [是否韩式冷感男装底座到位, 是否冷灰侧上光强化线条但不改廓形, 是否避免偶像化, 是否线条干净]
+
+samples_required: [preview-grid, look-1..6, README]
+evals: repo://evals/styles/korean-menswear.json

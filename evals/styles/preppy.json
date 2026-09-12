@@ -1,0 +1,64 @@
+[
+  {
+    "id": "pp-happy-1",
+    "type": "happy-path",
+    "input": "(上传针织开衫) 美式学院 preppy,A1",
+    "expect": "route→preppy(trace 命中 STYLE_EXPLICIT(term=美式学院/preppy,输入真实出现),score=100,可按 style-router §5/§6 复算);确认后 A1→6 张闭集串行计数=6"
+  },
+  {
+    "id": "pp-style-routing-2",
+    "type": "style-routing",
+    "input": "(上传衬衫) 想要常春藤风的校园学院风",
+    "expect": "命中 preppy 主推(term=常春藤风→STYLE_EXPLICIT,term=校园学院风→STYLE_EXPLICIT,均 input 字面出现且 §6 注册);recognition-ready 不生图"
+  },
+  {
+    "id": "pp-anti-fit-3",
+    "type": "anti-fit",
+    "input": "(上传冲锋衣) 美式学院",
+    "expect": "冲锋衣 ∈ anti_categories → 提示风格×品类不匹配,请确认或改推"
+  },
+  {
+    "id": "pp-pure-data-4",
+    "type": "core-equivalence",
+    "input": "加载 preppy pack",
+    "expect": "纯数据加载:core 门禁/管线/安全 R1–R7 零改动;negative_delta_add 只 append、cannot_relax=true"
+  },
+  {
+    "id": "pp-conflict-hold-5",
+    "type": "style-conflict",
+    "input": "(上传服饰) 美式学院混传统英伦",
+    "expect": "第0步真实命中 preppy 与 british-heritage 两个已落地 pack;虽视觉可融合仍停 style-conflict-hold,请确认主风格/融合主次,不生图"
+  },
+  {
+    "id": "pp-action-gate-6",
+    "type": "permission-gate",
+    "input": "preppy,先看看效果就行",
+    "expect": "授权模糊按未授权:只出识别卡+风格推荐,不调 image_gen"
+  },
+  {
+    "id": "pp-nearmiss-7",
+    "type": "trigger-isolation",
+    "input": "(上传大衣) 想要传统英伦的格纹传承感",
+    "expect": "触发隔离:传统英伦→british-heritage,不落 preppy;preppy 保留美式学院/常春藤 lane",
+    "assert_triggers": {
+      "british-heritage": {"contains": ["传统英伦"]},
+      "preppy": {"contains": ["美式学院"], "excludes": ["传统英伦", "英伦传承", "british heritage"]}
+    }
+  },
+  {
+    "id": "pp-nearmiss-8",
+    "type": "trigger-isolation",
+    "input": "(上传卫衣) 美式街头风",
+    "expect": "触发隔离:美式/美式街头→american-street,不因『美式』子串误落 preppy 的『美式学院』",
+    "assert_triggers": {
+      "american-street": {"contains": ["美式"]},
+      "preppy": {"contains": ["美式学院"], "excludes": ["美式", "美式街头", "american street"]}
+    }
+  },
+  {
+    "id": "pp-lighting-9",
+    "type": "lighting-signature",
+    "input": "(上传海军蓝针织开衫) preppy,C3",
+    "expect": "STYLE_VISUAL 保留清爽日间自然光→窗边/林荫侧前方光→柔和轻层次阴影→中低对比明快曝光;不得借学院感新增衬衫、领带、徽章或层叠"
+  }
+]

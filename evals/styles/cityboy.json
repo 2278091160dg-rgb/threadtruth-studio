@@ -1,0 +1,48 @@
+[
+  {
+    "id": "cb-happy-1",
+    "type": "happy-path",
+    "input": "(上传宽松衬衫) cityboy,A1",
+    "expect": "route→cityboy(trace 命中 STYLE_EXPLICIT(term=cityboy,输入真实出现),score=100,可按 style-router §5/§6 复算);确认后 A1→6 张闭集"
+  },
+  {
+    "id": "cb-style-routing-2",
+    "type": "style-routing",
+    "input": "(上传宽松长裤) 想要都市男孩和男装通勤",
+    "expect": "命中 cityboy 主推(term=都市男孩/男装通勤→STYLE_EXPLICIT,均 input 字面出现且 §6 注册);recognition-ready 不生图"
+  },
+  {
+    "id": "cb-anti-fit-3",
+    "type": "anti-fit",
+    "input": "(上传婚纱) cityboy",
+    "expect": "礼服婚纱 ∈ anti_categories → 提示不匹配,请确认或改推"
+  },
+  {
+    "id": "cb-pure-data-4",
+    "type": "core-equivalence",
+    "input": "加载 cityboy pack",
+    "expect": "纯数据加载:core 门禁/管线/安全 R1–R7 零改动;negative_delta_add 只 append、cannot_relax=true"
+  },
+  {
+    "id": "cb-action-gate-5",
+    "type": "permission-gate",
+    "input": "cityboy,先看看效果",
+    "expect": "授权模糊按未授权:只出识别卡+风格推荐,不调 image_gen"
+  },
+  {
+    "id": "cb-nearmiss-6",
+    "type": "trigger-isolation",
+    "input": "(上传西装) 韩国男装 seoul menswear",
+    "expect": "触发隔离:韩国男装/seoul menswear→korean-menswear,不落 cityboy",
+    "assert_triggers": {
+      "korean-menswear": {"contains": ["韩国男装"]},
+      "cityboy": {"contains": ["都市男孩"], "excludes": ["韩国男装", "韩式男装", "seoul menswear"]}
+    }
+  },
+  {
+    "id": "cb-lighting-7",
+    "type": "lighting-signature",
+    "input": "(上传驼色西装) cityboy,C3",
+    "expect": "STYLE_VISUAL 保留柔和城市自然光→侧前方/店窗漫射侧光→柔边阴影→低对比正常曝光;光影只能塑造城市松弛感,不得改驼色、材质、版型或强改宽松"
+  }
+]

@@ -1,0 +1,42 @@
+[
+  {
+    "id": "fr-happy-1",
+    "type": "happy-path",
+    "input": "(上传醋酸缎连衣裙) 法式松弛感,发小红书,A1",
+    "expect": "route→french-effortless;『法式/松弛感』为同 pack 显式词,trace 记录 matched_terms 但 STYLE_EXPLICIT 只计 1 次(w=100);另以独立事实『醋酸缎』计 MAT_ACETATE_FR、独立平台词『小红书』计 PLATFORM_XHS_RELAX,Σw 可复算;确认后 A1→6 张闭集"
+  },
+  {
+    "id": "fr-style-routing-2",
+    "type": "style-routing",
+    "input": "(上传衬衫) 巴黎慵懒那种 effortless",
+    "expect": "『巴黎/effortless』均为 french-effortless 显式 trigger;route→french-effortless,trace 记录 matched_terms 但 STYLE_EXPLICIT 每 pack 只计 1 次(w=100),再给 2 备选;recognition-ready 不生图"
+  },
+  {
+    "id": "fr-anti-fit-3",
+    "type": "anti-fit",
+    "input": "(上传瑜伽服) 法式松弛",
+    "expect": "瑜伽服 ∈ anti_categories → 提示不匹配,改推 athleisure 或确认"
+  },
+  {
+    "id": "fr-pure-data-4",
+    "type": "core-equivalence",
+    "input": "加载 french-effortless pack",
+    "expect": "纯数据加载:core 门禁/管线/安全零改动;pack 仅提供 visual_language/scenes/lighting_palette/persona;过 pack-lint --strict"
+  },
+  {
+    "id": "fr-action-gate-6",
+    "type": "permission-gate",
+    "input": "法式松弛,看看效果就行",
+    "expect": "授权模糊按未授权:只出识别卡+风格推荐,不调 image_gen"
+  },
+  {
+    "id": "fr-nearmiss-7",
+    "type": "trigger-isolation",
+    "input": "(上传针织衫) 无印风日系日常生活感",
+    "expect": "🔴触发隔离:『无印风/日系』→japanese-lifestyle;french-effortless 自有『法式/松弛感/巴黎/慵懒法式』属巴黎慵懒,刻意不含『日系/无印风/生活感』,防『松弛日常』泛化把日系误落法式",
+    "assert_triggers": {
+      "japanese-lifestyle": {"contains": ["无印风"]},
+      "french-effortless": {"contains": ["法式"], "excludes": ["日系", "无印风", "生活感"]}
+    }
+  }
+]

@@ -1,0 +1,40 @@
+# nordic-minimal — 北欧极简风(v1 静态批量;纯视觉轴)。
+name: 北欧极简 / Nordic Minimal
+slug: nordic-minimal
+version: 0.1.0
+maturity: DRAFT
+depends_on_core: ">=1.0"
+
+trigger_words: [北欧极简, 性冷淡极简, nordic minimal, scandi minimal, 斯堪的纳维亚, 冷淡北欧]
+suitable_categories: [针织, 衬衫, 大衣, 西装, 连衣裙, 半裙, 风衣]
+anti_categories: [礼服婚纱, cosplay, 演出服, 高饱和派对装]
+
+visual_language: >
+  nordic minimalist editorial; clean silhouette and matte garment texture only when already present
+  in the garment reference; otherwise express Nordic restraint through a cool palette, airy
+  architectural space, quiet negative space and composed cold daylight.
+model_persona: calm reserved expression, composed stillness, quiet confidence
+
+scenes:
+  - 北欧白墙公寓
+  - 冷灰水泥空间
+  - 极简木质餐桌旁
+  - 大窗冷调自然光
+  - 白色楼梯转角
+  - 空旷画廊墙面
+lighting_palette: 冷白自然光,灰白/雾蓝/浅木色,低饱和留白
+pose_masters: inherit
+default_mode: C
+
+negative_delta_add: [no warm muji lifestyle look, no busy decor, no glossy retouch]
+safety_delta:
+  cannot_relax: true
+  extra_constraints: []
+
+d0_preview: inherit-core
+d1_final: inherit-core
+d3_prompts: inherit-core
+qa_extra: [是否北欧极简底座到位, 是否避免暖调无印, 是否留白干净]
+
+samples_required: [preview-grid, look-1..6, README]
+evals: repo://evals/styles/nordic-minimal.json

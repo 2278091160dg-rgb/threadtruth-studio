@@ -1,0 +1,40 @@
+# balletcore — 芭蕾柔美风(v1 静态批量;纯视觉轴)。
+name: 芭蕾柔美 / Balletcore
+slug: balletcore
+version: 0.1.0
+maturity: DRAFT
+depends_on_core: ">=1.0"
+
+trigger_words: [balletcore, 芭蕾风, 芭蕾柔美, 纱裙轻盈, ballet mood, soft ballet]
+suitable_categories: [纱裙, 针织开衫, 吊带裙, 半裙, 连衣裙, 平底鞋]
+anti_categories: [冲锋衣, 工装裤, 机能外套, 皮衣, 牛仔工装]
+
+visual_language: >
+  ballet-inspired soft editorial; tulle, knit texture and delicate layering only when already
+  present in the garment reference; otherwise express ballet softness through a pale powder palette,
+  graceful elongated posture, airy light and rehearsal-room calm.
+model_persona: graceful calm expression, gentle composure, poised softness
+
+scenes:
+  - 练功房木地板
+  - 白纱窗自然光室内
+  - 浅粉灰墙面
+  - 旧剧场后台一角
+  - 极简镜面把杆旁
+  - 柔光棚拍浅色背景
+lighting_palette: 柔和自然光/浅棚光,粉白/雾灰/奶油色,低对比轻盈
+pose_masters: inherit
+default_mode: C
+
+negative_delta_add: [no stage costume, no sexualized dance pose, no athletic gym look]
+safety_delta:
+  cannot_relax: true
+  extra_constraints: []
+
+d0_preview: inherit-core
+d1_final: inherit-core
+d3_prompts: inherit-core
+qa_extra: [是否芭蕾柔美底座到位, 是否避免舞台服 cosplay, 是否保持非性感化]
+
+samples_required: [preview-grid, look-1..6, README]
+evals: repo://evals/styles/balletcore.json

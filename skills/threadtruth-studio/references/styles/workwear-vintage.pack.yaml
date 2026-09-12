@@ -1,0 +1,40 @@
+# workwear-vintage — 复古工装风(v1 静态批量;纯视觉轴)。
+name: 复古工装 / Workwear Vintage
+slug: workwear-vintage
+version: 0.1.0
+maturity: DRAFT
+depends_on_core: ">=1.0"
+
+trigger_words: [复古工装, workwear, 工装复古, heritage workwear, vintage utility, rugged workwear]
+suitable_categories: [工装夹克, 牛仔, 马甲, 工装裤, 衬衫, 靴子, 帆布外套]
+anti_categories: [礼服婚纱, 芭蕾纱裙, 真丝晚礼服, 童装]
+
+visual_language: >
+  vintage workwear editorial; cotton canvas, denim, practical pockets and layered utility structure
+  only when already present in the garment reference; otherwise express rugged utility through
+  workshop-to-street setting, earthy low-saturation color and grounded composition.
+model_persona: grounded confidence, practical calm, steady utilitarian attitude
+
+scenes:
+  - 旧工坊木桌旁
+  - 砖墙仓库门口
+  - 复古车库外
+  - 黄昏街边铁门
+  - 木箱堆放角落
+  - 水泥厂房窗边
+lighting_palette: 暖灰自然光,靛蓝/棕色/卡其/铁锈色,粗粝低饱和
+pose_masters: inherit
+default_mode: C
+
+negative_delta_add: [no fashion runway gloss, no military costume, no overdirty set]
+safety_delta:
+  cannot_relax: true
+  extra_constraints: []
+
+d0_preview: inherit-core
+d1_final: inherit-core
+d3_prompts: inherit-core
+qa_extra: [是否复古工装底座到位, 参考图已有口袋/层次是否保真清楚、未有则不新增, 是否避免军装 cosplay]
+
+samples_required: [preview-grid, look-1..6, README]
+evals: repo://evals/styles/workwear-vintage.json

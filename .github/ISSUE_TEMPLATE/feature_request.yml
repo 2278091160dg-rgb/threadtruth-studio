@@ -1,0 +1,25 @@
+name: Feature request
+description: Propose a scoped improvement after the stable-release freeze
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem
+    validations:
+      required: true
+  - type: textarea
+    id: boundary
+    attributes:
+      label: Trigger and safety boundary
+      description: Explain what should and should not invoke the behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Acceptance evidence
+      description: Describe the tests or rights-cleared case that would prove completion.
+    validations:
+      required: true

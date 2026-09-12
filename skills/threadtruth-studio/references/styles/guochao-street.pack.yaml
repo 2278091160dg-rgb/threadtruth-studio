@@ -1,0 +1,40 @@
+# guochao-street — 国潮街头风(v1 静态批量;纯视觉轴)。
+name: 国潮街头 / Guochao Street
+slug: guochao-street
+version: 0.1.0
+maturity: DRAFT
+depends_on_core: ">=1.0"
+
+trigger_words: [国潮街头, 街头国风, guochao street, 国风街头, 潮流国风, 新国潮]
+suitable_categories: [卫衣, T恤, 夹克, 牛仔, 工装裤, 球鞋, 配饰]
+anti_categories: [礼服婚纱, 古装戏服, 老钱大衣, 芭蕾纱裙]
+
+visual_language: >
+  contemporary guochao street editorial; garment graphics, Chinese motifs and layered silhouettes
+  only when already present in the garment reference; otherwise place contemporary Chinese cues in
+  the low-distraction environment, with an energetic city backdrop and high-contrast street mood.
+model_persona: self-assured street attitude, relaxed confidence, energetic composure
+
+scenes:
+  - 城市涂鸦墙前
+  - 新中式商业街角
+  - 夜间霓虹巷口
+  - 水泥天桥下
+  - 潮流店铺门口
+  - 红砖街区立面
+lighting_palette: 自然光/夜景霓虹,黑红/水泥灰/高饱和点缀,街头高对比
+pose_masters: inherit
+default_mode: C
+
+negative_delta_add: [no historical costume, no ceremonial prop, no overbusy logo wall]
+safety_delta:
+  cannot_relax: true
+  extra_constraints: []
+
+d0_preview: inherit-core
+d1_final: inherit-core
+d3_prompts: inherit-core
+qa_extra: [是否国潮街头底座到位, 是否避免古装化, 是否服饰仍是主角]
+
+samples_required: [preview-grid, look-1..6, README]
+evals: repo://evals/styles/guochao-street.json

@@ -1,0 +1,127 @@
+[
+  {
+    "id": "route-longest-preppy",
+    "query": "这套做成美式学院风",
+    "expected": {"decision": "route", "slugs": ["preppy"], "style_hit_count": 1}
+  },
+  {
+    "id": "route-longest-american-street",
+    "query": "想要美式街头氛围",
+    "expected": {"decision": "route", "slugs": ["american-street"], "style_hit_count": 1}
+  },
+  {
+    "id": "route-longest-nordic",
+    "query": "做成性冷淡极简风",
+    "expected": {"decision": "route", "slugs": ["nordic-minimal"], "style_hit_count": 1}
+  },
+  {
+    "id": "route-korean-two-terms-same-pack",
+    "query": "要韩系性冷淡杂志感",
+    "expected": {
+      "decision": "route",
+      "slugs": ["korean-cold-editorial"],
+      "style_hit_count": 2,
+      "rule_hits": [{"slug": "korean-cold-editorial", "rule_id": "STYLE_EXPLICIT", "weight": 100}]
+    }
+  },
+  {
+    "id": "hold-korean-quiet-luxury",
+    "query": "这套想要韩系 quiet luxury",
+    "expected": {"decision": "hold", "slugs": ["korean-cold-editorial", "quiet-luxury"], "style_hit_count": 2}
+  },
+  {
+    "id": "hold-ecommerce-korean",
+    "query": "电商主图加韩系冷感",
+    "expected": {"decision": "hold", "slugs": ["ecommerce-studio", "korean-cold-editorial"], "style_hit_count": 2}
+  },
+  {
+    "id": "route-guochao-no-american-leak",
+    "query": "按街头国风处理",
+    "expected": {"decision": "route", "slugs": ["guochao-street"], "style_hit_count": 1}
+  },
+  {
+    "id": "none-editorial-use-only",
+    "query": "想做品牌大片，带一点杂志感 editorial",
+    "expected": {"decision": "none", "slugs": [], "style_hit_count": 0}
+  },
+  {
+    "id": "route-alias-collapse-hyphen-space",
+    "query": "quiet-luxury",
+    "expected": {"decision": "route", "slugs": ["quiet-luxury"], "style_hit_count": 1}
+  },
+  {
+    "id": "route-explicit-use-token-once",
+    "query": "电商主图",
+    "expected": {
+      "decision": "route",
+      "slugs": ["ecommerce-studio"],
+      "style_hit_count": 1,
+      "rule_hits": [{"slug": "ecommerce-studio", "rule_id": "STYLE_EXPLICIT", "weight": 100}]
+    }
+  },
+  {
+    "id": "route-japanese-menswear-longest",
+    "query": "日系简约男装",
+    "expected": {"decision": "route", "slugs": ["cityboy"], "style_hit_count": 1}
+  },
+  {
+    "id": "route-japanese-commute-not-office",
+    "query": "通勤日系穿搭",
+    "expected": {"decision": "route", "slugs": ["japanese-lifestyle"], "style_hit_count": 1}
+  },
+  {
+    "id": "route-korean-natural-magazine-term",
+    "query": "韩国杂志人像",
+    "expected": {"decision": "route", "slugs": ["korean-cold-editorial"], "style_hit_count": 1}
+  },
+  {
+    "id": "hold-disjoint-american-preppy-occurrences",
+    "query": "美式和美式学院融合",
+    "expected": {"decision": "hold", "slugs": ["american-street", "preppy"], "style_hit_count": 2}
+  },
+  {
+    "id": "hold-disjoint-korean-nordic-occurrences",
+    "query": "性冷淡搭配性冷淡极简",
+    "expected": {"decision": "hold", "slugs": ["korean-cold-editorial", "nordic-minimal"], "style_hit_count": 2}
+  },
+  {
+    "id": "hold-disjoint-japanese-cityboy-occurrences",
+    "query": "日系与日系简约男混合",
+    "expected": {"decision": "hold", "slugs": ["cityboy", "japanese-lifestyle"], "style_hit_count": 2}
+  },
+  {
+    "id": "none-resort-inside-presort",
+    "query": "Please presort the uploaded garment photos",
+    "expected": {"decision": "none", "slugs": [], "style_hit_count": 0}
+  },
+  {
+    "id": "none-resort-across-re-sort",
+    "query": "Please re-sort these garment photos",
+    "expected": {"decision": "none", "slugs": [], "style_hit_count": 0}
+  },
+  {
+    "id": "none-w-korea-across-show-korea",
+    "query": "Show Korea magazine mood",
+    "expected": {"decision": "none", "slugs": [], "style_hit_count": 0}
+  },
+  {
+    "id": "none-w-korea-across-new-korea",
+    "query": "New Korea magazine mood",
+    "expected": {"decision": "none", "slugs": [], "style_hit_count": 0}
+  },
+  {
+    "id": "route-w-korea-token-boundary",
+    "query": "W Korea editorial",
+    "expected": {"decision": "route", "slugs": ["korean-cold-editorial"], "style_hit_count": 1}
+  },
+  {
+    "id": "none-ecommerce-use-only-but-score-reachable",
+    "query": "用于商品上架，做店铺首图",
+    "expected": {
+      "decision": "none",
+      "slugs": [],
+      "style_hit_count": 0,
+      "rule_hits": [{"slug": "ecommerce-studio", "rule_id": "USE_ECOM_STUDIO", "weight": 20}]
+    }
+  }
+]

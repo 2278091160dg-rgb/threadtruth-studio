@@ -1,0 +1,40 @@
+# french-effortless — 法式松弛风(第二个 pack,验"加风格=纯数据,零改 core")。
+name: 法式松弛 / French Effortless
+slug: french-effortless
+version: 0.1.0
+maturity: DRAFT
+depends_on_core: ">=1.0"
+
+trigger_words: [法式, 松弛感, 巴黎, effortless, French girl, 慵懒法式]
+suitable_categories: [连衣裙, 半裙, 衬衫, 西装, 风衣, 针织]
+anti_categories: [冲锋衣, 瑜伽服, 婚纱, cosplay]
+
+visual_language: >
+  natural daylight, effortless Parisian editorial, low-saturation warm neutral palette,
+  relaxed undone garment styling only when already present in the garment reference; otherwise
+  express the ease through film grain, candid restraint, lived-in setting and composition.
+model_persona: relaxed natural expression, soft confidence, effortless undone attitude, no aegyo
+
+scenes:
+  - 巴黎公寓木地板窗边
+  - 老城区石板街角
+  - 极简画廊
+  - 咖啡馆露台(低干扰)
+  - 米色墙面室内
+  - 林荫道清晨
+lighting_palette: 自然光为主,暖中性低饱和,轻胶片颗粒
+pose_masters: inherit
+default_mode: C
+
+negative_delta_add: [no overstyled look, no glossy commercial retouch, no posed catalog stiffness]
+safety_delta:
+  cannot_relax: true
+  extra_constraints: []
+
+d0_preview: inherit-core
+d1_final: inherit-core
+d3_prompts: inherit-core
+qa_extra: [是否够松弛自然, 是否避免目录照, 是否暖中性低饱和到位]
+
+samples_required: [preview-grid, look-1..6, README]
+evals: repo://evals/styles/french-effortless.json

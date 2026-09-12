@@ -1,0 +1,48 @@
+[
+  {
+    "id": "bc-happy-1",
+    "type": "happy-path",
+    "input": "(上传纱裙) 芭蕾风 balletcore,A1",
+    "expect": "route→balletcore(trace 命中 STYLE_EXPLICIT(term=芭蕾风/balletcore,输入真实出现),score=100,可复算);确认后 A1→6 张闭集"
+  },
+  {
+    "id": "bc-style-routing-2",
+    "type": "style-routing",
+    "input": "(上传针织开衫) 想要芭蕾柔美和纱裙轻盈",
+    "expect": "命中 balletcore 主推(term=芭蕾柔美/纱裙轻盈→STYLE_EXPLICIT,均 input 字面出现且 §6 注册);recognition-ready 不生图"
+  },
+  {
+    "id": "bc-anti-fit-3",
+    "type": "anti-fit",
+    "input": "(上传冲锋衣) 芭蕾风",
+    "expect": "冲锋衣 ∈ anti_categories → 提示风格×品类不匹配"
+  },
+  {
+    "id": "bc-pure-data-4",
+    "type": "core-equivalence",
+    "input": "加载 balletcore pack",
+    "expect": "纯数据加载;negative_delta_add 只 append;cannot_relax=true"
+  },
+  {
+    "id": "bc-conflict-hold-5",
+    "type": "style-conflict",
+    "input": "(上传服饰) balletcore 混 gorpcore",
+    "expect": "第0步检测 balletcore↔gorpcore 互斥(router §3)→style-conflict-hold"
+  },
+  {
+    "id": "bc-action-gate-6",
+    "type": "permission-gate",
+    "input": "芭蕾柔美,先看看效果就行",
+    "expect": "授权模糊按未授权:不调 image_gen"
+  },
+  {
+    "id": "bc-nearmiss-7",
+    "type": "trigger-isolation",
+    "input": "(上传连衣裙) 甜美名媛 coquette",
+    "expect": "触发隔离:coquette/甜美名媛→coquette-ladylike,不落 balletcore",
+    "assert_triggers": {
+      "coquette-ladylike": {"contains": ["coquette"]},
+      "balletcore": {"contains": ["芭蕾风"], "excludes": ["coquette", "甜美名媛", "千金风"]}
+    }
+  }
+]

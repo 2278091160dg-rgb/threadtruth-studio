@@ -1,0 +1,41 @@
+# old-money — 老钱风(Wave 1 第1包,git 协作闭环起步;验"加风格=纯数据,零改 core")。
+name: 老钱风 / Old Money
+slug: old-money
+version: 0.1.0
+maturity: DRAFT
+depends_on_core: ">=1.0"
+
+trigger_words: [老钱, old money, old-money, 世家, 低调奢华, 名媛世家]
+suitable_categories: [西装, 衬衫, 针织, 连衣裙, 半裙, 风衣, polo衫]
+anti_categories: [冲锋衣, 瑜伽服, cosplay, 工装]
+
+visual_language: >
+  understated heritage elegance, old-money editorial, muted refined palette of navy camel cream
+  charcoal and burgundy; cashmere, wool, tweed, silk, linen and tailored timeless silhouettes only
+  when already present in the garment reference; do not add or remove logos; country-club and estate ease,
+  restrained generational wealth, lived-in quiet refinement.
+model_persona: composed understated confidence, quiet poise, effortless refinement, no flashiness
+
+scenes:
+  - 古典庄园书房与壁炉
+  - 私人俱乐部木质大厅
+  - 修剪整齐的庄园草坪与马术场
+  - 经典帆船甲板与海滨别墅
+  - 老钱公寓(古董家具与暖木)
+  - 秋季林荫庄园车道
+lighting_palette: 自然光为主,暖中性低饱和,古典层次柔光
+pose_masters: inherit
+default_mode: C
+
+negative_delta_add: [no added or invented visible logos, no added flashy bling, no added streetwear details, no glossy commercial retouch]
+safety_delta:
+  cannot_relax: true
+  extra_constraints: []
+
+d0_preview: inherit-core
+d1_final: inherit-core
+d3_prompts: inherit-core
+qa_extra: [参考图已有 logo 是否保留且未发明新 logo, 是否世家克制贵气到位, 是否避免新增浮夸与街头细节]
+
+samples_required: [preview-grid, look-1..6, README]
+evals: repo://evals/styles/old-money.json

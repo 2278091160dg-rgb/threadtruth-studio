@@ -1,0 +1,40 @@
+# gorpcore — 山系户外机能风(v1 静态批量;纯视觉轴)。
+name: 山系机能 / Gorpcore
+slug: gorpcore
+version: 0.1.0
+maturity: DRAFT
+depends_on_core: ">=1.0"
+
+trigger_words: [gorpcore, 山系, 户外机能, 机能户外, 山系机能, outdoor technical]
+suitable_categories: [冲锋衣, 马甲, 工装裤, 机能外套, 运动外套, 户外鞋]
+anti_categories: [礼服婚纱, 芭蕾纱裙, old money 礼服, 真丝睡裙]
+
+visual_language: >
+  outdoor technical editorial; layered construction, matte nylon, functional pockets and straps
+  only when already present in the garment reference; otherwise express trail-to-city utility
+  through rugged landscape mood, functional composition and an earthy low-saturation palette.
+model_persona: steady alert composure, practical confidence, calm outdoor focus
+
+scenes:
+  - 山路岩石边
+  - 城市户外装备店外
+  - 雾天森林步道
+  - 露营车旁
+  - 雨后水泥坡道
+  - 高架桥下机能街景
+lighting_palette: 阴天漫射光,苔绿/石灰/黑灰/土色,低饱和功能感
+pose_masters: inherit
+default_mode: C
+
+negative_delta_add: [no luxury salon setting, no ballet softness, no impractical posing]
+safety_delta:
+  cannot_relax: true
+  extra_constraints: []
+
+d0_preview: inherit-core
+d1_final: inherit-core
+d3_prompts: inherit-core
+qa_extra: [是否山系机能底座到位, 参考图已有功能层次是否清楚、未有则不新增, 是否避免奢华礼服化]
+
+samples_required: [preview-grid, look-1..6, README]
+evals: repo://evals/styles/gorpcore.json

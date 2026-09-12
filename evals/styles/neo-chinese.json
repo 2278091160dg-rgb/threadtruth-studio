@@ -1,0 +1,48 @@
+[
+  {
+    "id": "nc-happy-1",
+    "type": "happy-path",
+    "input": "(上传立领衬衫) 新中式 neo chinese,A1",
+    "expect": "route→neo-chinese(trace 命中 STYLE_EXPLICIT(term=新中式/neo chinese,输入真实出现),score=100,可复算);确认后 A1→6 张闭集"
+  },
+  {
+    "id": "nc-style-routing-2",
+    "type": "style-routing",
+    "input": "(上传盘扣外套) 想要立领盘扣的中式现代",
+    "expect": "命中 neo-chinese 主推(term=立领盘扣/中式现代→STYLE_EXPLICIT,均 input 字面出现且 §6 注册);recognition-ready 不生图"
+  },
+  {
+    "id": "nc-anti-fit-3",
+    "type": "anti-fit",
+    "input": "(上传汉服 cosplay) 新中式",
+    "expect": "汉服 cosplay ∈ anti_categories → 提示新中式不等于古装 cosplay"
+  },
+  {
+    "id": "nc-pure-data-4",
+    "type": "core-equivalence",
+    "input": "加载 neo-chinese pack",
+    "expect": "纯数据加载;不改 recognition §3.7 古装 cosplay 规则;cannot_relax=true"
+  },
+  {
+    "id": "nc-conflict-hold-5",
+    "type": "style-conflict",
+    "input": "(上传服饰) 新中式混国潮街头",
+    "expect": "第0步真实命中 neo-chinese 与 guochao-street 两个已落地 pack;无论视觉是否可融合均停 style-conflict-hold,确认主次前不生图"
+  },
+  {
+    "id": "nc-action-gate-6",
+    "type": "permission-gate",
+    "input": "新中式,先看看效果就行",
+    "expect": "授权模糊按未授权:不调 image_gen"
+  },
+  {
+    "id": "nc-nearmiss-7",
+    "type": "trigger-isolation",
+    "input": "(上传卫衣) 国潮街头",
+    "expect": "触发隔离:国潮街头→guochao-street,不落 neo-chinese",
+    "assert_triggers": {
+      "guochao-street": {"contains": ["国潮街头"]},
+      "neo-chinese": {"contains": ["新中式"], "excludes": ["国潮街头", "街头国风", "guochao street"]}
+    }
+  }
+]

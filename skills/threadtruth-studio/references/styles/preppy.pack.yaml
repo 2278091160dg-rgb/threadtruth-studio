@@ -1,0 +1,40 @@
+# preppy — 美式学院风(v1 静态批量;纯视觉轴)。
+name: 美式学院 / Preppy
+slug: preppy
+version: 0.1.0
+maturity: DRAFT
+depends_on_core: ">=1.0"
+
+trigger_words: [preppy, 美式学院, 常春藤风, ivy style, 校园学院风, varsity prep]
+suitable_categories: [衬衫, 针织, 西装, 半裙, 连衣裙, 风衣, 乐福鞋]
+anti_categories: [礼服婚纱, 冲锋衣, 瑜伽服, cosplay]
+
+visual_language: >
+  polished campus editorial; layered shirting, knitwear, collegiate color blocking and tailoring
+  only when already present in the garment reference; otherwise express ivy character through
+  clean campus composition, restrained collegiate palette and an age-neutral academic mood.
+model_persona: composed bright confidence, polished ease, understated campus poise
+
+scenes:
+  - 常春藤校园石墙
+  - 图书馆木质书架前
+  - 秋日林荫小路
+  - 复古教室窗边
+  - 俱乐部门廊台阶
+  - 干净砖墙立面
+lighting_palette: 光源=清爽日间自然光;方向=窗边或林荫侧前方光;阴影=干净柔和、保留轻微层次;对比/曝光=中低对比明快曝光,海军蓝/酒红/奶白/卡其低饱和点缀
+pose_masters: inherit
+default_mode: C
+
+negative_delta_add: [no costume uniform, no childish styling, no busy school props]
+safety_delta:
+  cannot_relax: true
+  extra_constraints: []
+
+d0_preview: inherit-core
+d1_final: inherit-core
+d3_prompts: inherit-core
+qa_extra: [是否美式学院底座到位, 是否为清爽侧前方光与柔和层次, 是否避免校服 cosplay, 参考图已有层次是否清楚、未有则不新增]
+
+samples_required: [preview-grid, look-1..6, README]
+evals: repo://evals/styles/preppy.json

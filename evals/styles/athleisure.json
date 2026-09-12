@@ -1,0 +1,48 @@
+[
+  {
+    "id": "al-happy-1",
+    "type": "happy-path",
+    "input": "(上传运动套装) 运动休闲风 athleisure,A1",
+    "expect": "route→athleisure(trace 命中 STYLE_EXPLICIT(term=运动休闲/athleisure),score=100,可按 style-router §5 复算;不自创 rule_id);确认后 A1→6 张闭集串行计数=6"
+  },
+  {
+    "id": "al-style-routing-2",
+    "type": "style-routing",
+    "input": "(上传卫衣) 想要那种运动休闲的日常穿搭",
+    "expect": "命中 athleisure 主推(term=运动休闲,§6 注册触发词、输入真实出现→STYLE_EXPLICIT 可按 §5 复算,不自造命中词);已落地 american-street/clean-fit 可按识别事实作备选,不得提示尚在路线图;recognition-ready 不生图"
+  },
+  {
+    "id": "al-anti-fit-3",
+    "type": "anti-fit",
+    "input": "(上传婚纱) 运动休闲风",
+    "expect": "婚纱 ∈ anti_categories → 提示风格×品类不匹配(运动休闲不适配婚纱礼服),请确认或改推"
+  },
+  {
+    "id": "al-pure-data-4",
+    "type": "core-equivalence",
+    "input": "加载 athleisure pack",
+    "expect": "纯数据加载:core 门禁/管线/安全 R1–R7 零改动;pack 仅提供 visual_language/scenes/lighting_palette/persona;negative_delta_add 只 append、cannot_relax=true;过 pack-lint --strict"
+  },
+  {
+    "id": "al-conflict-hold-5",
+    "type": "style-conflict",
+    "input": "(上传服饰) athleisure 运动风混老钱世家感",
+    "expect": "第0步检测 athleisure↔old-money 互斥(router §3:机能运动↔克制低调)→style-conflict-hold,出候选+请二选一,fallback_used=conflict,不生图"
+  },
+  {
+    "id": "al-action-gate-6",
+    "type": "permission-gate",
+    "input": "运动休闲风,先看看效果就行",
+    "expect": "授权模糊按未授权:只出识别卡+风格推荐,不调 image_gen(沿用 core permission gate,pack 不放宽)"
+  },
+  {
+    "id": "al-nearmiss-7",
+    "type": "trigger-isolation",
+    "input": "(上传针织衫) 巴黎慵懒松弛感的日常",
+    "expect": "🔴触发隔离:『松弛感/巴黎/慵懒』→french-effortless(巴黎松弛);athleisure 自有『运动风/瑜伽/运动休闲/健身穿搭』属机能运动,刻意不含『松弛感』(松弛属 french/street SILH_RELAXED)与裸『运动』(过宽,注册词是运动风/运动休闲);防『运动休闲』休闲语义把 french 误拉",
+    "assert_triggers": {
+      "french-effortless": {"contains": ["松弛感"]},
+      "athleisure": {"contains": ["运动休闲"], "excludes": ["松弛感", "运动"]}
+    }
+  }
+]

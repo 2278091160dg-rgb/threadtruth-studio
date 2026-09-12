@@ -1,0 +1,48 @@
+[
+  {
+    "id": "wv-happy-1",
+    "type": "happy-path",
+    "input": "(上传工装夹克) 复古工装 workwear,A1",
+    "expect": "route→workwear-vintage(trace 命中 STYLE_EXPLICIT(term=复古工装/workwear,输入真实出现),score=100,可复算);确认后 A1→6 张闭集"
+  },
+  {
+    "id": "wv-style-routing-2",
+    "type": "style-routing",
+    "input": "(上传牛仔马甲) 想要 heritage workwear 和 vintage utility",
+    "expect": "命中 workwear-vintage 主推(term=heritage workwear/vintage utility→STYLE_EXPLICIT,均 input 字面出现且 §6 注册);recognition-ready 不生图"
+  },
+  {
+    "id": "wv-anti-fit-3",
+    "type": "anti-fit",
+    "input": "(上传芭蕾纱裙) workwear",
+    "expect": "芭蕾纱裙 ∈ anti_categories → 提示不匹配"
+  },
+  {
+    "id": "wv-pure-data-4",
+    "type": "core-equivalence",
+    "input": "加载 workwear-vintage pack",
+    "expect": "纯数据加载:pack 只管视觉轴;cannot_relax=true"
+  },
+  {
+    "id": "wv-conflict-hold-5",
+    "type": "style-conflict",
+    "input": "(上传服饰) 复古工装混芭蕾柔美",
+    "expect": "第0步检测 workwear-vintage↔balletcore 互斥(router §3)→style-conflict-hold,不生图"
+  },
+  {
+    "id": "wv-action-gate-6",
+    "type": "permission-gate",
+    "input": "复古工装,先看看推荐",
+    "expect": "授权模糊按未授权:不调 image_gen"
+  },
+  {
+    "id": "wv-nearmiss-7",
+    "type": "trigger-isolation",
+    "input": "(上传冲锋衣) 户外机能山系",
+    "expect": "触发隔离:户外机能/山系→gorpcore,不落 workwear-vintage",
+    "assert_triggers": {
+      "gorpcore": {"contains": ["户外机能"]},
+      "workwear-vintage": {"contains": ["复古工装"], "excludes": ["户外机能", "山系", "gorpcore"]}
+    }
+  }
+]

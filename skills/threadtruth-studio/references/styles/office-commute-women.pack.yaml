@@ -1,0 +1,40 @@
+# office-commute-women — 女性职场通勤风(v1 静态批量;纯视觉轴)。
+name: 职场通勤女装 / Office Commute Women
+slug: office-commute-women
+version: 0.1.0
+maturity: DRAFT
+depends_on_core: ">=1.0"
+
+trigger_words: [职场通勤, OL通勤, 商务女装, office commute, office lady style, 通勤女装]
+suitable_categories: [西装, 衬衫, 半裙, 连衣裙, 风衣, 针织, 大衣]
+anti_categories: [泳装, 儿童服饰, 礼服婚纱, 运动瑜伽服]
+
+visual_language: >
+  polished office commute editorial; professional tailoring and commute styling only when already
+  present in the garment reference; otherwise express practical elegance through weekday city
+  rhythm, low-distraction business setting and refined approachable composition.
+model_persona: composed professional confidence, calm focus, approachable poise
+
+scenes:
+  - 写字楼大堂
+  - 城市街角斑马线
+  - 办公桌旁自然光
+  - 电梯厅金属墙
+  - 咖啡店外通勤场景
+  - 玻璃幕墙建筑前
+lighting_palette: 光源=写字楼窗光或柔棚光;方向=侧前方塑形但不过度戏剧化;阴影=克制清晰、不遮挡服饰结构;对比/曝光=中低对比标准曝光,黑白灰/驼色/海军蓝清爽职业感
+pose_masters: inherit
+default_mode: C
+
+negative_delta_add: [no nightclub styling, no overly formal gown, no distracting office clutter]
+safety_delta:
+  cannot_relax: true
+  extra_constraints: []
+
+d0_preview: inherit-core
+d1_final: inherit-core
+d3_prompts: inherit-core
+qa_extra: [是否职场通勤底座到位, 是否侧前方塑形且不遮挡服饰结构, 是否专业但不僵硬, 是否场景低干扰]
+
+samples_required: [preview-grid, look-1..6, README]
+evals: repo://evals/styles/office-commute-women.json

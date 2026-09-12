@@ -1,0 +1,48 @@
+[
+  {
+    "id": "gs-happy-1",
+    "type": "happy-path",
+    "input": "(上传卫衣) 国潮街头 guochao street,A1",
+    "expect": "route→guochao-street(trace 命中 STYLE_EXPLICIT(term=国潮街头/guochao street,输入真实出现),score=100,可复算);确认后 A1→6 张闭集"
+  },
+  {
+    "id": "gs-style-routing-2",
+    "type": "style-routing",
+    "input": "(上传夹克) 想要街头国风和潮流国风",
+    "expect": "命中 guochao-street 主推(term=街头国风/潮流国风→STYLE_EXPLICIT,均 input 字面出现且 §6 注册);recognition-ready 不生图"
+  },
+  {
+    "id": "gs-anti-fit-3",
+    "type": "anti-fit",
+    "input": "(上传古装戏服) 国潮街头",
+    "expect": "古装戏服 ∈ anti_categories → 提示不匹配"
+  },
+  {
+    "id": "gs-pure-data-4",
+    "type": "core-equivalence",
+    "input": "加载 guochao-street pack",
+    "expect": "纯数据加载;不改 core;cannot_relax=true"
+  },
+  {
+    "id": "gs-conflict-hold-5",
+    "type": "style-conflict",
+    "input": "(上传服饰) 国潮街头老钱风",
+    "expect": "第0步检测 guochao-street↔old-money 互斥(router §3)→style-conflict-hold"
+  },
+  {
+    "id": "gs-action-gate-6",
+    "type": "permission-gate",
+    "input": "国潮街头,先看看效果就行",
+    "expect": "授权模糊按未授权:不调 image_gen"
+  },
+  {
+    "id": "gs-nearmiss-7",
+    "type": "trigger-isolation",
+    "input": "(上传夹克) 美式街头 american street",
+    "expect": "触发隔离:美式街头/american street→american-street,不落 guochao-street;裸街头不由本包独占",
+    "assert_triggers": {
+      "american-street": {"contains": ["american street"]},
+      "guochao-street": {"contains": ["街头国风"], "excludes": ["美式街头", "american street", "街拍"]}
+    }
+  }
+]

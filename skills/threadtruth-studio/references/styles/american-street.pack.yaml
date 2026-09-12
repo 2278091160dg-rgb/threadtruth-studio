@@ -1,0 +1,41 @@
+# american-street — 美式街头风(Wave 1 第2包,接续 old-money;验"加风格=纯数据,零改 core")。
+name: 美式街头 / American Street
+slug: american-street
+version: 0.1.0
+maturity: DRAFT
+depends_on_core: ">=1.0"
+
+trigger_words: [美式, 美式街头, 街拍, american street, vibe 街头, 美式复古街头]
+suitable_categories: [卫衣, T恤, 牛仔, 工装裤, 棒球外套, 卫裤, 针织]
+anti_categories: [西装, 婚纱, 旗袍, 正装礼服]
+
+visual_language: >
+  urban american streetwear editorial; oversized proportions, washed-denim texture and graphic
+  layering only when already present in the garment reference; otherwise express the same relaxed
+  street energy through candid composition, muted urban palette with occasional bold accent,
+  natural daylight on city streets, effortless cool restraint.
+model_persona: relaxed cool attitude, casual confidence, candid street energy, no stiffness
+
+scenes:
+  - 城市街角与涂鸦墙
+  - 地铁站台与月台
+  - 街边水泥台阶
+  - 工业仓库与卷帘门
+  - 篮球场围栏
+  - 黄昏霓虹街道
+lighting_palette: 自然光/街头环境光为主,城市中性低饱和,偶有霓虹点缀
+pose_masters: inherit
+default_mode: C
+
+negative_delta_add: [no overstyled look, no glossy commercial retouch, no posed catalog stiffness, no luxury formalwear]
+safety_delta:
+  cannot_relax: true
+  extra_constraints: []
+
+d0_preview: inherit-core
+d1_final: inherit-core
+d3_prompts: inherit-core
+qa_extra: [是否街头松弛自然, 是否避免目录照, 是否城市中性调到位]
+
+samples_required: [preview-grid, look-1..6, README]
+evals: repo://evals/styles/american-street.json

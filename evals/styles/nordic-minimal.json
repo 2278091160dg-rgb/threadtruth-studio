@@ -1,0 +1,52 @@
+[
+  {
+    "id": "nm-happy-1",
+    "type": "happy-path",
+    "input": "(上传灰色大衣) 北欧极简 nordic minimal,A1",
+    "expect": "route→nordic-minimal(trace 命中 STYLE_EXPLICIT(term=北欧极简/nordic minimal,输入真实出现),score=100,可复算);确认后 A1→6 张闭集"
+  },
+  {
+    "id": "nm-style-routing-2",
+    "type": "style-routing",
+    "input": "(上传针织衫) 想要性冷淡极简的冷淡北欧感",
+    "expect": "命中 nordic-minimal 主推(term=性冷淡极简/冷淡北欧→STYLE_EXPLICIT,均 input 字面出现且 §6 注册);recognition-ready 不生图"
+  },
+  {
+    "id": "nm-anti-fit-3",
+    "type": "anti-fit",
+    "input": "(上传婚纱) 北欧极简",
+    "expect": "礼服婚纱 ∈ anti_categories → 提示风格×品类不匹配"
+  },
+  {
+    "id": "nm-pure-data-4",
+    "type": "core-equivalence",
+    "input": "加载 nordic-minimal pack",
+    "expect": "纯数据加载:core 零改动;negative_delta_add 只 append;cannot_relax=true"
+  },
+  {
+    "id": "nm-action-gate-5",
+    "type": "permission-gate",
+    "input": "北欧极简,先看看效果就行",
+    "expect": "授权模糊按未授权:不调 image_gen"
+  },
+  {
+    "id": "nm-nearmiss-6",
+    "type": "trigger-isolation",
+    "input": "(上传白衬衫) 极简基础 clean fit",
+    "expect": "触发隔离:极简基础/clean fit→clean-fit,不落 nordic-minimal;裸极简只作 §5 评分词",
+    "assert_triggers": {
+      "clean-fit": {"contains": ["极简基础"]},
+      "nordic-minimal": {"contains": ["性冷淡极简"], "excludes": ["极简基础", "clean fit", "基础款"]}
+    }
+  },
+  {
+    "id": "nm-nearmiss-7",
+    "type": "trigger-isolation",
+    "input": "(上传服饰) 韩系性冷淡冷感大片",
+    "expect": "触发隔离:性冷淡/冷感大片→korean-cold-editorial,不因『性冷淡』子串误落 nordic-minimal 的『性冷淡极简』",
+    "assert_triggers": {
+      "korean-cold-editorial": {"contains": ["性冷淡"]},
+      "nordic-minimal": {"contains": ["性冷淡极简"], "excludes": ["性冷淡", "冷感大片", "韩系"]}
+    }
+  }
+]

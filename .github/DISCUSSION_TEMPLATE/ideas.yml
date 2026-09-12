@@ -1,0 +1,24 @@
+title: "Idea: "
+labels: [idea]
+body:
+  - type: markdown
+    attributes:
+      value: The scope is frozen through v1.0.0, but post-stable ideas are welcome.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+    validations:
+      required: true
+  - type: textarea
+    id: boundaries
+    attributes:
+      label: Source-truth, permission, and trigger boundaries
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: What evidence would prove it works?
+    validations:
+      required: true

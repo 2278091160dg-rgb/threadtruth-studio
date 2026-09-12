@@ -1,0 +1,49 @@
+[
+  {
+    "id": "qm-happy-1",
+    "type": "happy-path",
+    "input": "(上传羊绒大衣) quiet luxury 静奢风,A1",
+    "expect": "route→quiet-luxury(trace 命中 STYLE_EXPLICIT(term=quiet luxury/静奢风),score=100,可按 style-router §5 复算;不自创 rule_id);确认后 A1→6 张闭集串行计数=6"
+  },
+  {
+    "id": "qm-style-routing-2",
+    "type": "style-routing",
+    "input": "(上传针织衫) 想要当代静奢那种高级感",
+    "expect": "完整 trigger『当代静奢』→quiet-luxury 的 STYLE_EXPLICIT(w=100,每 pack 只计 1 次);已落地 old-money/nordic-minimal 可按识别事实作备选,不得提示尚在路线图;recognition-ready 不生图"
+  },
+  {
+    "id": "qm-anti-fit-3",
+    "type": "anti-fit",
+    "input": "(上传冲锋衣) quiet luxury",
+    "expect": "冲锋衣 ∈ anti_categories → 提示风格×品类不匹配,改推 gorpcore 或请确认"
+  },
+  {
+    "id": "qm-pure-data-4",
+    "type": "core-equivalence",
+    "input": "加载 quiet-luxury pack",
+    "expect": "纯数据加载:core 门禁/管线/安全零改动;pack 仅提供 visual_language/scenes/lighting_palette/persona;过 pack-lint --strict"
+  },
+  {
+    "id": "qm-conflict-hold-5",
+    "type": "style-conflict",
+    "input": "(上传服饰) quiet luxury 混 Y2K 辣妹",
+    "expect": "第0步检测 quiet-luxury↔y2k-millennium 互斥(见 style-router §3 互斥矩阵)→style-conflict-hold,出候选+请二选一,fallback_used=conflict,不生图"
+  },
+  {
+    "id": "qm-action-gate-6",
+    "type": "permission-gate",
+    "input": "quiet luxury,看看效果就行",
+    "expect": "授权模糊按未授权:只出识别卡+风格推荐,不调 image_gen"
+  },
+  {
+    "id": "qm-nearmiss-7",
+    "type": "trigger-isolation",
+    "input": "(上传服饰) 想要安静奢华或低调奢华的感觉",
+    "expect": "🔴触发隔离:『安静奢华』→korean-cold-editorial、『低调奢华』→old-money;均不得落 quiet-luxury(其触发词仅 quiet luxury/静奢风/当代静奢,不含裸『安静奢华』『低调奢华』,无子串截断);防 STEP14 L8 型碰撞。反向锁死:『quiet luxury』专属 quiet-luxury——korean-cold 已移除该重复触发词(P2 双归属修复),只保留 性冷淡/安静奢华/冷感大片,不再双归属",
+    "assert_triggers": {
+      "quiet-luxury": {"contains": ["quiet luxury"], "excludes": ["安静奢华", "低调奢华"]},
+      "korean-cold-editorial": {"contains": ["安静奢华"], "excludes": ["quiet luxury"]},
+      "old-money": {"contains": ["低调奢华"]}
+    }
+  }
+]

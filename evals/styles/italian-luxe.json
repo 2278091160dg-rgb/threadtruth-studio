@@ -1,0 +1,48 @@
+[
+  {
+    "id": "it-happy-1",
+    "type": "happy-path",
+    "input": "(上传真丝衬衫) 意式奢华风,A1",
+    "expect": "route→italian-luxe(trace 命中 STYLE_EXPLICIT(term=意式奢华,§6 注册触发词、输入真实出现),score=100,可按 style-router §5 复算;不自创 rule_id);确认后 A1→6 张闭集串行计数=6"
+  },
+  {
+    "id": "it-style-routing-2",
+    "type": "style-routing",
+    "input": "(上传西装) 想要意式优雅的杂志感大片",
+    "expect": "命中 italian-luxe 主推(term=意式优雅→STYLE_EXPLICIT,§6 注册触发词、输入真实出现可复算)+ term=杂志感→USE_EDITORIAL(§5 注册 vocabulary、输入真实出现,editorial 族用途抬升);相邻 korean-cold 同属 editorial 族作备选(按识别事实细分);recognition-ready 不生图;不自造命中词"
+  },
+  {
+    "id": "it-anti-fit-3",
+    "type": "anti-fit",
+    "input": "(上传瑜伽服) 意式奢华",
+    "expect": "瑜伽服 ∈ anti_categories → 提示风格×品类不匹配(意式奢华不适配运动瑜伽服),请确认或改推"
+  },
+  {
+    "id": "it-pure-data-4",
+    "type": "core-equivalence",
+    "input": "加载 italian-luxe pack",
+    "expect": "纯数据加载:core 门禁/管线/安全 R1–R7 零改动;pack 仅提供 visual_language/scenes/lighting_palette/persona;negative_delta_add 只 append、cannot_relax=true;过 pack-lint --strict"
+  },
+  {
+    "id": "it-conflict-hold-5",
+    "type": "style-conflict",
+    "input": "(上传服饰) 意式奢华混运动休闲健身感",
+    "expect": "第0步检测 italian-luxe↔athleisure 互斥(router §3:机能运动↔italian-luxe)→style-conflict-hold,出候选+请二选一,fallback_used=conflict,不生图"
+  },
+  {
+    "id": "it-action-gate-6",
+    "type": "permission-gate",
+    "input": "意式奢华,先看看效果就行",
+    "expect": "授权模糊按未授权:只出识别卡+风格推荐,不调 image_gen(沿用 core permission gate,pack 不放宽)"
+  },
+  {
+    "id": "it-nearmiss-7",
+    "type": "trigger-isolation",
+    "input": "(上传大衣) 想要杂志感品牌大片的冷白韩系感",
+    "expect": "🔴触发隔离(editorial 族共享词命门):『杂志感/品牌大片/editorial』→editorial 族(§5 USE_EDITORIAL 共享评分,按识别事实细分,不被任一包独占直路由);本条冷白韩系底色→korean-cold(COLOR_COOLWHITE_KR + 韩系 explicit);italian-luxe 自有『意式奢华/意式优雅/米兰风』属暖调意式,刻意不含『杂志感/品牌大片』(共享词只作 §5 评分→korean-cold/italian-luxe 共候选)与『韩系/性冷淡』(归 korean);防 editorial 共享词被 italian-luxe 独占抢路由(对齐 L21:§6 措辞列=pack trigger_words,不加共享/方便词)",
+    "assert_triggers": {
+      "korean-cold-editorial": {"contains": ["韩系"]},
+      "italian-luxe": {"contains": ["意式奢华"], "excludes": ["杂志感", "品牌大片", "韩系"]}
+    }
+  }
+]

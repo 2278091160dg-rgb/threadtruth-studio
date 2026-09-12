@@ -1,0 +1,48 @@
+[
+  {
+    "id": "kr-happy-1",
+    "type": "happy-path",
+    "input": "(上传冷白醋酸缎连衣裙) 韩系杂志风,A1",
+    "expect": "route→korean-cold-editorial;完整 trigger『韩系杂志风』先计 STYLE_EXPLICIT(w=100,每 pack 只计 1 次),独立颜色事实『冷白』可另计 COLOR_COOLWHITE_KR;确认风格后授权 A1→6 张独立成片闭集串行计数=6;主体由 core 注入"
+  },
+  {
+    "id": "kr-style-routing-2",
+    "type": "style-routing",
+    "input": "(上传服饰) 性冷淡 / 冷感大片 那种韩系",
+    "expect": "『性冷淡/冷感大片/韩系』均为 korean-cold-editorial 显式 trigger;trace 记录全部 matched_terms,但 STYLE_EXPLICIT 每 pack 只计 1 次(w=100),不得叠成 300;停 recognition-ready 不生图。裸『quiet luxury』归 quiet-luxury"
+  },
+  {
+    "id": "kr-anti-fit-3",
+    "type": "anti-fit",
+    "input": "(上传冲锋衣) 韩系冷感",
+    "expect": "冲锋衣 ∈ anti_categories → 提示『风格×品类不匹配,确认?』,不强行套用,等用户确认或改推 gorpcore"
+  },
+  {
+    "id": "kr-preview-not-final-4",
+    "type": "pipeline-gate",
+    "input": "韩系 B0 → 用户『预览就行不用再出了』",
+    "expect": "preview-grid 不退化为成片;拒绝把预览当成片,重新征求 6 张成片授权(core §0/prompt-build §4.3)"
+  },
+  {
+    "id": "kr-gender-age-axis-5",
+    "type": "axis-injection",
+    "input": "(上传男士西装) 韩系大片",
+    "expect": "性别年龄轴=男装→core 注入男模特;pack persona 不含性别词;视觉底座仍韩系冷感"
+  },
+  {
+    "id": "kr-action-gate-6",
+    "type": "permission-gate",
+    "input": "韩系,先给我提示词 (A3)",
+    "expect": "prompts-only:输出 6 条提示词 + 负面词,不调 image_gen,不烧额度"
+  },
+  {
+    "id": "kr-nearmiss-7",
+    "type": "trigger-isolation",
+    "input": "(上传大衣) 日系无印那种暖调自然光生活感",
+    "expect": "🔴触发隔离(镜像 jl-nearmiss-6 + L18 同族):『日系/无印』→japanese-lifestyle(暖调自然光);korean-cold-editorial 自有『韩系/冷感大片/安静奢华』属冷白杂志,刻意不含『日系/无印风』,且持有『安静奢华』但不含静奢族词(静奢→quiet-luxury),双向锁韩/日 + 静奢族归属",
+    "assert_triggers": {
+      "japanese-lifestyle": {"contains": ["日系"]},
+      "korean-cold-editorial": {"contains": ["安静奢华"], "excludes": ["日系", "无印风", "静奢风", "当代静奢"]}
+    }
+  }
+]

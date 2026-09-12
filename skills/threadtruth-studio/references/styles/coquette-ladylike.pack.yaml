@@ -1,0 +1,39 @@
+# coquette-ladylike — 甜美名媛风(v1 静态批量;纯视觉轴)。
+name: 甜美名媛 / Coquette Ladylike
+slug: coquette-ladylike
+version: 0.1.0
+maturity: DRAFT
+depends_on_core: ">=1.0"
+
+trigger_words: [coquette, 千金风, 甜美名媛, ladylike coquette, coquette style, 精致淑女]
+suitable_categories: [连衣裙, 针织开衫, 半裙, 衬衫, 小香风外套, 芭蕾鞋]
+anti_categories: [冲锋衣, 工装裤, 机能外套, 泳装, 儿童服饰]
+
+visual_language: >
+  coquette ladylike editorial, delicate bows and refined feminine details when present,
+  soft polished palette, elegant social setting, sweet but composed high-touch styling.
+model_persona: gentle polished confidence, graceful composure, refined charm
+
+scenes:
+  - 法式沙龙浅色墙面
+  - 下午茶桌边
+  - 花园白色长椅
+  - 精品酒店走廊
+  - 浅粉灰棚拍背景
+  - 复古镜前一角
+lighting_palette: 柔光/自然光,奶油白/浅粉/香槟色/淡灰,精致柔和
+pose_masters: inherit
+default_mode: C
+
+negative_delta_add: [no childish doll styling, no sexualized pose, no excessive lace clutter]
+safety_delta:
+  cannot_relax: true
+  extra_constraints: []
+
+d0_preview: inherit-core
+d1_final: inherit-core
+d3_prompts: inherit-core
+qa_extra: [是否甜美名媛底座到位, 是否避免幼态化, 是否精致但不杂乱]
+
+samples_required: [preview-grid, look-1..6, README]
+evals: repo://evals/styles/coquette-ladylike.json

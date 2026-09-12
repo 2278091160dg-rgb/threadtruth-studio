@@ -1,0 +1,40 @@
+# y2k-millennium — 千禧 Y2K 风(v1 静态批量;纯视觉轴)。
+name: 千禧 Y2K / Y2K Millennium
+slug: y2k-millennium
+version: 0.1.0
+maturity: DRAFT
+depends_on_core: ">=1.0"
+
+trigger_words: [Y2K, 千禧风, 千禧辣妹, 复古千禧, y2k millennium, millennium style]
+suitable_categories: [短上衣, 牛仔, 半裙, 皮衣, 亮面单品, 配饰]
+anti_categories: [儿童服饰, 礼服婚纱, 老钱大衣, 英伦传承外套]
+
+visual_language: >
+  millennium pop editorial; metallic accents, glossy garment texture and low-rise denim only when
+  already present in the garment reference; otherwise express Y2K energy through playful
+  high-contrast color, flash photography, reflective background accents and retro digital attitude.
+model_persona: confident playful attitude, sharp pop energy, controlled editorial edge
+
+scenes:
+  - 复古数码影棚
+  - 银色金属墙面
+  - 夜间便利店外
+  - 霓虹招牌街角
+  - 高闪光白墙棚拍
+  - 旧唱片店门口
+lighting_palette: 闪光灯/霓虹补光,银色/粉蓝/黑色/高光材质,中高对比
+pose_masters: inherit
+default_mode: C
+
+negative_delta_add: [no underage styling, no sexualized pose, no explicit nightclub setting]
+safety_delta:
+  cannot_relax: true
+  extra_constraints: []
+
+d0_preview: inherit-core
+d1_final: inherit-core
+d3_prompts: inherit-core
+qa_extra: [是否千禧 Y2K 底座到位, 是否控制露肤风险, 是否避免未成年化]
+
+samples_required: [preview-grid, look-1..6, README]
+evals: repo://evals/styles/y2k-millennium.json

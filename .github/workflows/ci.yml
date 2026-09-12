@@ -1,0 +1,43 @@
+name: validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Repository contracts
+        run: python3 -m unittest discover -s tests -v
+      - name: Style-pack lint
+        run: python3 tools/pack-lint.py --strict skills/threadtruth-studio/references/styles/*.pack.yaml
+      - name: Trigger regression
+        run: python3 tools/trigger-eval.py
+      - name: Parse JSON and compile Python
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          for path in Path('.').rglob('*.json'):
+              if '.git' not in path.parts:
+                  json.loads(path.read_text())
+          PY
+          python3 -m compileall -q skills tests tools
+      - name: Public text and history scan
+        run: python3 tools/public-scan.py --history
+      - name: Allowlist release staging
+        run: |
+          python3 tools/build-release.py
+          test -f dist/threadtruth-studio-1.0.0-beta.1.zip
+          test -f dist/threadtruth-studio-1.0.0-beta.1.zip.sha256
