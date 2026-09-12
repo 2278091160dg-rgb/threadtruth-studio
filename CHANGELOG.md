@@ -22,7 +22,7 @@ The repository carries behavior evals, 24 per-style suites, deterministic route 
 
 ### Verification
 
-System Skill validation, official Plugin validation, production strict/runtime checks, 24/24 pack lint, trigger regression, privacy scanning, and release staging are the required candidate gates. Public real-image evidence remains pending.
+System Skill validation, official Plugin validation, production strict/runtime checks, 24/24 pack lint, trigger regression, privacy scanning, release staging, public CI, and the maintainer-machine Plugin lifecycle passed. Public real-image evidence and external clean-environment evidence remain pending. Minimal implicit missing-image behavior is tracked in [Issue #1](https://github.com/2278091160dg-rgb/threadtruth-studio/issues/1).
 
 #### Added
 
@@ -30,12 +30,14 @@ System Skill validation, official Plugin validation, production strict/runtime c
 - Public identity `threadtruth-studio` and bilingual user documentation.
 - Allowlist release builder, repository contract tests, CI, community files, and Beta evidence templates.
 - Competitive boundary and Codex for Open Source readiness packet.
+- Public GitHub repository, passing GitHub Actions, and a privacy-safe local lifecycle verification record.
 
 #### Changed
 
 - Migrated the private `clothing-portrait-studio` runtime from commit `1eb29ad` without its Git history or private evidence.
 - Replaced specific image-model wording with the host's native image generation capability.
 - Reset public maturity to `DRAFT` until rights-cleared Beta evidence is complete.
+- Archived the legacy live Skill after verifying rollback, then restored and enabled Plugin version `1.0.0-beta.1`.
 
 #### Security
 

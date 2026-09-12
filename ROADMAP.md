@@ -8,8 +8,10 @@
 - [x] Trigger, packaging, privacy, and static regression suite
 - [x] English README, Chinese guide, offline user guide, community files
 - [ ] Rights-cleared public source garment and complete demo chain
-- [ ] Clean local Plugin install, discovery, upgrade, uninstall, and rollback record
-- [ ] Public GitHub repository and signed Beta Release with checksum
+- [x] Maintainer-machine Plugin install, discovery, upgrade, uninstall, and rollback record
+- [x] Public GitHub repository and passing required CI
+- [ ] Resolve or explicitly release-note the minimal implicit-trigger limitation
+- [ ] Signed Beta Release with checksum
 
 ## 30-day Beta
 

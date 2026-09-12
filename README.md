@@ -62,13 +62,16 @@ The first Beta Release will add the final marketplace command after a clean-envi
 
 - Runtime identity and 24 style packs: implemented.
 - Static, trigger, privacy, and allowlist packaging checks: implemented.
+- Public repository and required GitHub Actions checks: active and passing.
+- Maintainer-machine Plugin lifecycle: install, discovery, upgrade, uninstall, and legacy rollback verified; `v1.0.0-beta.1` restored and enabled.
 - Rights-cleared public demo: `sample-blocked`, awaiting maintainer-owned source images.
-- Global old-skill migration: not performed; requires separate authorization.
-- GitHub Release and published checksums: pending the rights-cleared demo and clean installation gate.
+- External clean-environment validation: pending; the maintainer preflight does not count toward Beta adoption.
+- Known runtime issue: a minimal implicit missing-image request may skip Skill loading; see [Issue #1](https://github.com/2278091160dg-rgb/threadtruth-studio/issues/1). Explicit invocation is the Beta workaround.
+- GitHub Release and published checksums: pending the rights-cleared demo and remaining release gates.
 - Codex for Open Source application: not submitted; requires stable `v1.0.0`, threshold evidence, and final user authorization.
 
 ## Community
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), the [roadmap](ROADMAP.md), and the [competitive boundary](docs/COMPETITIVE-LANDSCAPE.md). Issues and Discussions will become the public support channels after the repository is published.
+Read [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), the [roadmap](ROADMAP.md), and the [competitive boundary](docs/COMPETITIVE-LANDSCAPE.md). GitHub Issues and Discussions are the public support channels.
 
 Licensed under [Apache-2.0](LICENSE).

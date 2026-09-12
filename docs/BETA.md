@@ -2,6 +2,12 @@
 
 The Beta clock begins on the public `v1.0.0-beta.1` Release timestamp, not on local repository creation.
 
+## Maintainer preflight — 2026-09-12
+
+The public repository and required CI are active. On the maintainer machine, `1.0.0-beta.1` completed install, discovery, uninstall, reinstall, cache-buster upgrade, legacy rollback, and final restoration. Explicit invocation, substantive implicit discovery, and non-apparel isolation passed. A minimal implicit missing-image request may skip Skill loading; this medium-severity limitation is tracked in [Issue #1](https://github.com/2278091160dg-rgb/threadtruth-studio/issues/1).
+
+This preflight is not a non-maintainer installation, a real workflow case, or the start of the 30-day Beta clock.
+
 ## Exit criteria
 
 - At least five non-maintainer installations.
