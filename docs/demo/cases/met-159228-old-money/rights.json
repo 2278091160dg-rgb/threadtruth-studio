@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0",
+  "case_id": "met-159228-old-money",
+  "candidate_id": "met-159228",
+  "status": "promoted",
+  "role": "auxiliary",
+  "primary_demo_status": "sample-blocked",
+  "source": {
+    "provider": "The Metropolitan Museum of Art Open Access",
+    "object_id": 159228,
+    "object_url": "https://www.metmuseum.org/art/collection/search/159228",
+    "api_url": "https://collectionapi.metmuseum.org/public/collection/v1/objects/159228",
+    "primary_image_url": "https://images.metmuseum.org/CRDImages/ci/original/43.133.4_CP4.jpg",
+    "metadata_sha256_at_discovery": "db128691fd8b280f81ad220df49f94f92ed8648254bdbed1041f8be5674d4d7f",
+    "metadata_sha256_at_promotion": "db128691fd8b280f81ad220df49f94f92ed8648254bdbed1041f8be5674d4d7f"
+  },
+  "source_license": {
+    "id": "CC0-1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "policy_url": "https://www.metmuseum.org/policies/image-resources"
+  },
+  "media_license": {
+    "id": "CC0-1.0",
+    "url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "scope": "Source media and generated demo media to the extent the project can grant rights."
+  },
+  "asset": {
+    "path": "source.jpg",
+    "sha256": "7ad8a7d4f93c3d2eacecb68a6c69bbbd685e45eedf167076df941f5bd2ce8af6",
+    "mime": "image/jpeg",
+    "bytes": 1371785,
+    "width": 2942,
+    "height": 4000
+  },
+  "human_review": {
+    "decision": "approved",
+    "reviewer": "github:2278091160dg-rgb",
+    "reviewed_at": "2026-09-12T16:24:05Z",
+    "checks": {
+      "no_person": true,
+      "no_logo": true,
+      "no_watermark": true,
+      "physical_garment": true,
+      "not_sensitive": true
+    },
+    "confirmation": "I reviewed this asset for public demo use"
+  },
+  "promoted_at": "2026-09-12T16:27:50Z",
+  "notices": [
+    "This project is not endorsed by The Metropolitan Museum of Art.",
+    "Apache-2.0 does not apply to media in this case.",
+    "CC0 does not eliminate possible trademark, privacy, personality, or cultural rights."
+  ]
+}
