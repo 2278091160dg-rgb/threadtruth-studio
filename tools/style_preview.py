@@ -514,7 +514,7 @@ def audit(root, run_id, style=None, require_approval=False):
     findings = []
     for preview in selected:
         try:
-            _validate_preview(record, preview, directory, require_approval, True)
+            _validate_preview(record, preview, directory, require_approval or style is None, True)
         except (OSError, ValueError, KeyError, TypeError, AttributeError, StopIteration) as error:
             findings.append(f"{preview['style']}: {error}")
     if _primary().has_sensitive_public_text(record):
@@ -547,12 +547,24 @@ def _legacy_html(record):
     )
 
 
-def _html(record, style=None):
+def _review_label(record, preview, directory, local):
+    if "human_review" not in preview:
+        return "not approved"
+    try:
+        _validate_preview(record, preview, directory, True, local)
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, StopIteration):
+        return "review invalid / pending"
+    return "approved"
+
+
+def _html(record, style=None, directory=None, local=False):
     previews = [_find_preview(record, style)] if style is not None else record["previews"]
     sections = []
     for preview in previews:
         visual = (
-            f'<a href="{html.escape(preview["path"])}"><img src="{html.escape(preview["path"])}" alt="Complete {html.escape(preview["style"])} six-pose preview sheet"></a>'
+            f'<a href="{html.escape(preview["path"])}"><img src="{html.escape(preview["path"])}" '
+            f'width="{int(preview["width"])}" height="{int(preview["height"])}" '
+            f'alt="Complete {html.escape(preview["style"])} six-pose preview sheet"></a>'
             if "path" in preview else "<p>Not generated</p>"
         )
         poses = "".join(
@@ -560,7 +572,7 @@ def _html(record, style=None):
             f"{html.escape(pose['description'])}<br><small>{html.escape(pose['head_gaze'])}</small></li>"
             for pose in preview["poses"]
         )
-        review = "approved" if "human_review" in preview else "not approved"
+        review = _review_label(record, preview, directory, local)
         sections.append(
             f"<section><h2>{html.escape(preview['display_name'])}</h2><p><code>{html.escape(preview['style'])}</code></p>"
             f"{visual}<p>{review}</p><ol>{poses}</ol></section>"
@@ -569,7 +581,7 @@ def _html(record, style=None):
         '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width">'
         '<title>Style preview review</title><style>body{max-width:1200px;margin:2rem auto;font-family:system-ui}'
         'main{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:2rem}'
-        'section{min-width:0}img{display:block;width:100%;height:auto}'
+        'section{min-width:0}img{display:block;width:auto;max-width:100%;height:auto}'
         'ol{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding-left:1.5rem}'
         'li{min-width:0;overflow-wrap:anywhere;word-break:break-word}'
         '@media(max-width:480px){ol{grid-template-columns:1fr}}</style><body>'
@@ -586,7 +598,7 @@ def gallery(root, run_id, style=None):
         content, filename = _legacy_html(record), "gallery.html"
     else:
         _check_plan(root, record, directory)
-        content = _html(record, style)
+        content = _html(record, style, directory, True)
         filename = f"gallery-{style}.html" if style else "gallery.html"
     path = directory / filename
     path.write_text(content, encoding="utf-8")
@@ -636,7 +648,7 @@ def validate_public_previews(root):
             expected = {"evidence.json", "README.md", "index.html", *[f"{item['style']}.jpg" for item in record["previews"]]}
             if {path.name for path in directory.iterdir()} != expected or any(path.is_symlink() or not path.is_file() for path in directory.iterdir()):
                 raise ValueError("unregistered or missing preview artifact")
-            if (directory / "README.md").read_text() != _readme(record) or (directory / "index.html").read_text() != _html(record):
+            if (directory / "README.md").read_text() != _readme(record) or (directory / "index.html").read_text() != _html(record, directory=directory):
                 raise ValueError("stale preview disclosure or gallery")
         except (OSError, ValueError, KeyError, TypeError, AttributeError, StopIteration) as error:
             findings.append(f"{directory.name}: {error}")
@@ -667,6 +679,38 @@ def preview_links(root):
     return links
 
 
+def _project_preview(root, record):
+    index_path = child(root, "docs/demo/style-index.json")
+    index = read_json(index_path)
+    links = _links_from_record(record)
+    if {item.get("slug") for item in index.get("styles", [])} != set(links):
+        raise ValueError("style index and approved previews differ")
+    for item in index["styles"]:
+        item["preview"] = links[item["slug"]]
+    primary = _primary()
+    tracked = [index_path, *primary.expected_style_pages(root), child(root, "docs/demo/RIGHTS.md")]
+    backups = {path: path.read_bytes() if path.exists() else None for path in tracked}
+    try:
+        _atomic_json(index_path, index)
+        primary.render_style_pages(root)
+        primary.render_rights_index(root)
+        findings = [
+            *validate_public_previews(root),
+            *primary.validate_style_index(root),
+            *primary.validate_style_pages(root),
+        ]
+        if findings:
+            raise ValueError("public preview projection validation failed: " + "; ".join(findings))
+    except Exception:
+        for path, data in backups.items():
+            if data is None:
+                if path.exists():
+                    path.unlink()
+            else:
+                path.write_bytes(data)
+        raise
+
+
 def promote(root, run_id):
     directory = run_dir(root, run_id)
     record = read_json(directory / "evidence.json")
@@ -685,6 +729,7 @@ def promote(root, run_id):
     if target.exists():
         if read_json(target / "evidence.json") != record or validate_public_previews(root):
             raise ValueError("refuse to overwrite different or invalid public evidence")
+        _project_preview(root, record)
         return target
     target.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=directory) as temporary:
@@ -694,40 +739,15 @@ def promote(root, run_id):
             shutil.copyfile(child(directory, preview["path"]), stage / preview["path"])
         write_json(stage / "evidence.json", record)
         (stage / "README.md").write_text(_readme(record), encoding="utf-8")
-        (stage / "index.html").write_text(_html(record), encoding="utf-8")
-        index_path = child(root, "docs/demo/style-index.json")
-        index = read_json(index_path)
-        links = _links_from_record(record)
-        if {item.get("slug") for item in index.get("styles", [])} != set(links):
-            raise ValueError("style index and approved previews differ")
-        for item in index["styles"]:
-            item["preview"] = links[item["slug"]]
-        primary = _primary()
-        tracked = [index_path, *primary.expected_style_pages(root), child(root, "docs/demo/RIGHTS.md")]
-        backups = {path: path.read_bytes() if path.exists() else None for path in tracked}
+        (stage / "index.html").write_text(_html(record, directory=stage), encoding="utf-8")
         created_target = False
         try:
             stage.rename(target)
             created_target = True
-            _atomic_json(index_path, index)
-            primary.render_style_pages(root)
-            primary.render_rights_index(root)
-            projection_findings = [
-                *validate_public_previews(root),
-                *primary.validate_style_index(root),
-                *primary.validate_style_pages(root),
-            ]
-            if projection_findings:
-                raise ValueError("public preview projection validation failed: " + "; ".join(projection_findings))
+            _project_preview(root, record)
         except Exception:
             if created_target:
                 shutil.rmtree(target)
-            for path, data in backups.items():
-                if data is None:
-                    if path.exists():
-                        path.unlink()
-                else:
-                    path.write_bytes(data)
             raise
     return target
 

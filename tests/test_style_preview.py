@@ -133,6 +133,58 @@ class PreviewTests(unittest.TestCase):
         self.assertIn(run["previews"][0]["poses"][0]["description"], content)
         self.assertIn(run["previews"][0]["poses"][0]["head_gaze"], content)
         self.assertIn("@media(max-width:480px){ol{grid-template-columns:1fr}}", content)
+        self.assertIn("img{display:block;width:auto;max-width:100%;height:auto}", content)
+
+    def test_gallery_approval_label_requires_a_complete_hash_bound_review(self):
+        run = self.ingest_all()
+        style = run["previews"][0]["style"]
+        path = self.m.run_dir(self.root, "test-run") / "evidence.json"
+        run["previews"][0]["human_review"] = self.m.review_template(run, style)
+        path.write_text(json.dumps(run))
+        content = self.m.gallery(self.root, "test-run", style=style).read_text()
+        self.assertIn("<p>review invalid / pending</p>", content)
+        self.assertNotIn("<p>approved</p>", content)
+
+        review = self.m.review_template(run, style)
+        review.update(
+            reviewer="github:test-human", reviewed_at="2026-09-13T02:00:00Z",
+            confirmation=self.m.confirmation(style), public_use_approved=True,
+        )
+        for pose in review["poses"]:
+            pose.update(product="pass", pose_layout="pass", identity_style="pass", ai_disclosure="pass")
+        run["previews"][0]["human_review"] = review
+        path.write_text(json.dumps(run))
+        self.assertIn("<p>approved</p>", self.m.gallery(self.root, "test-run", style=style).read_text())
+        (self.m.run_dir(self.root, "test-run") / run["previews"][0]["path"]).write_bytes(b"tampered")
+        content = self.m.gallery(self.root, "test-run", style=style).read_text()
+        self.assertIn("<p>review invalid / pending</p>", content)
+        self.assertNotIn("<p>approved</p>", content)
+        self.assertIn('width="601" height="607"', content)
+
+        review = run["previews"][0]["human_review"]
+        review.update(
+            reviewer="github:test-human", reviewed_at="2026-09-13T02:00:00Z",
+            confirmation=self.m.confirmation(style), public_use_approved=True,
+            preview_sha256="0" * 64,
+        )
+        for pose in review["poses"]:
+            pose.update(product="pass", pose_layout="pass", identity_style="pass", ai_disclosure="pass")
+        path.write_text(json.dumps(run))
+        content = self.m.gallery(self.root, "test-run", style=style).read_text()
+        self.assertIn("<p>review invalid / pending</p>", content)
+        self.assertNotIn("<p>approved</p>", content)
+
+    def test_full_audit_reports_unapproved_styles_but_scoped_machine_audit_is_useful(self):
+        run = self.ingest_all()
+        findings = self.m.audit(self.root, "test-run")
+        self.assertEqual(len(findings), 24)
+        self.assertTrue(all("human review incomplete" in finding for finding in findings))
+        style = run["previews"][0]["style"]
+        self.assertEqual(self.m.audit(self.root, "test-run", style=style), [])
+        self.assertEqual(
+            self.m.audit(self.root, "test-run", style=style, require_approval=True),
+            [f"{style}: human review incomplete"],
+        )
 
     def test_style_ingest_preserves_native_dimensions_and_requires_exact_receipt(self):
         run = self.prepare()
@@ -209,6 +261,11 @@ class PreviewTests(unittest.TestCase):
         self.assertNotIn(str(self.root), (public / "evidence.json").read_text())
         index = json.loads((self.root / "docs/demo/style-index.json").read_text())
         self.assertEqual(sum(bool(style.get("preview")) for style in index["styles"]), 24)
+        index["styles"][0]["preview"] = None
+        (self.root / "docs/demo/style-index.json").write_text(json.dumps(index))
+        self.assertTrue(self.m._primary().validate_style_index(self.root))
+        self.assertEqual(self.m.promote(self.root, "test-run"), public)
+        self.assertEqual(self.m._primary().validate_style_index(self.root), [])
         self.assertEqual(sum(style["status"] == "ready" for style in index["styles"]), 1)
         self.assertIn("whole six-pose sheet", (self.root / "docs/demo/styles/old-money.md").read_text())
         import demo_media
@@ -267,6 +324,10 @@ class PreviewTests(unittest.TestCase):
         changed["previews"][0]["path"] = "../../outside.jpg"
         path.write_text(json.dumps(changed))
         self.assertTrue(self.m.audit(self.root, "test-run"))
+
+    def test_growth_guide_uses_the_existing_preview_template(self):
+        content = (self.root / "docs/demo/GROWTH.md").read_text()
+        self.assertIn("Use and verify the existing", content)
 
 
 if __name__ == "__main__":
