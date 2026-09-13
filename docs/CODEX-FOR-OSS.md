@@ -34,7 +34,9 @@ Record only public, auditable values:
 | Feedback-driven release | changelog + linked issue | pending |
 | Open high-severity issues | security/issue triage | pending |
 
-Developer preview boards do not count as complete cases. Four planned six-style boards use the same white vest and remain `0/24` until human review; independent six-final coverage remains `1/24`.
+Preview contact sheets do not count as complete cases. The corrected collection is 24 separate images of the same white vest, each showing ONE style and SIX poses, using runtime action 0. Approved previews remain `0/24`; independent six-final coverage remains `1/24`. The beta.2 mixed-style tool is not completion evidence for this requirement.
+
+The official form was read again on 2026-09-13: the qualification narrative, API-credit-use answer and optional additional information currently each allow 500 characters. Public GitHub profile/repository visibility and private application identifiers must be checked again on submission day. Active maintenance, meaningful usage, adoption or ecosystem importance matter; reaching the project's numeric targets alone does not guarantee selection. [Official application](https://openai.com/form/codex-for-oss/).
 
 ## Private form fields
 

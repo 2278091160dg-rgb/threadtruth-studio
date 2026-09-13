@@ -1,6 +1,8 @@
 # Roadmap
 
-## `v1.0.0-beta.1` — release candidate
+Current execution source: [total task register and schedule](docs/WORK-STATUS.md). Its 21 work packages consolidate overlapping historical checkboxes below and include the corrected preview requirement. They are not an effort-completion percentage.
+
+## `v1.0.0-beta.1` — published foundation
 
 - [x] Clean public repository and Apache-2.0 license
 - [x] Codex Plugin manifest and one active Skill identity
@@ -16,6 +18,12 @@
 - [x] Beta Release with published checksums
 
 ## 30-day Beta
+
+- [ ] Replace the superseded mixed-style tool with 24 single-style / six-pose preview records
+- [ ] Generate and human-review 24 full contact sheets of the same white vest
+- [ ] Publish whole-sheet thumbnails and the approved preview collection in beta.3
+- [ ] Record a real, redacted installation-to-preview walkthrough
+- [ ] Authorize and publish tester recruitment; drafts alone do not count
 
 - [ ] Five non-maintainer installations
 - [ ] Three complete, authorized real workflows

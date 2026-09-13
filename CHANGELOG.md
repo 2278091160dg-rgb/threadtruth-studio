@@ -2,6 +2,12 @@
 
 All notable changes are documented here. Versions follow Semantic Versioning.
 
+## Unreleased — 2026-09-13 preview scope correction and task register
+
+- The maintainer clarified the intended example: 24 separate previews of ONE garment, each preview using ONE style and SIX poses from existing runtime action 0. The beta.2 four-board/mixed-style interpretation was wrong, not merely a canvas problem.
+- Corrected current English/Chinese/Growth/Beta/application/offline-guide descriptions and added the total work-package register with owners, acceptance criteria, dependencies and target windows. Runtime behavior, published versions and artifacts are unchanged.
+- The mixed-style developer tool/schema/tests still require replacement. No new native image was generated, no human review was synthesized and no preview was promoted. Approved previews remain 0/24. The historical beta.2 entry below describes what shipped, not the corrected target.
+
 ## 2026-09-13 — 1.0.0-beta.2
 
 ### Trigger and behavior

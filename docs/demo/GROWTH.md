@@ -6,15 +6,16 @@ ThreadTruth Studio optimizes in this order: Codex for Open Source readiness, gen
 
 - **Primary Cases:** three authorized source-to-six-image workflows. Korean Cold Editorial is ready; E-commerce Studio and American Street remain planned.
 - **Featured Styles:** eight high-signal styles for the README and sharing surfaces.
-- **Full Style Index:** the same authorized white vest in all24 style directions, delivered as four3-column/2-row preview boards. These are AI style previews, not independent final images. Existing full-case coverage remains1/24; preview coverage reaches24/24 only after all24 tiles pass human review.
+- **Full Style Index:** 24 separate contact sheets of the same authorized white vest, ONE style and SIX poses per image. Use runtime action 0; thumbnails preserve the whole sheet and preview-only label. This is 24 previews / 144 pose cells, not 144 independent finals. Full-case coverage remains 1/24; preview coverage is the number of accepted single-style sheets out of 24. The beta.2 four-mixed-style-board implementation requires replacement.
 
 Planned cards must not display generated placeholders or imply completed evidence.
 
 ## 30-day cadence
 
-- D1–D2: DENGGUI identity, bilingual installation and gated preview tooling; release beta.2 after validation.
-- D3–D4: up to four native generation calls, serial; check layout/product/style/identity after each. Stop on a material defect. The maintainer reviews all24 tiles.
-- After approval: publish the preview gallery and beta.3. Do not restart the2026-09-13 Beta clock.
+- DENGGUI identity, bilingual installation and beta.2 publication are complete; corrected preview tooling is not complete.
+- First replace and test the developer evidence model against runtime action 0. Then make one Korean Cold Editorial pilot preview after its explicit generation gate; obtain maintainer acceptance before continuing the remaining styles.
+- The full collection requires 24 initial native preview calls if all succeed; the rejected mixed-style draft does not count, and retries need separate authorization. Each style is a separate action-0 operation; the old four-call budget is not transferable to an unattended 24-call batch.
+- After all 24 single-style sheets are human-approved: publish whole-sheet thumbnails, style pages, rights/evidence and beta.3. Do not restart the 2026-09-13 Beta clock. Dates, owners and dependencies are in the [total task register](../WORK-STATUS.md).
 - Through Beta: external installation feedback, two more authorized complete workflows, feedback-led fixes and lifecycle evidence. These depend on actual tester and source availability.
 - Weekly: record GitHub's 14-day visitors, clones, referrers, popular content, Star change, and verified installations.
 - When views rise without better installation or Star conversion, pause image production and fix positioning, installation, or documentation first.

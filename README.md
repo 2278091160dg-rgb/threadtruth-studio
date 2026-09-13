@@ -27,7 +27,7 @@ Installed it? Share a sanitized result through the [installation feedback form](
 ## What is public today
 
 - Independent six-final coverage: `1/24`, the real case above.
-- Developer style-preview coverage: `0/24` until human approval. Four planned boards will show the **same white vest** across six styles each. Each board carries a visible bottom-right “AI PREVIEW / NOT FINAL” label and tile IDs; its public page identifies every tile as an AI style preview, not a final. No board is published or counted before review.
+- Single-style preview coverage: `0/24` approved. The target is **24 separate contact sheets of the same white vest: ONE style and SIX poses per sheet**. Gallery thumbnails will show each entire sheet and link to its full preview, with the preview-only label retained. The beta.2 developer tool instead made four mixed-style boards; that implementation is superseded and requires rework before this collection can be produced. No preview is published or counted before review.
 - Gendered and culturally named styles translate atmosphere, styling language, lighting, and setting only. They never infer identity, ethnicity, nationality, body, or gender from the garment or wearer.
 
 [Browse the 24-style evidence index](docs/demo/STYLES.md). A six-tile board is a direction preview, not six independent finals and not a completed workflow.
