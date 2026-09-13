@@ -35,8 +35,8 @@ RULE_PATHS = {
 }
 AI_LABEL = "AI-generated style preview — not six independent final images."
 PREVIEW_MARK = "AI生成 · 方向预览 · 非成片 / PREVIEW ONLY — NOT FINAL"
-CURRENT_SCHEMA = "3.0"
-LEGACY_SCHEMAS = {"1.0", "2.0"}
+CURRENT_SCHEMA = "4.0"
+LEGACY_SCHEMAS = {"1.0", "2.0", "3.0"}
 MODE_NAMES = {"B": "棚拍版", "C": "场景版", "D": "混合版"}
 LAYOUT_CONTRACT = {
     "board_aspect_ratio": "1:1",
@@ -49,7 +49,14 @@ LAYOUT_CONTRACT = {
 ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,79}")
 HASH = re.compile(r"[a-f0-9]{64}")
 MAX_BYTES = 8 * 1024 * 1024
-GENERATED_FIELDS = {"path", "sha256", "width", "height", "bytes", "original_sha256", "generation", "human_review"}
+GENERATED_FIELDS = {"path", "sha256", "width", "height", "bytes", "original_sha256", "generation", "human_review", "composition"}
+
+
+def _cards():
+    spec = importlib.util.spec_from_file_location('preview_cards', Path(__file__).with_name('preview_cards.py'))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def read_json(path):
@@ -290,6 +297,7 @@ def _plan(root, run_id):
             },
         }
         preview["prompt_sha256"] = digest(_prompt(preview, source, anchor, preview_negative).encode())
+        preview["display_contract"] = copy.deepcopy(_cards().CONTRACT)
         previews.append(preview)
     return {
         "schema_version": CURRENT_SCHEMA, "run_id": run_id, "role": "style-preview", "status": "prepared",
@@ -428,6 +436,7 @@ def ingest(root, run_id, style, image, generation):
     if "path" in preview:
         expected = {key: preview[key] for key in ("sha256", "bytes", "width", "height")}
         if preview["original_sha256"] == original and preview["generation"] == generation and _image(child(directory, preview["path"])) == expected:
+            _validate_preview(record, preview, directory, False, True, require_composition=False)
             return record
         raise ValueError("refuse to overwrite registered preview")
     for other in record["previews"]:
@@ -476,6 +485,117 @@ def confirmation(style):
     return f"I reviewed the complete six-pose {style} preview against the authorized sources."
 
 
+def public_assets(record):
+    """Registered publishable image assets; paths are relative to the run directory.
+
+    Call validate_public_previews before using a public record. Retained raw
+    originals, receipt absolute paths, layouts and font binaries are private.
+    """
+    assets = []
+    for preview in record['previews']:
+        if 'path' in preview:
+            assets.append({'style': preview['style'], 'role': 'native-preview',
+                           **{key: preview[key] for key in ('path', 'sha256', 'width', 'height', 'bytes')}})
+        for role, key in [('display-preview', 'display'), ('preview-thumbnail', 'thumbnail')]:
+            if 'composition' in preview:
+                assets.append({'style': preview['style'], 'role': role, **preview['composition'][key]})
+    return assets
+
+
+def compose(root, run_id, style, layout, font):
+    directory = run_dir(root, run_id)
+    record = read_json(directory / 'evidence.json')
+    _check_plan(root, record, directory)
+    preview = _find_preview(record, style)
+    _validate_preview(record, preview, directory, False, True, require_composition=False)
+    receipt = read_json(child(directory, f'native-receipts/{style}.json'))
+    cards = _cards()
+    cells = cards.rectangles(layout, preview['original_sha256'], receipt['native_dimensions'])
+    font_hash = digest(font.read_bytes())
+    if 'composition' in preview:
+        comp = preview['composition']
+        if comp['layout_sha256'] == object_hash(layout) and comp['font_sha256'] == font_hash:
+            _check_composition(preview, directory, True)
+            return record
+        raise ValueError('refuse to overwrite registered composition; prepare a fresh run')
+    labels = {**preview['label_contract'], 'footer': cards.CONTRACT['footer_text']}
+    layout_path = f'layouts/{style}.json'
+    for relative in (layout_path, f'{style}-display.jpg', f'{style}-thumb.jpg'):
+        if child(directory, relative).exists():
+            raise ValueError('refuse to overwrite unregistered composition asset')
+    with tempfile.TemporaryDirectory(dir=directory) as temporary:
+        stage = Path(temporary)
+        rendering = cards.render(child(directory, receipt['retained_path']), cells, labels, font, stage, style)
+        comp = {
+            'original_sha256': preview['original_sha256'], 'native_sha256': preview['sha256'],
+            'native_dimensions': receipt['native_dimensions'],
+            'generation': copy.deepcopy(preview['generation']),
+            'layout_path': layout_path, 'layout_sha256': object_hash(layout), 'observed_layout': copy.deepcopy(layout),
+            'font_sha256': font_hash, 'parameters': copy.deepcopy(cards.CONTRACT),
+            'geometry': 'pass', 'geometry_scope': 'deterministic-display-cards-only',
+            'native_geometry': 'not-certified-by-composition', **rendering,
+        }
+        for key, suffix in [('display', 'display'), ('thumbnail', 'thumb')]:
+            relative = f'{style}-{suffix}.jpg'
+            comp[key] = {'path': relative, **_image(stage / relative)}
+        for key in ('display', 'thumbnail'):
+            relative = comp[key]['path']
+            shutil.copyfile(stage / relative, child(directory, relative))
+    _atomic_json(child(directory, layout_path), layout)
+    preview['composition'] = comp
+    _atomic_json(directory / 'evidence.json', record)
+    _atomic_json(directory / f'review-template-{style}.json', review_template(record, style))
+    return record
+
+
+def _check_composition(preview, directory, local):
+    comp = preview.get('composition')
+    required = {'original_sha256', 'native_sha256', 'native_dimensions', 'generation', 'layout_path',
+                'layout_sha256', 'observed_layout', 'font_sha256', 'font_name', 'parameters', 'geometry',
+                'geometry_scope', 'native_geometry', 'transforms', 'text', 'display', 'thumbnail'}
+    if not isinstance(comp, dict) or set(comp) != required:
+        raise ValueError('missing or malformed composition')
+    if (comp['original_sha256'] != preview['original_sha256'] or comp['native_sha256'] != preview['sha256']
+            or comp['generation'] != preview['generation']):
+        raise ValueError('composition source or prompt binding mismatch')
+    if comp['native_dimensions'] != [preview['width'], preview['height']]:
+        raise ValueError('composition native dimensions mismatch')
+    cards = _cards()
+    if comp['parameters'] != cards.CONTRACT or comp['geometry'] != 'pass' or comp['geometry_scope'] != 'deterministic-display-cards-only' or comp['native_geometry'] != 'not-certified-by-composition':
+        raise ValueError('composition geometry contract mismatch')
+    cells = cards.rectangles(comp['observed_layout'], preview['original_sha256'], comp['native_dimensions'])
+    if object_hash(comp['observed_layout']) != comp['layout_sha256'] or comp['transforms'] != cards.transforms(cells):
+        raise ValueError('composition layout or transforms mismatch')
+    if comp['layout_path'] != f"layouts/{preview['style']}.json":
+        raise ValueError('composition layout path invalid')
+    if local and read_json(child(directory, comp['layout_path'])) != comp['observed_layout']:
+        raise ValueError('composition observed layout changed')
+    if not HASH.fullmatch(str(comp['font_sha256'])) or not isinstance(comp['font_name'], str) or not comp['font_name'] or '/' in comp['font_name'] or '\\' in comp['font_name']:
+        raise ValueError('composition font provenance invalid')
+    labels = {**preview['label_contract'], 'footer': cards.CONTRACT['footer_text']}
+    if not isinstance(comp['text'], dict) or set(comp['text']) != set(labels):
+        raise ValueError('composition labels incomplete')
+    for name, label in labels.items():
+        text = comp['text'][name]
+        if not isinstance(text, dict) or set(text) != {'text', 'rendered', 'font_size', 'bounds'}:
+            raise ValueError('composition label record invalid')
+        if text['text'] != label or not isinstance(text['rendered'], str) or text['rendered'].replace('\n', '') != label.replace('\n', ''):
+            raise ValueError('composition label content mismatch')
+        if type(text['font_size']) is not int or not 18 <= text['font_size'] <= 34:
+            raise ValueError('composition label font size invalid')
+        x, y, w, h = _rect(text['bounds'], 1200, 1200)
+        bx, by, bw, bh = cards.CONTRACT[name]
+        if x < bx or y < by or x+w > bx+bw or y+h > by+bh:
+            raise ValueError('composition label escapes reserved band')
+    for key, suffix, size in [('display', 'display', [1200, 1200]), ('thumbnail', 'thumb', [600, 600])]:
+        asset = comp[key]
+        if not isinstance(asset, dict) or set(asset) != {'path', 'sha256', 'width', 'height', 'bytes'} or asset['path'] != f"{preview['style']}-{suffix}.jpg":
+            raise ValueError('composition asset path invalid')
+        actual = _image(child(directory, asset['path']))
+        if any(asset[k] != v for k, v in actual.items()) or [actual['width'], actual['height']] != size:
+            raise ValueError('composition asset hash or dimensions mismatch')
+
+
 def _review_hash(record, preview):
     return object_hash({
         "source": record["source"], "identity_anchor": record["identity_anchor"], "rules": record["rules"],
@@ -485,8 +605,12 @@ def _review_hash(record, preview):
 
 def review_template(record, style):
     preview = _find_preview(record, style)
+    comp = preview.get('composition', {})
     return {
-        "reviewer": "", "reviewed_at": "", "confirmation": "", "preview_sha256": preview.get("sha256", ""),
+        "reviewer": "", "reviewed_at": "", "confirmation": "", "preview_sha256": comp.get('display', {}).get('sha256', ''),
+        "original_sha256": preview.get('original_sha256', ''),
+        "native_sha256": preview.get('sha256', ''),
+        "composition_sha256": object_hash(comp) if comp else '',
         "evidence_sha256": _review_hash(record, preview), "public_use_approved": False,
         "geometry": {
             "cells": [None, None, None, None, None, None],
@@ -500,6 +624,9 @@ def review_template(record, style):
             "correct_subtitle": "pending",
             "readable_ai_footer": "pending",
             "text_subject_non_overlap": "pending",
+            "complete_panel_extraction": "pending",
+            "padding_no_subject_loss": "pending",
+            "derivative_disclosure": "pending",
         },
         "poses": [
             {
@@ -574,7 +701,8 @@ def _check_review(record, preview):
         raise ValueError("human review incomplete")
     if not _primary().GITHUB_REVIEWER.fullmatch(str(review["reviewer"])) or review["confirmation"] != confirmation(preview["style"]):
         raise ValueError("human review incomplete")
-    if review["public_use_approved"] is not True or review["preview_sha256"] != preview.get("sha256") or review["evidence_sha256"] != template["evidence_sha256"]:
+    if review["public_use_approved"] is not True or any(review[k] != template[k] for k in
+            ('preview_sha256', 'original_sha256', 'native_sha256', 'composition_sha256', 'evidence_sha256')):
         raise ValueError("human review incomplete")
     if review["checks"] != {key: "pass" for key in template["checks"]}:
         raise ValueError("human review incomplete")
@@ -587,20 +715,26 @@ def _check_review(record, preview):
         }
         if pose != expected:
             raise ValueError("human review incomplete")
-    _check_geometry(review["geometry"], preview["width"], preview["height"])
+    _check_geometry(review["geometry"], 1200, 1200)
+    contract = preview['display_contract']
+    if review['geometry']['cells'] != contract['cells']:
+        raise ValueError('observed geometry invalid')
+    for name in ('title', 'subtitle', 'footer'):
+        x, y, w, h = review['geometry'][name]
+        bx, by, bw, bh = contract[name]
+        if x < bx or y < by or x+w > bx+bw or y+h > by+bh:
+            raise ValueError('observed geometry invalid')
     if _primary().parse_iso_z(review["reviewed_at"]) < _primary().parse_iso_z(preview["generation"]["generated_at"]):
         raise ValueError("review predates generation")
 
 
-def _validate_preview(record, preview, directory, require_approval, local):
+def _validate_preview(record, preview, directory, require_approval, local, require_composition=True):
     style = preview["style"]
     if preview.get("path") != f"{style}.jpg":
         raise ValueError("missing native output" if "path" not in preview else "preview path invalid")
     actual = _image(child(directory, preview["path"]))
     if any(preview.get(key) != value for key, value in actual.items()):
         raise ValueError("preview hash or metadata mismatch")
-    if actual["width"] != actual["height"]:
-        raise ValueError("preview board must be square")
     if not HASH.fullmatch(str(preview.get("original_sha256"))):
         raise ValueError("original preview hash missing")
     _generation(preview.get("generation"), preview)
@@ -615,10 +749,10 @@ def _validate_preview(record, preview, directory, require_approval, local):
             raise ValueError("native output hash mismatch")
         if receipt.get("native_dimensions") != _native_dimensions(native):
             raise ValueError("native output dimensions mismatch")
-        if receipt["native_dimensions"][0] != receipt["native_dimensions"][1]:
-            raise ValueError("preview board must be square")
     if _primary().parse_iso_z(preview["generation"]["generated_at"]) < _primary().parse_iso_z(record["source"]["authorization"]["declared_at"]):
         raise ValueError("generation predates source authorization")
+    if require_composition or 'composition' in preview:
+        _check_composition(preview, directory, local)
     if require_approval or "human_review" in preview:
         _check_review(record, preview)
 
@@ -706,12 +840,30 @@ def _html(record, style=None, directory=None, local=False):
     previews = [_find_preview(record, style)] if style is not None else record["previews"]
     sections = []
     for preview in previews:
+        if 'path' in preview and preview['path'] != f"{preview['style']}.jpg":
+            raise ValueError('preview path invalid')
+        if 'composition' in preview:
+            for key, suffix in [('display', 'display'), ('thumbnail', 'thumb')]:
+                if preview['composition'][key]['path'] != f"{preview['style']}-{suffix}.jpg":
+                    raise ValueError('composition asset path invalid')
         visual = (
             f'<a href="{html.escape(preview["path"])}"><img src="{html.escape(preview["path"])}" '
             f'width="{int(preview["width"])}" height="{int(preview["height"])}" '
             f'alt="Complete {html.escape(preview["style"])} six-pose preview sheet"></a>'
             if "path" in preview else "<p>Not generated</p>"
         )
+        if 'path' in preview:
+            visual = '<p>Native whole sheet (optimized original). Native exact-grid qualification is independent.</p>' + visual
+        if 'composition' in preview:
+            comp = preview['composition']
+            display, thumb = comp['display'], comp['thumbnail']
+            visual = (
+                '<p>排版衍生预览 / Composed display: six fixed 360×480 cards on a 1200×1200 board. '
+                'Complete extracted panels are contained with white padding and no upscale. '
+                'Geometry PASS covers deterministic cards only; panel completeness and visual preservation require human review.</p>'
+                f'<a href="{html.escape(display["path"])}"><img src="{html.escape(thumb["path"])}" '
+                f'width="600" height="600" alt="Complete composed {html.escape(preview["style"])} six-pose preview board"></a>' + visual
+            )
         poses = "".join(
             f"<li><strong>{pose['ordinal']}: {html.escape(pose['master'])}</strong><br>"
             f"{html.escape(pose['description'])}<br><small>{html.escape(pose['head_gaze'])}</small></li>"
@@ -790,7 +942,7 @@ def validate_public_previews(root):
             if record["run_id"] != directory.name:
                 raise ValueError("run id mismatch")
             _public_record_valid(root, record, directory)
-            expected = {"evidence.json", "README.md", "index.html", *[f"{item['style']}.jpg" for item in record["previews"]]}
+            expected = {"evidence.json", "README.md", "index.html", *[asset['path'] for asset in public_assets(record)]}
             if {path.name for path in directory.iterdir()} != expected or any(path.is_symlink() or not path.is_file() for path in directory.iterdir()):
                 raise ValueError("unregistered or missing preview artifact")
             if (directory / "README.md").read_text() != _readme(record) or (directory / "index.html").read_text() != _html(record, directory=directory):
@@ -804,7 +956,12 @@ def _links_from_record(record):
     return {
         preview["style"]: {
             "run_id": record["run_id"], "style": preview["style"],
-            "path": f"style-previews/{record['run_id']}/{preview['path']}", "sha256": preview["sha256"],
+            "path": f"style-previews/{record['run_id']}/{preview['composition']['display']['path']}",
+            "sha256": preview['composition']['display']['sha256'],
+            "native": {**{key: preview[key] for key in ('sha256', 'width', 'height', 'bytes')},
+                       'path': f"style-previews/{record['run_id']}/{preview['path']}"},
+            "thumbnail": {**preview['composition']['thumbnail'],
+                          'path': f"style-previews/{record['run_id']}/{preview['composition']['thumbnail']['path']}"},
         }
         for preview in record["previews"]
     }
@@ -833,12 +990,14 @@ def _project_preview(root, record):
     for item in index["styles"]:
         item["preview"] = links[item["slug"]]
     primary = _primary()
-    tracked = [index_path, *primary.expected_style_pages(root), child(root, "docs/demo/RIGHTS.md")]
+    tracked = [index_path, *primary.expected_style_pages(root), child(root, "docs/demo/RIGHTS.md"),
+               *[root / name for name in ('README.md', 'README.zh-CN.md') if (root / name).is_file()]]
     backups = {path: path.read_bytes() if path.exists() else None for path in tracked}
     try:
         _atomic_json(index_path, index)
         primary.render_style_pages(root)
         primary.render_rights_index(root)
+        primary.render_readme_previews(root)
         findings = [
             *validate_public_previews(root),
             *primary.validate_style_index(root),
@@ -880,8 +1039,8 @@ def promote(root, run_id):
     with tempfile.TemporaryDirectory(dir=directory) as temporary:
         stage = Path(temporary) / "public"
         stage.mkdir()
-        for preview in record["previews"]:
-            shutil.copyfile(child(directory, preview["path"]), stage / preview["path"])
+        for asset in public_assets(record):
+            shutil.copyfile(child(directory, asset['path']), stage / asset['path'])
         write_json(stage / "evidence.json", record)
         (stage / "README.md").write_text(_readme(record), encoding="utf-8")
         (stage / "index.html").write_text(_html(record, directory=stage), encoding="utf-8")
@@ -901,10 +1060,10 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("prepare", "ingest", "audit", "gallery", "approve", "promote"):
+    for name in ("prepare", "ingest", "compose", "audit", "gallery", "approve", "promote"):
         command = commands.add_parser(name)
         command.add_argument("--run-id", required=True)
-        if name in {"ingest", "audit", "gallery", "approve"}:
+        if name in {"ingest", "compose", "audit", "gallery", "approve"}:
             command.add_argument("--style")
         if name == "ingest":
             command.add_argument("--board", help=argparse.SUPPRESS)
@@ -912,14 +1071,19 @@ def main(argv=None):
             command.add_argument("--generation-record", type=Path, required=True)
         if name == "approve":
             command.add_argument("--review", type=Path, required=True, help="Completed human review JSON; agents must never fill real QA.")
+        if name == 'compose':
+            command.add_argument('--layout-json', type=Path, required=True)
+            command.add_argument('--font', type=Path, required=True)
     args = parser.parse_args(argv)
     if args.command == "ingest" and args.board:
         parser.error("--board is superseded; use --style <registered-slug>")
-    if args.command in {"ingest", "approve"} and not args.style:
+    if args.command in {"ingest", "compose", "approve"} and not args.style:
         parser.error(f"{args.command} requires --style <registered-slug>")
     try:
         if args.command == "ingest":
             result = ingest(args.root, args.run_id, args.style, args.image, read_json(args.generation_record))
+        elif args.command == 'compose':
+            result = compose(args.root, args.run_id, args.style, read_json(args.layout_json), args.font)
         elif args.command == "approve":
             result = approve(args.root, args.run_id, args.style, read_json(args.review))
         elif args.command in {"audit", "gallery"}:

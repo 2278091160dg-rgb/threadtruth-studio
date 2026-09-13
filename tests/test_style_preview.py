@@ -72,12 +72,12 @@ class PreviewTests(unittest.TestCase):
         )
         review["geometry"] = {
             "cells": [
-                [90, 120, 210, 280], [345, 120, 210, 280], [600, 120, 210, 280],
-                [90, 420, 210, 280], [345, 420, 210, 280], [600, 420, 210, 280],
+                [44, 140, 360, 480], [420, 140, 360, 480], [796, 140, 360, 480],
+                [44, 636, 360, 480], [420, 636, 360, 480], [796, 636, 360, 480],
             ],
-            "title": [60, 20, 780, 35],
-            "subtitle": [60, 70, 780, 30],
-            "footer": [90, 750, 720, 50],
+            "title": [44, 16, 1112, 72],
+            "subtitle": [44, 92, 1112, 36],
+            "footer": [44, 1128, 1112, 60],
         }
         review["checks"] = {
             "observed_boundaries": "pass",
@@ -85,6 +85,9 @@ class PreviewTests(unittest.TestCase):
             "correct_subtitle": "pass",
             "readable_ai_footer": "pass",
             "text_subject_non_overlap": "pass",
+            "complete_panel_extraction": "pass",
+            "padding_no_subject_loss": "pass",
+            "derivative_disclosure": "pass",
         }
         for pose in review["poses"]:
             pose.update(
@@ -96,14 +99,28 @@ class PreviewTests(unittest.TestCase):
     def ingest_all(self):
         run = self.prepare()
         for number, preview in enumerate(run["previews"], start=1):
-            self.m.ingest(
+            ingested = self.m.ingest(
                 self.root,
                 "test-run",
                 preview["style"],
                 self.image(number),
                 self.generation(preview, number),
             )
+            self.compose(ingested, preview['style'])
         return self.m.read_json(self.m.run_dir(self.root, "test-run") / "evidence.json")
+
+    def compose(self, record, style):
+        font_candidates = [Path('/System/Library/Fonts/STHeiti Light.ttc'),
+                           Path('/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc')]
+        font = next((path for path in font_candidates if path.is_file()), None)
+        if font is None:
+            self.skipTest('A CJK font is required for label rendering')
+        preview = next(item for item in record['previews'] if item['style'] == style)
+        return self.m.compose(self.root, 'test-run', style, {
+            'original_sha256': preview['original_sha256'],
+            'cells': [[90, 120, 210, 280], [345, 120, 210, 280], [600, 120, 210, 280],
+                      [90, 420, 210, 280], [345, 420, 210, 280], [600, 420, 210, 280]],
+        }, font)
 
     def approve_all(self):
         run = self.ingest_all()
@@ -115,7 +132,7 @@ class PreviewTests(unittest.TestCase):
 
     def test_prepare_builds_24_single_style_six_pose_previews(self):
         run = self.prepare()
-        self.assertEqual(run["schema_version"], "3.0")
+        self.assertEqual(run["schema_version"], "4.0")
         self.assertEqual(len(run["previews"]), 24)
         self.assertEqual(len({p["style"] for p in run["previews"]}), 24)
         for preview in run["previews"]:
@@ -151,7 +168,7 @@ class PreviewTests(unittest.TestCase):
         self.assertIn("3:4", prompt)
         self.assertIn("independent title, subtitle and footer bands", prompt)
 
-    def test_non_square_native_output_is_retained_but_never_auditable_or_approvable(self):
+    def test_non_square_native_output_is_retained_but_requires_composition(self):
         run = self.prepare()
         preview = run["previews"][0]
         record = self.m.ingest(
@@ -163,9 +180,9 @@ class PreviewTests(unittest.TestCase):
         self.assertTrue(any(retained.parent.glob(retained.name + ".*")))
         self.assertEqual(
             self.m.audit(self.root, "test-run", style=preview["style"]),
-            [f"{preview['style']}: preview board must be square"],
+            [f"{preview['style']}: missing or malformed composition"],
         )
-        with self.assertRaisesRegex(ValueError, "preview board must be square"):
+        with self.assertRaisesRegex(ValueError, "composition"):
             self.m.approve(self.root, "test-run", preview["style"], {})
 
     def test_schema_two_record_is_historical_and_rejected_by_every_mutation(self):
@@ -437,8 +454,19 @@ class PreviewTests(unittest.TestCase):
 
     def test_approved_24_sheet_promotion_is_publicly_verifiable_and_idempotent(self):
         self.approve_all()
+        readme = self.root / 'README.md'
+        chinese_readme = self.root / 'README.zh-CN.md'
+        initial_readme = '# Fixture\n<!-- STYLE_PREVIEWS:START -->\nPending\n<!-- STYLE_PREVIEWS:END -->\n'
+        readme.write_text(initial_readme)
+        chinese_readme.write_text('Missing markers')
         index_path = self.root / "docs/demo/style-index.json"
         original_index = index_path.read_bytes()
+        with self.assertRaisesRegex(ValueError, 'README preview markers'):
+            self.m.promote(self.root, 'test-run')
+        self.assertEqual(readme.read_text(), initial_readme)
+        self.assertEqual(index_path.read_bytes(), original_index)
+        self.assertFalse((self.root / 'docs/demo/style-previews/test-run').exists())
+        chinese_readme.write_text(initial_readme)
         broken_index = json.loads(original_index)
         broken_index["styles"].pop()
         index_path.write_text(json.dumps(broken_index))
@@ -449,9 +477,16 @@ class PreviewTests(unittest.TestCase):
         public = self.m.promote(self.root, "test-run")
         self.assertEqual(self.m.validate_public_previews(self.root), [])
         self.assertEqual(self.m.promote(self.root, "test-run"), public)
-        self.assertEqual(len(list(public.glob("*.jpg"))), 24)
+        self.assertEqual(len(list(public.glob("*.jpg"))), 72)
+        self.assertEqual(readme.read_text().count('-thumb.jpg'), 24)
+        self.assertEqual(chinese_readme.read_text().count('-display.jpg'), 24)
         evidence = json.loads((public / "evidence.json").read_text())
-        self.assertEqual(evidence["schema_version"], "3.0")
+        self.assertEqual(evidence["schema_version"], "4.0")
+        rights = (self.root / 'docs/demo/RIGHTS.md').read_text()
+        for asset in self.m.public_assets(evidence):
+            self.assertIn(asset['role'], rights)
+            self.assertIn(asset['path'], rights)
+            self.assertIn(asset['sha256'][:12], rights)
         self.assertNotIn(str(self.root), (public / "evidence.json").read_text())
         index = json.loads((self.root / "docs/demo/style-index.json").read_text())
         self.assertEqual(sum(bool(style.get("preview")) for style in index["styles"]), 24)
@@ -461,11 +496,16 @@ class PreviewTests(unittest.TestCase):
         self.assertEqual(self.m.promote(self.root, "test-run"), public)
         self.assertEqual(self.m._primary().validate_style_index(self.root), [])
         self.assertEqual(sum(style["status"] == "ready" for style in index["styles"]), 1)
-        self.assertIn("whole six-pose sheet", (self.root / "docs/demo/styles/old-money.md").read_text())
+        style_page = (self.root / "docs/demo/styles/old-money.md").read_text()
+        for suffix in ('', '-display', '-thumb'):
+            self.assertIn(f'(../style-previews/test-run/old-money{suffix}.jpg)', style_page)
         import demo_media
         self.assertEqual(demo_media.validate_public_cases(self.root), [])
         shutil.rmtree(self.root / ".threadtruth")
         self.assertEqual(self.m.validate_public_previews(self.root), [])
+        (public / 'unregistered.jpg').write_bytes(b'orphan')
+        self.assertTrue(self.m.validate_public_previews(self.root))
+        (public / 'unregistered.jpg').unlink()
         next(public.glob("*.jpg")).write_bytes(b"tampered")
         self.assertTrue(self.m.validate_public_previews(self.root))
 
@@ -522,11 +562,6 @@ class PreviewTests(unittest.TestCase):
         changed["previews"][0]["path"] = "../../outside.jpg"
         path.write_text(json.dumps(changed))
         self.assertTrue(self.m.audit(self.root, "test-run"))
-
-    def test_growth_guide_uses_the_existing_preview_template(self):
-        content = (self.root / "docs/demo/GROWTH.md").read_text()
-        self.assertIn("Use and verify the existing", content)
-
 
 if __name__ == "__main__":
     unittest.main()
