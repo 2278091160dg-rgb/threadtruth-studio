@@ -2,7 +2,11 @@
 
 All notable changes are documented here. Versions follow Semantic Versioning.
 
-## Unreleased — 2026-09-13 preview scope correction and task register
+## 2026-09-13 — Unreleased preview scope correction and task register
+
+### Trigger
+
+- The maintainer corrected the development preview target from four mixed-style boards to 24 single-style sheets, each showing the same authorized garment in the six canonical runtime action-0 poses.
 
 ### Behavior before
 
@@ -16,6 +20,10 @@ All notable changes are documented here. Versions follow Semantic Versioning.
 ### Eval coverage
 
 - Added v2 contract, drift, source authorization, receipt uniqueness, incomplete review, historical v1 rejection, whole-sheet gallery/public projection and six-final isolation regressions. Synthetic human attestations exist only inside disposable tests and do not count as preview evidence.
+
+### Verification
+
+- The 92-test repository suite, strict source and runtime production checks, pack lint, trigger regression, public scan, JSON parsing, diff hygiene and runtime-byte parity pass. Controller browser checks pass at desktop and mobile widths. No real preview image, human approval, promotion, release, remote action or installation was performed.
 
 ## 2026-09-13 — 1.0.0-beta.2
 
