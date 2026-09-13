@@ -19,7 +19,7 @@ Current execution source: [total task register and schedule](docs/WORK-STATUS.md
 
 ## 30-day Beta
 
-- [ ] Replace the superseded mixed-style tool with 24 single-style / six-pose preview records
+- [ ] Complete governance acceptance of the v2 single-style / six-pose preview collector (no real approvals yet)
 - [ ] Generate and human-review 24 full contact sheets of the same white vest
 - [ ] Publish whole-sheet thumbnails and the approved preview collection in beta.3
 - [ ] Record a real, redacted installation-to-preview walkthrough

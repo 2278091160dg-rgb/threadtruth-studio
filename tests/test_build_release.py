@@ -41,6 +41,8 @@ class ReleaseBuildTests(unittest.TestCase):
                 names,
             )
             self.assertIn(prefix + "docs/demo/STYLES.md", names)
+            self.assertIn(prefix + "docs/demo/style-preview-v1.schema.json", names)
+            self.assertIn(prefix + "docs/demo/style-preview-v2.schema.json", names)
             self.assertFalse(any("/evals/" in name for name in names))
             self.assertFalse(any("/tests/" in name for name in names))
             self.assertFalse(any("/tools/" in name for name in names))
@@ -134,6 +136,25 @@ class ReleaseBuildTests(unittest.TestCase):
             shutil.rmtree(clone / "docs" / "demo" / "cases", ignore_errors=True)
             (clone / "docs" / "demo" / "RIGHTS.md").write_text("stale")
             with self.assertRaisesRegex(ValueError, "rights index is stale"):
+                module.build_release(clone, Path(temp_dir) / "out")
+
+    def test_release_rejects_superseded_v1_public_preview_evidence(self):
+        spec = importlib.util.spec_from_file_location("build_release", SCRIPT)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            clone = Path(temp_dir) / "repo"
+            shutil.copytree(
+                ROOT,
+                clone,
+                ignore=shutil.ignore_patterns(".git", "dist", ".threadtruth", "__pycache__"),
+            )
+            public = clone / "docs/demo/style-previews/legacy"
+            public.mkdir(parents=True)
+            (public / "evidence.json").write_text(
+                json.dumps({"schema_version": "1.0", "run_id": "legacy", "status": "approved", "boards": []})
+            )
+            with self.assertRaisesRegex(ValueError, "public demo rights validation failed"):
                 module.build_release(clone, Path(temp_dir) / "out")
 
 

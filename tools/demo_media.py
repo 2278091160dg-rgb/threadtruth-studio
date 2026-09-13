@@ -38,6 +38,7 @@ DEMO_ROOT_FILES = {
     "rights-v1.schema.json",
     "style-index.json",
     "style-preview-v1.schema.json",
+    "style-preview-v2.schema.json",
 }
 DEMO_ROOT_DIRS = {"cases", "primary-cases", "styles", "style-previews"}
 PUBLIC_CASE_FILES = {"README.md", "rights.json", "source-metadata.json", "source.jpg"}

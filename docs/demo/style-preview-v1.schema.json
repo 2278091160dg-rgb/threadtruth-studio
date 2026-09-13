@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://threadtruth.local/schemas/style-preview-v1",
-  "title": "ThreadTruth style preview evidence (development and public projection)",
-  "description": "Machine validation additionally recomputes source authorization, actual pack files, exact A-D mapping, prompts, media and human-review digest. Status alone cannot authorize publication. Human attestations are not cryptographic identity proofs.",
+  "title": "ThreadTruth historical mixed-style preview evidence (v1; read-only)",
+  "description": "Superseded beta.2 inspection schema. New preparation, ingestion, approval and promotion reject v1; records must not be migrated or counted as single-style previews. Human attestations are not cryptographic identity proofs.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "run_id", "role", "status", "source", "identity_anchor", "ai_label", "boards"],

@@ -4,9 +4,18 @@ All notable changes are documented here. Versions follow Semantic Versioning.
 
 ## Unreleased — 2026-09-13 preview scope correction and task register
 
+### Behavior before
+
 - The maintainer clarified the intended example: 24 separate previews of ONE garment, each preview using ONE style and SIX poses from existing runtime action 0. The beta.2 four-board/mixed-style interpretation was wrong, not merely a canvas problem.
-- Corrected current English/Chinese/Growth/Beta/application/offline-guide descriptions and added the total work-package register with owners, acceptance criteria, dependencies and target windows. Runtime behavior, published versions and artifacts are unchanged.
-- The mixed-style developer tool/schema/tests still require replacement. No new native image was generated, no human review was synthesized and no preview was promoted. Approved previews remain 0/24. The historical beta.2 entry below describes what shipped, not the corrected target.
+
+### Behavior after
+
+- Replaced the development collector with schema v2: 24 style-owned records, each binding one runtime-derived action-0 prompt, one pack, six canonical poses, one native receipt, observed whole-sheet metadata and its own six-pose human review. Incomplete audit/gallery views remain honest; v1 stays read-only and cannot be promoted.
+- Added whole-sheet gallery/public-index integration, v2 release validation, source regressions and current English/Chinese/Growth/Beta/application/offline-guide wording. Runtime Skill/reference bytes are unchanged. No native image was generated, no human review was synthesized and no preview was promoted; approved previews remain 0/24. The historical beta.2 entry below describes what shipped, not the corrected target.
+
+### Eval coverage
+
+- Added v2 contract, drift, source authorization, receipt uniqueness, incomplete review, historical v1 rejection, whole-sheet gallery/public projection and six-final isolation regressions. Synthetic human attestations exist only inside disposable tests and do not count as preview evidence.
 
 ## 2026-09-13 — 1.0.0-beta.2
 

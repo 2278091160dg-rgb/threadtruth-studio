@@ -1055,6 +1055,22 @@
         "推荐与目录均是免费文字层,未有明确动作授权不得调用image_gen"
       ],
       "ref": "safety-core.md R1; recognition.md §3.10; style-router.md §6.1; flow-gates.md 分支4"
+    },
+    {
+      "id": 78,
+      "category": "single_style_action_zero_preview_evidence",
+      "prompt": "(同一件已授权白色连帽羽绒马甲)为 old-money 准备动作0预览证据，并说明如何登记。",
+      "expected_output": "只准备一个 old-money 风格的完整六姿势预览调用；按运行时动作0使用姿势1-6、头部视线、预览负面词与模式场景，整张保留非成片标记。登记时绑定授权源、规则、pack、精确prompt和一次原生输出receipt；不混入其它风格、不裁格、不冒充成片或人工验收。",
+      "expectations": [
+        "一张预览只绑定一个已注册style slug和一个pack版本/hash，六个pose记录不得各带不同style",
+        "六姿势按SIDE_TURN_STANDING到BACK_TURN_GLANCE的原顺序，并使用对应头部视线与pack默认模式场景",
+        "动作0允许2x3 grid，负面词不得拼no grid/no collage；必须保留小号方向预览·非成片标记",
+        "生成前仍需真实服饰源、明确old-money风格和动作0授权；收集脚本本身不得生图或代填人工review",
+        "receipt的prompt hash必须等于实际提交prompt，并同时绑定source、runtime rules与pack hash；native call/hash不得跨style复用",
+        "机器只记录真实像素和hash，不用宽高可整除性声称六姿势内容通过，不裁切、拉伸、放大或超分",
+        "只有整张hash及六个pose的product/pose-layout/identity-style/AI disclosure人工检查全通过才可批准；preview永不计final"
+      ],
+      "ref": "prompt-build.md §1-§4.3; modes-scenes.md §1-§3; style-router.md §6; development style-preview-v2 schema"
     }
   ]
 }

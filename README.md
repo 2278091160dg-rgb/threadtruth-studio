@@ -27,7 +27,7 @@ Installed it? Share a sanitized result through the [installation feedback form](
 ## What is public today
 
 - Independent six-final coverage: `1/24`, the real case above.
-- Single-style preview coverage: `0/24` approved. The target is **24 separate contact sheets of the same white vest: ONE style and SIX poses per sheet**. Gallery thumbnails will show each entire sheet and link to its full preview, with the preview-only label retained. The beta.2 developer tool instead made four mixed-style boards; that implementation is superseded and requires rework before this collection can be produced. No preview is published or counted before review.
+- Single-style preview coverage: `0/24` approved. The target is **24 separate contact sheets of the same white vest: ONE style and SIX poses per sheet**. The v2 developer collector now prepares one source/rule/pack-bound action-0 prompt and one whole-sheet review record per registered style; it does not generate or approve media. Gallery thumbnails show each entire sheet and link to the full preview, with the preview-only label retained. The beta.2 mixed-style v1 format remains read-only and cannot be promoted. No preview is published or counted before real generation and human review.
 - Gendered and culturally named styles translate atmosphere, styling language, lighting, and setting only. They never infer identity, ethnicity, nationality, body, or gender from the garment or wearer.
 
 [Browse the 24-style evidence index](docs/demo/STYLES.md). A six-tile board is a direction preview, not six independent finals and not a completed workflow.

@@ -510,7 +510,9 @@ def primary_rights_index_content(root: Path) -> str:
     preview_root = root.resolve() / "docs/demo/style-previews"
     for path in sorted(preview_root.glob("*/evidence.json")):
         evidence = read_json(path)
-        rows.append(f"| `{evidence.get('run_id', '')}` | style-preview | authorized primary garment | CC0-1.0 | `{str(evidence.get('boards', [{}])[0].get('sha256', ''))[:12]}` | human-approved preview; not finals |")
+        previews = evidence.get("previews", [])
+        digest = previews[0].get("sha256", "") if previews else ""
+        rows.append(f"| `{evidence.get('run_id', '')}` | style-preview | authorized primary garment | CC0-1.0 | `{str(digest)[:12]}` | 24 human-approved single-style sheets; not finals |")
     table = (
         "| Case | Role | Source | License | SHA-256 prefix | Status |\n"
         "|---|---|---|---|---|---|\n" + "\n".join(rows)
@@ -1302,9 +1304,9 @@ def style_page_content(item: dict[str, object]) -> str:
     if "preview" in item:
         preview = item["preview"]
         if preview:
-            preview_note = f"\nStyle preview: [board {preview['board']}, tile {preview['tile']}](../{preview['path']}) (3 columns × 2 rows, row-major). AI-generated style preview; not an independent final.\n"
+            preview_note = f"\nStyle preview: [whole six-pose sheet](../{preview['path']}) for `{preview['style']}`. The linked image is the complete action-0 sheet, with no crop or upscale. AI-generated style preview; not an independent final.\n"
         else:
-            preview_note = "\nStyle preview: `planned`. No approved preview tile yet.\n"
+            preview_note = "\nStyle preview: `planned`. No approved single-style six-pose sheet yet.\n"
     return f"""# {item['display_name']}
 
 Status: `{item['status']}` · Featured: `{str(bool(item['featured'])).lower()}` · Full six-image case: `{full_case}`
@@ -1329,7 +1331,7 @@ def style_overview_content(index: dict[str, object]) -> str:
     preview_coverage = ""
     if any("preview" in item for item in index["styles"]):
         count = sum(bool(item.get("preview")) for item in index["styles"])
-        preview_coverage = f"\nPreview coverage: **{count}/24**. Final representative coverage: **{ready}/24**. Preview boards never satisfy final-image or six-image case requirements.\n"
+        preview_coverage = f"\nSingle-style preview-sheet coverage: **{count}/24**. Final representative coverage: **{ready}/24**. Each preview is one whole action-0 sheet with six canonical poses; preview sheets never satisfy final-image or six-image case requirements.\n"
     return f"""# 24-style public evidence index
 
 Visual evidence progress: **{ready}/24 ready**. The runtime contains 24 routed packs; this page separately tracks rights-cleared public image evidence and never treats a planned card as a completed generation.

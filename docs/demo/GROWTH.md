@@ -6,14 +6,14 @@ ThreadTruth Studio optimizes in this order: Codex for Open Source readiness, gen
 
 - **Primary Cases:** three authorized source-to-six-image workflows. Korean Cold Editorial is ready; E-commerce Studio and American Street remain planned.
 - **Featured Styles:** eight high-signal styles for the README and sharing surfaces.
-- **Full Style Index:** 24 separate contact sheets of the same authorized white vest, ONE style and SIX poses per image. Use runtime action 0; thumbnails preserve the whole sheet and preview-only label. This is 24 previews / 144 pose cells, not 144 independent finals. Full-case coverage remains 1/24; preview coverage is the number of accepted single-style sheets out of 24. The beta.2 four-mixed-style-board implementation requires replacement.
+- **Full Style Index:** 24 separate contact sheets of the same authorized white vest, ONE style and SIX poses per image. Use runtime action 0; thumbnails preserve the whole sheet and preview-only label. This is 24 previews / 144 pose cells, not 144 independent finals. Full-case coverage remains 1/24; preview coverage is the number of accepted single-style sheets out of 24. The v2 collector and whole-sheet template are ready for controlled use; the beta.2 mixed-style v1 format is inspection-only and cannot be promoted.
 
 Planned cards must not display generated placeholders or imply completed evidence.
 
 ## 30-day cadence
 
-- DENGGUI identity, bilingual installation and beta.2 publication are complete; corrected preview tooling is not complete.
-- First replace and test the developer evidence model against runtime action 0. Then make one Korean Cold Editorial pilot preview after its explicit generation gate; obtain maintainer acceptance before continuing the remaining styles.
+- DENGGUI identity, bilingual installation and beta.2 publication are complete; corrected preview tooling is implemented locally and still awaits task-level governance acceptance.
+- First run the v2 collector's release gates against runtime action 0. Then make one Korean Cold Editorial pilot preview after its explicit generation gate; obtain maintainer acceptance before continuing the remaining styles.
 - Next validate E-commerce Studio and Neo Chinese early; both count toward the24. Implement whole-sheet gallery templates with local fixtures while the native previews are being reviewed. Fixtures are never public examples.
 - Target all24native previews in one active execution day once the corrected collector and per-style gates are ready. Review checkpoints after every4sheets are not a daily limit; continue the same day after acceptance. Measure real throughput and report any service/approval delay. Target gallery/release handoff that day or the next only after all24are human-approved; these are target windows, not an unattended worker or publication permission.
 - The full collection requires 24 initial native preview calls if all succeed; the rejected mixed-style draft does not count, and retries need separate authorization. Each style is a separate action-0 operation; the old four-call budget is not transferable to an unattended 24-call batch.

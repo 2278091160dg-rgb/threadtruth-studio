@@ -1,3 +1,4 @@
+import copy
 import hashlib
 import importlib.util
 import json
@@ -200,6 +201,25 @@ class PrimaryDemoTests(unittest.TestCase):
             run_path.write_text(json.dumps(run))
             (staging / "finals" / "look-2.png").write_bytes(minimal_png(color=99))
             self.assertIn("ASSET_HASH_MISMATCH", module.validate_staged_primary_case(staging))
+
+    def test_six_final_contract_rejects_five_seven_and_any_preview(self):
+        module = load_module()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            staging = write_staging(Path(temp_dir))
+            run_path = staging / "final-run.json"
+            original = json.loads(run_path.read_text())
+            for count in (5, 7):
+                changed = copy.deepcopy(original)
+                changed["expected_images"] = count
+                changed["actual_images"] = count
+                changed["generation_calls"] = count
+                changed["outputs"] = (changed["outputs"] * 2)[:count]
+                run_path.write_text(json.dumps(changed))
+                self.assertIn("FINAL_SET_INCOMPLETE", module.validate_staged_primary_case(staging))
+            changed = copy.deepcopy(original)
+            changed["preview_images_included"] = 1
+            run_path.write_text(json.dumps(changed))
+            self.assertIn("PREVIEW_INCLUDED", module.validate_staged_primary_case(staging))
 
     def test_staged_case_rejects_duplicate_sources_unknown_style_failed_qa_and_bad_timestamps(self):
         module = load_module()
