@@ -12,8 +12,8 @@
 - [x] Public GitHub repository and passing required CI
 - [x] Development-only The Met CC0 auxiliary-media evidence pipeline and release gate
 - [x] Human-review and promote an eligible auxiliary CC0 case
-- [ ] Resolve or explicitly release-note the minimal implicit-trigger limitation
-- [ ] Signed Beta Release with checksum
+- [x] Resolve or explicitly release-note the minimal implicit-trigger limitation
+- [x] Beta Release with published checksums
 
 ## 30-day Beta
 

@@ -3,7 +3,7 @@
 ## Candidate
 
 - Version: `1.0.0-beta.1`
-- Status: release-ready candidate; GitHub publication remains
+- Status: public Beta distributed as GitHub prerelease `v1.0.0-beta.1`
 - License: Apache-2.0
 - Distribution: Codex Plugin repository plus allowlist-built archive
 - Runtime telemetry: none

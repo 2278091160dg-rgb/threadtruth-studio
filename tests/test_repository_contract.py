@@ -142,7 +142,7 @@ class RepositoryContractTests(unittest.TestCase):
     def test_public_text_has_no_private_paths_or_qq_email(self):
         offenders = []
         for path in ROOT.rglob("*"):
-            if not path.is_file() or ".git" in path.parts or "dist" in path.parts:
+            if not path.is_file() or {".git", "dist", ".worktrees"} & set(path.parts):
                 continue
             if path.suffix.lower() not in {".md", ".json", ".yaml", ".yml", ".html", ".py"}:
                 continue
@@ -154,7 +154,7 @@ class RepositoryContractTests(unittest.TestCase):
     def test_legacy_name_is_limited_to_migration_and_provenance(self):
         offenders = []
         for path in ROOT.rglob("*"):
-            if not path.is_file() or ".git" in path.parts or "dist" in path.parts:
+            if not path.is_file() or {".git", "dist", ".worktrees"} & set(path.parts):
                 continue
             if path.suffix.lower() not in {".md", ".json", ".yaml", ".yml", ".html", ".py"}:
                 continue

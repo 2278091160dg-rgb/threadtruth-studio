@@ -2,7 +2,7 @@
 
 All notable changes are documented here. Versions follow Semantic Versioning.
 
-## 2026-09-13 — 1.0.0-beta.1 release candidate
+## 2026-09-13 — 1.0.0-beta.1
 
 ### Trigger
 

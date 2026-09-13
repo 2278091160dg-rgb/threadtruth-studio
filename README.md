@@ -6,7 +6,7 @@ ThreadTruth Studio is an independent, community-maintained Codex Plugin that tur
 
 ![A real white hooded puffer vest source beside six independent Korean Cold Editorial results](docs/demo/primary-cases/white-hooded-puffer-vest-korean-cold/hero.jpg)
 
-> Public release status: `v1.0.0-beta.1` release candidate. The runtime, regression suite, Plugin lifecycle, and first rights-cleared primary demo are complete. The 30-day external Beta begins only when the GitHub Release is published. This repository is not an OpenAI product or endorsement.
+> Public Beta: [`v1.0.0-beta.1`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.1). The runtime, regression suite, Plugin lifecycle, and first rights-cleared primary demo are complete. The GitHub Release `publishedAt` timestamp starts the 30-day external Beta. This repository is not an OpenAI product or endorsement.
 
 ## See the governed result
 
@@ -81,7 +81,7 @@ The first Beta Release will add the final marketplace command after a clean-envi
 - Reproducible The Met CC0 auxiliary-media evidence pipeline: implemented; one human-approved case is promoted as auxiliary evidence.
 - External clean-environment validation: pending; the maintainer preflight does not count toward Beta adoption.
 - Known runtime issue: a minimal implicit missing-image request may skip Skill loading; see [Issue #1](https://github.com/2278091160dg-rgb/threadtruth-studio/issues/1). Explicit invocation is the Beta workaround.
-- GitHub Release and published checksums: release candidate assets are being prepared; publication starts the external Beta clock.
+- GitHub Release and published checksums: distributed with [`v1.0.0-beta.1`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.1); its publication starts the external Beta clock.
 - Codex for Open Source application: not submitted; requires stable `v1.0.0`, threshold evidence, and final user authorization.
 
 ## Community
