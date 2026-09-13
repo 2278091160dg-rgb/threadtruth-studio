@@ -33,10 +33,39 @@ class ReleaseBuildTests(unittest.TestCase):
             self.assertIn(prefix + "SECURITY.md", names)
             self.assertIn(prefix + "ROADMAP.md", names)
             self.assertIn(prefix + "docs/COMPETITIVE-LANDSCAPE.md", names)
+            self.assertIn(
+                prefix
+                + "docs/demo/primary-cases/white-hooded-puffer-vest-korean-cold/look-1.jpg",
+                names,
+            )
+            self.assertIn(prefix + "docs/demo/STYLES.md", names)
             self.assertFalse(any("/evals/" in name for name in names))
             self.assertFalse(any("/tests/" in name for name in names))
             self.assertFalse(any("/tools/" in name for name in names))
             self.assertFalse(any("/.threadtruth/" in name for name in names))
+
+    def test_release_rejects_tampered_primary_demo_media(self):
+        spec = importlib.util.spec_from_file_location("build_release", SCRIPT)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            clone = Path(temp_dir) / "repo"
+            shutil.copytree(
+                ROOT,
+                clone,
+                ignore=shutil.ignore_patterns(".git", "dist", ".threadtruth", "__pycache__"),
+            )
+            target = (
+                clone
+                / "docs"
+                / "demo"
+                / "primary-cases"
+                / "white-hooded-puffer-vest-korean-cold"
+                / "look-4.jpg"
+            )
+            target.write_bytes(b"tampered")
+            with self.assertRaisesRegex(ValueError, "public demo rights validation failed"):
+                module.build_release(clone, Path(temp_dir) / "out")
 
     def test_release_fails_when_public_demo_rights_are_invalid(self):
         spec = importlib.util.spec_from_file_location("build_release", SCRIPT)

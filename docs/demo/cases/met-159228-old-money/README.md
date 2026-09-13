@@ -1,6 +1,6 @@
 # Auxiliary public demo source — met-159228-old-money
 
-Status: `auxiliary-demo-ready`. Primary maintainer-owned demo remains `sample-blocked`.
+Status: `auxiliary-demo-ready`. This auxiliary case does not determine or satisfy primary-demo status; see the repository rights index for the current primary record.
 
 This physical garment source comes from [The Metropolitan Museum of Art Open Access](https://www.metmuseum.org/art/collection/search/159228) and is identified by object ID `159228`. This independent community project is not endorsed by The Metropolitan Museum of Art.
 

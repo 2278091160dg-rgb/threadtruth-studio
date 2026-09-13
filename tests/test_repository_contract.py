@@ -28,12 +28,35 @@ class RepositoryContractTests(unittest.TestCase):
             (ROOT / "tools" / "schemas" / "demo-candidate-v1.schema.json").read_text()
         )
         rights = json.loads((ROOT / "docs" / "demo" / "rights-v1.schema.json").read_text())
+        primary = json.loads(
+            (ROOT / "docs" / "demo" / "primary-rights-v1.schema.json").read_text()
+        )
         self.assertEqual(candidate["$schema"], "https://json-schema.org/draft/2020-12/schema")
         self.assertEqual(candidate["properties"]["schema_version"]["const"], "1.0")
         self.assertIn("human_review", candidate["required"])
         self.assertEqual(rights["properties"]["status"]["const"], "promoted")
         self.assertEqual(rights["properties"]["role"]["const"], "auxiliary")
         self.assertIn("media_license", rights["required"])
+        self.assertEqual(primary["properties"]["role"]["const"], "primary")
+        self.assertEqual(primary["properties"]["primary_demo_status"]["const"], "ready")
+        self.assertIn("ai_content_label", primary["required"])
+
+    def test_public_primary_demo_and_style_index_are_present(self):
+        case = (
+            ROOT
+            / "docs"
+            / "demo"
+            / "primary-cases"
+            / "white-hooded-puffer-vest-korean-cold"
+        )
+        rights = json.loads((case / "rights.json").read_text())
+        self.assertEqual(rights["role"], "primary")
+        self.assertEqual(rights["primary_demo_status"], "ready")
+        self.assertEqual(rights["quality"]["state"], "image-ready")
+        self.assertEqual(len(list(case.glob("look-*.jpg"))), 6)
+        styles = json.loads((ROOT / "docs" / "demo" / "style-index.json").read_text())
+        self.assertEqual(len(styles["styles"]), 24)
+        self.assertEqual(sum(item["status"] == "ready" for item in styles["styles"]), 1)
 
     def test_demo_media_policy_states_rights_and_beta_boundaries(self):
         policy = (ROOT / "docs" / "demo" / "MEDIA-POLICY.md").read_text()

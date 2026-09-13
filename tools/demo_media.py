@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import html
+import importlib.util
 import json
 import re
 import shutil
@@ -27,7 +28,17 @@ DEFAULT_LIMIT = 8
 MAX_LIMIT = 12
 MAX_IMAGE_BYTES = 50 * 1024 * 1024
 MIN_LONG_EDGE = 1200
-DEMO_ROOT_FILES = {"MEDIA-POLICY.md", "README.md", "RIGHTS.md", "rights-v1.schema.json"}
+DEMO_ROOT_FILES = {
+    "GROWTH.md",
+    "MEDIA-POLICY.md",
+    "README.md",
+    "RIGHTS.md",
+    "STYLES.md",
+    "primary-rights-v1.schema.json",
+    "rights-v1.schema.json",
+    "style-index.json",
+}
+DEMO_ROOT_DIRS = {"cases", "primary-cases", "styles"}
 PUBLIC_CASE_FILES = {"README.md", "rights.json", "source-metadata.json", "source.jpg"}
 CC0_ID = "CC0-1.0"
 CC0_URL = "https://creativecommons.org/publicdomain/zero/1.0/"
@@ -894,7 +905,7 @@ def build_public_rights_record(
 def public_case_readme(rights: dict[str, object], item: dict[str, object]) -> str:
     return f"""# Auxiliary public demo source — {rights['case_id']}
 
-Status: `auxiliary-demo-ready`. Primary maintainer-owned demo remains `sample-blocked`.
+Status: `auxiliary-demo-ready`. This auxiliary case does not determine or satisfy primary-demo status; see the repository rights index for the current primary record.
 
 This physical garment source comes from [The Metropolitan Museum of Art Open Access]({item.get('objectURL', '')}) and is identified by object ID `{item.get('objectID')}`. This independent community project is not endorsed by The Metropolitan Museum of Art.
 
@@ -905,35 +916,13 @@ See `rights.json` and `source-metadata.json` for the retained evidence record.
 
 
 def rights_index_content(root: Path) -> str:
-    rows: list[str] = []
-    for rights_path in sorted(public_case_root(root).glob("*/rights.json")):
-        rights = read_json(rights_path)
-        source = rights.get("source", {})
-        asset = rights.get("asset", {})
-        rows.append(
-            f"| `{rights.get('case_id', '')}` | {rights.get('role', '')} | "
-            f"The Met `{source.get('object_id', '')}` | CC0-1.0 | "
-            f"`{str(asset.get('sha256', ''))[:12]}` | {rights.get('status', '')} |"
-        )
-    if rows:
-        table = (
-            "| Case | Role | Source | License | SHA-256 prefix | Status |\n"
-            "|---|---|---|---|---|---|\n" + "\n".join(rows)
-        )
-        opening = "Approved auxiliary media is listed below."
-    else:
-        table = "No media is currently approved for publication."
-        opening = "No third-party media has passed promotion."
-    return f"""# Public media rights manifest
-
-{opening}
-
-Primary maintainer-owned demo remains `sample-blocked`; an auxiliary CC0 case does not satisfy that gate or count as non-maintainer adoption.
-
-{table}
-
-Every public case must include `source.jpg`, `source-metadata.json`, `rights.json`, and `README.md`. Apache-2.0 does not cover case media. Source and generated demo media are offered under CC0 only to the extent the project can grant rights, without implying institutional endorsement or removing third-party rights.
-"""
+    module_path = Path(__file__).with_name("primary_demo.py")
+    spec = importlib.util.spec_from_file_location("threadtruth_primary_demo", module_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("cannot load primary demo rights index")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.primary_rights_index_content(root)
 
 
 def render_rights_index(root: Path) -> Path:
@@ -1086,7 +1075,7 @@ def validate_public_cases(root: Path) -> list[str]:
                 findings.append(f"{entry.name}: symlinks are forbidden")
             elif entry.is_file() and entry.name not in DEMO_ROOT_FILES:
                 findings.append(f"{entry.name}: unregistered demo artifact")
-            elif entry.is_dir() and entry.name != "cases":
+            elif entry.is_dir() and entry.name not in DEMO_ROOT_DIRS:
                 findings.append(f"{entry.name}: unregistered demo directory")
     cases_available = cases_root.is_dir() and not cases_root.is_symlink()
     if cases_available:
@@ -1199,6 +1188,24 @@ def validate_public_cases(root: Path) -> list[str]:
             findings.append(f"{case_dir.name}: source image URL is untrusted")
         if not trusted_https_url(metadata.get("objectURL")):
             findings.append(f"{case_dir.name}: source object URL is untrusted")
+    primary_markers = (
+        demo_root / "primary-cases",
+        demo_root / "primary-rights-v1.schema.json",
+        demo_root / "style-index.json",
+        demo_root / "styles",
+        demo_root / "STYLES.md",
+    )
+    if any(path.exists() for path in primary_markers):
+        module_path = Path(__file__).with_name("primary_demo.py")
+        spec = importlib.util.spec_from_file_location("threadtruth_primary_demo", module_path)
+        if spec is None or spec.loader is None:
+            findings.append("primary demo validator is unavailable")
+        else:
+            primary = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(primary)
+            findings.extend(primary.validate_public_primary_cases(root))
+            findings.extend(primary.validate_style_index(root))
+            findings.extend(primary.validate_style_pages(root))
     index_path = root.resolve() / "docs" / "demo" / "RIGHTS.md"
     try:
         current_index = index_path.read_text(encoding="utf-8")

@@ -7,11 +7,11 @@
 - [x] 24 routed style packs and runtime canvas checker
 - [x] Trigger, packaging, privacy, and static regression suite
 - [x] English README, Chinese guide, offline user guide, community files
-- [ ] Rights-cleared public source garment and complete demo chain
+- [x] Rights-cleared public source garment and complete six-image demo chain
 - [x] Maintainer-machine Plugin install, discovery, upgrade, uninstall, and rollback record
 - [x] Public GitHub repository and passing required CI
 - [x] Development-only The Met CC0 auxiliary-media evidence pipeline and release gate
-- [ ] Human-review and promote an eligible auxiliary CC0 case
+- [x] Human-review and promote an eligible auxiliary CC0 case
 - [ ] Resolve or explicitly release-note the minimal implicit-trigger limitation
 - [ ] Signed Beta Release with checksum
 

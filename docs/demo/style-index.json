@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "strategy": "24 representative images plus three six-image primary cases",
+  "styles": [
+    {"slug":"american-street","display_name":"American Street","featured":true,"status":"planned","representative_image":null,"full_case":"planned","source_family":"denim or workwear outerwear","beta_week":1},
+    {"slug":"athleisure","display_name":"Athleisure","featured":false,"status":"planned","representative_image":null,"full_case":"none","source_family":"white puffer vest","beta_week":3},
+    {"slug":"balletcore","display_name":"Balletcore","featured":false,"status":"planned","representative_image":null,"full_case":"none","source_family":"soft feminine dress or cardigan","beta_week":4},
+    {"slug":"british-heritage","display_name":"British Heritage","featured":false,"status":"planned","representative_image":null,"full_case":"none","source_family":"classic overcoat","beta_week":3},
+    {"slug":"cityboy","display_name":"Cityboy","featured":false,"status":"planned","representative_image":null,"full_case":"none","source_family":"denim or workwear outerwear","beta_week":4},
+    {"slug":"clean-fit","display_name":"Clean Fit","featured":false,"status":"planned","representative_image":null,"full_case":"none","source_family":"white puffer vest","beta_week":2},
+    {"slug":"coquette-ladylike","display_name":"Coquette Ladylike","featured":true,"status":"planned","representative_image":null,"full_case":"none","source_family":"soft feminine dress or cardigan","beta_week":1},
+    {"slug":"ecommerce-studio","display_name":"E-commerce Studio","featured":true,"status":"planned","representative_image":null,"full_case":"planned","source_family":"white puffer vest or authorized catalog garment","beta_week":1},
+    {"slug":"french-effortless","display_name":"French Effortless","featured":false,"status":"planned","representative_image":null,"full_case":"none","source_family":"classic overcoat","beta_week":3},
+    {"slug":"gorpcore","display_name":"Gorpcore","featured":true,"status":"planned","representative_image":null,"full_case":"none","source_family":"white puffer vest","beta_week":1},
+    {"slug":"guochao-street","display_name":"Guochao Street","featured":false,"status":"planned","representative_image":null,"full_case":"none","source_family":"contemporary Chinese outerwear","beta_week":4},
+    {"slug":"italian-luxe","display_name":"Italian Luxe","featured":false,"status":"planned","representative_image":null,"full_case":"none","source_family":"classic overcoat","beta_week":3},
+    {"slug":"japanese-lifestyle","display_name":"Japanese Lifestyle","featured":false,"status":"planned","representative_image":null,"full_case":"none","source_family":"blazer or collegiate jacket","beta_week":4},
+    {"slug":"korean-cold-editorial","display_name":"Korean Cold Editorial","featured":true,"status":"ready","representative_image":"primary-cases/white-hooded-puffer-vest-korean-cold/look-1.jpg","full_case":"ready","source_family":"white puffer vest","beta_week":0},
+    {"slug":"korean-menswear","display_name":"Korean Menswear","featured":true,"status":"planned","representative_image":null,"full_case":"none","source_family":"menswear blazer or collegiate jacket","beta_week":1},
+    {"slug":"neo-chinese","display_name":"Neo Chinese","featured":true,"status":"planned","representative_image":null,"full_case":"none","source_family":"verified modern Chinese garment","beta_week":1},
+    {"slug":"nordic-minimal","display_name":"Nordic Minimal","featured":false,"status":"planned","representative_image":null,"full_case":"none","source_family":"white puffer vest","beta_week":2},
+    {"slug":"office-commute-women","display_name":"Office Commute Women","featured":false,"status":"planned","representative_image":null,"full_case":"none","source_family":"blazer or collegiate jacket","beta_week":2},
+    {"slug":"old-money","display_name":"Old Money","featured":true,"status":"planned","representative_image":null,"full_case":"none","source_family":"classic overcoat","beta_week":1},
+    {"slug":"preppy","display_name":"Preppy","featured":false,"status":"planned","representative_image":null,"full_case":"none","source_family":"blazer or collegiate jacket","beta_week":2},
+    {"slug":"quiet-luxury","display_name":"Quiet Luxury","featured":false,"status":"planned","representative_image":null,"full_case":"none","source_family":"classic overcoat","beta_week":2},
+    {"slug":"resort-vacation","display_name":"Resort Vacation","featured":false,"status":"planned","representative_image":null,"full_case":"none","source_family":"soft feminine dress or cardigan","beta_week":4},
+    {"slug":"workwear-vintage","display_name":"Workwear Vintage","featured":false,"status":"planned","representative_image":null,"full_case":"none","source_family":"denim or workwear outerwear","beta_week":3},
+    {"slug":"y2k-millennium","display_name":"Y2K Millennium","featured":false,"status":"planned","representative_image":null,"full_case":"none","source_family":"denim or workwear outerwear","beta_week":4}
+  ]
+}

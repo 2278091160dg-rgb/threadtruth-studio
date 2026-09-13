@@ -5,6 +5,7 @@ __pycache__/
 dist/
 build/
 .threadtruth/
+.worktrees/
 *.log
 .env
 .env.*

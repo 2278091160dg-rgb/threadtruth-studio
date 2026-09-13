@@ -2,7 +2,7 @@
 
 All notable changes are documented here. Versions follow Semantic Versioning.
 
-## 2026-09-12 — 1.0.0-beta.1 candidate (unpublished)
+## 2026-09-13 — 1.0.0-beta.1 release candidate
 
 ### Trigger
 
@@ -22,7 +22,7 @@ The repository carries behavior evals, 24 per-style suites, deterministic route 
 
 ### Verification
 
-System Skill validation, official Plugin validation, production strict/runtime checks, 24/24 pack lint, trigger regression, privacy scanning, release staging, public CI, and the maintainer-machine Plugin lifecycle passed. Public real-image evidence and external clean-environment evidence remain pending. Minimal implicit missing-image behavior is tracked in [Issue #1](https://github.com/2278091160dg-rgb/threadtruth-studio/issues/1).
+System Skill validation, official Plugin validation, production strict/runtime checks, 24/24 pack lint, trigger regression, privacy scanning, release staging, public CI, and the maintainer-machine Plugin lifecycle passed. The first authorized source-to-six-image primary case and one auxiliary CC0 rights case are public. External clean-environment evidence remains pending. Minimal implicit missing-image behavior is tracked in [Issue #1](https://github.com/2278091160dg-rgb/threadtruth-studio/issues/1).
 
 #### Added
 
@@ -32,6 +32,9 @@ System Skill validation, official Plugin validation, production strict/runtime c
 - Competitive boundary and Codex for Open Source readiness packet.
 - Public GitHub repository, passing GitHub Actions, and a privacy-safe local lifecycle verification record.
 - Development-only The Met Open Access CC0 evidence pipeline with quarantine, machine audit, offline human-review gallery, governed promotion, schemas, and release-time rights validation.
+- A rights-cleared primary white-vest case with four sources, six accepted results, hashes, canvas checks, human QA review, and AI-generated-media disclosure.
+- A 24-style evidence index with three primary-case targets, eight featured styles, six source families, and honest planned placeholders.
+- A 1280×640 source-to-results social preview and a privacy-preserving, telemetry-free GitHub growth cadence.
 
 #### Changed
 
