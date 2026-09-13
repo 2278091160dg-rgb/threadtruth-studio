@@ -1,3 +1,4 @@
+import importlib.util
 import json
 import re
 import unittest
@@ -13,6 +14,9 @@ ALLOWED_LEGACY_FILES = {
     ROOT / "MIGRATION.md",
     ROOT / "PROVENANCE.md",
 }
+SCAN_SPEC = importlib.util.spec_from_file_location("contract_public_scan", ROOT / "tools" / "public-scan.py")
+public_scan = importlib.util.module_from_spec(SCAN_SPEC)
+SCAN_SPEC.loader.exec_module(public_scan)
 
 
 class RepositoryContractTests(unittest.TestCase):
@@ -141,11 +145,7 @@ class RepositoryContractTests(unittest.TestCase):
 
     def test_public_text_has_no_private_paths_or_qq_email(self):
         offenders = []
-        for path in ROOT.rglob("*"):
-            if not path.is_file() or {".git", "dist", ".worktrees"} & set(path.parts):
-                continue
-            if path.suffix.lower() not in {".md", ".json", ".yaml", ".yml", ".html", ".py"}:
-                continue
+        for path in public_scan.iter_public_text_paths(ROOT):
             text = path.read_text(errors="ignore")
             if PRIVATE_HOME_PATTERN.search(text) or re.search(r"[\w.+-]+@qq\.com", text, re.I):
                 offenders.append(str(path.relative_to(ROOT)))
@@ -153,11 +153,7 @@ class RepositoryContractTests(unittest.TestCase):
 
     def test_legacy_name_is_limited_to_migration_and_provenance(self):
         offenders = []
-        for path in ROOT.rglob("*"):
-            if not path.is_file() or {".git", "dist", ".worktrees"} & set(path.parts):
-                continue
-            if path.suffix.lower() not in {".md", ".json", ".yaml", ".yml", ".html", ".py"}:
-                continue
+        for path in public_scan.iter_public_text_paths(ROOT):
             if LEGACY_NAME in path.read_text(errors="ignore"):
                 if path not in ALLOWED_LEGACY_FILES:
                     offenders.append(str(path.relative_to(ROOT)))

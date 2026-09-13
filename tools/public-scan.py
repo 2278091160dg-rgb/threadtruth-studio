@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Iterator
 import re
 import subprocess
 from pathlib import Path
@@ -31,8 +32,8 @@ def scan_text(text: str, source: str) -> list[str]:
     return findings
 
 
-def scan_tree(root: Path) -> list[str]:
-    findings = []
+def iter_public_text_paths(root: Path) -> Iterator[Path]:
+    """Share the Git-aware public-file boundary with repository contracts."""
     root = root.resolve()
     probe = subprocess.run(['git', 'rev-parse', '--show-toplevel'], cwd=root,
                            capture_output=True, text=True)
@@ -42,7 +43,7 @@ def scan_tree(root: Path) -> list[str]:
         listing = subprocess.run(['git', 'ls-files', '--cached', '--others',
                                   '--exclude-standard', '-z'], cwd=root,
                                  capture_output=True, text=True, check=True)
-        paths = (root / name for name in set(listing.stdout.split('\0')) if name)
+        paths = (root / name for name in sorted(set(listing.stdout.split('\0'))) if name)
     else:
         # Cleanly extracted release: no Git allowlist exists; inspect all files.
         paths = root.rglob('*')
@@ -51,6 +52,13 @@ def scan_tree(root: Path) -> list[str]:
             continue
         if path.suffix.lower() not in TEXT_SUFFIXES:
             continue
+        yield path
+
+
+def scan_tree(root: Path) -> list[str]:
+    findings = []
+    root = root.resolve()
+    for path in iter_public_text_paths(root):
         findings.extend(scan_text(path.read_text(errors="ignore"), str(path.relative_to(root))))
     return findings
 

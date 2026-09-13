@@ -14,12 +14,14 @@ All notable changes are documented here. Versions follow Semantic Versioning.
 
 ### Behavior after
 
+- Fixed the repository public-text contracts skipping every file when the checkout's absolute path contains `.worktrees`. They now share the existing Git-aware scanner's public-file iterator: ignored local records remain local, but tracked/force-tracked records and new nonignored public documents are inspected. Non-Git extractions are scanned in full; runtime behavior and scanning patterns are unchanged.
 - Replaced the development collector with schema v2: 24 style-owned records, each binding one runtime-derived action-0 prompt, one pack, six canonical poses, one native receipt, observed whole-sheet metadata and its own six-pose human review. Incomplete audit/gallery views remain honest; v1 stays read-only and cannot be promoted.
 - Added whole-sheet gallery/public-index integration, v2 release validation, source regressions and current English/Chinese/Growth/Beta/application/offline-guide wording. Runtime Skill/reference bytes are unchanged. No native image was generated, no human review was synthesized and no preview was promoted; approved previews remain 0/24. The historical beta.2 entry below describes what shipped, not the corrected target.
 - Closed review gaps: trusted gallery approval now revalidates live sheet bytes; full audit lists unapproved style IDs while scoped audit supports machine-readiness checks; repeat promotion transactionally repairs and validates projections; whole sheets retain intrinsic display dimensions; and Growth treats the gallery template as implemented.
 
 ### Eval coverage
 
+- Added real disposable-repository regressions for checkout-ancestor skipping, untracked public documents, force-tracked local drafts, the migration-only legacy-name exception and non-Git extraction scanning.
 - Added v2 contract, drift, source authorization, receipt uniqueness, incomplete review, historical v1 rejection, whole-sheet gallery/public projection and six-final isolation regressions. Synthetic human attestations exist only inside disposable tests and do not count as preview evidence.
 - Added regressions for pending/tampered review labels, on-disk image tampering, full-versus-scoped audit results, idempotent projection repair, no-upscale HTML/CSS and current Growth wording.
 
