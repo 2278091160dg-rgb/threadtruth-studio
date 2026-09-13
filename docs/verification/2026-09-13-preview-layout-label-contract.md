@@ -26,7 +26,9 @@ New schema `3.0` requires a square board, six observed 3:4 cells, independent na
 | Public text and reachable Git history | Passed without weakening privacy patterns |
 | Local allowlist staging | 114 entries, checksum matched, staged Plugin/runtime validation passed; no private candidates, native receipts, review drafts, tests, tools or evals in ZIP |
 | Task2 independent documentation review | Approved, no findings; ten current documents reviewed with CLI/label spot checks |
-| Final independent combined review | Pending; both task-level reviews and controller integration checks are complete |
+| Final independent combined review | Approved for local software readiness; no Critical, Important or Minor findings across `1ad4dd8..8a6a7c7`, including approval, public projection, rights/index and release consumers |
+
+Software verification is closed for this repair. The branch remains local and unmerged; reviewer approval is not native-generation, publication or application authority. Real corrected-preview quality and human acceptance are still pending.
 
 The isolated staging build retains the manifest's existing beta.2 version solely for validation. It is not a release asset to upload and must never replace the published beta.2 archive or checksum. No installation or remote publication was performed. Browser screenshots were visually checked for the current single-sheet desktop/mobile layout and legacy/mobile guide state; test rectangles do not certify real garment or label quality.
 
