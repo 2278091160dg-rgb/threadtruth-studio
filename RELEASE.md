@@ -3,7 +3,7 @@
 ## Candidate
 
 - Version: `1.0.0-beta.2`
-- Status: beta.2 release candidate; beta.1 remains available and immutable
+- Status: statically verified beta.2 prerelease package; GitHub Release event records publication. beta.1 remains available and immutable.
 - License: Apache-2.0
 - Distribution: Codex Plugin repository plus allowlist-built archive
 - Runtime telemetry: none
