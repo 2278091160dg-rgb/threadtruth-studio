@@ -34,7 +34,7 @@ Record only public, auditable values:
 | Feedback-driven release | changelog + linked issue | pending |
 | Open high-severity issues | security/issue triage | pending |
 
-Preview contact sheets do not count as complete cases. The corrected collection is 24 separate images of the same white vest, each showing ONE style and SIX poses, using runtime action 0. The local v2 collector is only infrastructure; approved previews remain `0/24` and independent six-final coverage remains `1/24`. The beta.2 mixed-style v1 format is not completion evidence and cannot be promoted.
+Preview contact sheets do not count as complete cases. The corrected collection is 24 separate square boards of the same white vest, each showing ONE style and SIX poses in `3:4` cells, using runtime action 0. The local schema `3.0` collector is only infrastructure: one native single-style attempt exists but is unqualified; qualified, human-approved and public previews remain `0/24`, while independent six-final coverage remains `1/24`. Schema `1.0`/`2.0` records and the beta.2 mixed-style board are historical-only, not completion evidence, and cannot be promoted.
 
 The official form was read again on 2026-09-13: the qualification narrative, API-credit-use answer and optional additional information currently each allow 500 characters. Public GitHub profile/repository visibility and private application identifiers must be checked again on submission day. Active maintenance, meaningful usage, adoption or ecosystem importance matter; reaching the project's numeric targets alone does not guarantee selection. [Official application](https://openai.com/form/codex-for-oss/).
 

@@ -2,32 +2,33 @@
 
 All notable changes are documented here. Versions follow Semantic Versioning.
 
-## 2026-09-13 — Unreleased preview scope correction and task register
+## 2026-09-13 — Unreleased preview layout and label contract
 
 ### Trigger
 
-- The maintainer corrected the development preview target from four mixed-style boards to 24 single-style sheets, each showing the same authorized garment in the six canonical runtime action-0 poses.
+- The maintainer found that the corrected single-style collector still lacked explicit acceptance checks for the whole-board ratio, per-cell ratio, full registered style label, native subtitle/footer, and text-to-subject overlap.
 
 ### Behavior before
 
-- The maintainer clarified the intended example: 24 separate previews of ONE garment, each preview using ONE style and SIX poses from existing runtime action 0. The beta.2 four-board/mixed-style interpretation was wrong, not merely a canvas problem.
+- Schema `2.0` bound one style and six poses but could accept a non-square native board, omitted observed cell/text-band geometry and framing attestations, and did not bind the layout/label contracts into the native receipt. Its earlier narrow machine result therefore did not qualify the real Korean C attempt. The beta.2 mixed-style board was already a separate wrong-format draft.
 
 ### Behavior after
 
-- Fixed the repository public-text contracts skipping every file when the checkout's absolute path contains `.worktrees`. They now share the existing Git-aware scanner's public-file iterator: ignored local records remain local, but tracked/force-tracked records and new nonignored public documents are inspected. Non-Git extractions are scanned in full; runtime behavior and scanning patterns are unchanged.
-- Replaced the development collector with schema v2: 24 style-owned records, each binding one runtime-derived action-0 prompt, one pack, six canonical poses, one native receipt, observed whole-sheet metadata and its own six-pose human review. Incomplete audit/gallery views remain honest; v1 stays read-only and cannot be promoted.
-- Added whole-sheet gallery/public-index integration, v2 release validation, source regressions and current English/Chinese/Growth/Beta/application/offline-guide wording. Runtime Skill/reference bytes are unchanged. No native image was generated, no human review was synthesized and no preview was promoted; approved previews remain 0/24. The historical beta.2 entry below describes what shipped, not the corrected target.
-- Closed review gaps: trusted gallery approval now revalidates live sheet bytes; full audit lists unapproved style IDs while scoped audit supports machine-readiness checks; repeat promotion transactionally repairs and validates projections; whole sheets retain intrinsic display dimensions; and Growth treats the gallery template as implemented.
+- Schema `3.0` now requires a native and retained `1:1` board containing independent title, subtitle, two rows of three `3:4` cells, and footer bands. Poses 1/2/4/6 require full-body framing; 3/5 permit half-body. Native dimensions plus layout and label hashes are bound into each receipt and review evidence.
+- Prompts require the full registered bilingual style name, exact mode subtitle and exact bilingual AI preview footer to be rendered natively. Original output is preserved before validation; there is no crop, stretch, padding, enlargement or scripted text repair.
+- Human review now records six observed cell rectangles plus observed title/subtitle/footer rectangles in retained-image pixels, allowing only one-pixel size/alignment/raster-ratio rounding. Explicit boundary, text correctness/readability, non-overlap and per-pose framing checks default to pending; missing/pending/fail fields or `public_use_approved: false` are not consent.
+- Schema `1.0` and `2.0` runs remain read-only history and cannot be prepared, ingested, approved or promoted. Current evidence requires a new run ID. Style-scoped audit can report file evidence without claiming human visual approval; full audit and promotion require all 24 current-schema sheets and reviews.
+- Operator, bilingual, offline, Beta, growth, application and work-status wording now separates local software closure from image readiness. Current counts are one unqualified native single-style attempt, 0/24 qualified, 0/24 human-approved and 0/24 public; the prior mixed-style board is separate. The next Korean C retry and the remaining 23 styles require new explicit native authorization.
 
 ### Eval coverage
 
-- Added real disposable-repository regressions for checkout-ancestor skipping, untracked public documents, force-tracked local drafts, the migration-only legacy-name exception and non-Git extraction scanning.
-- Added v2 contract, drift, source authorization, receipt uniqueness, incomplete review, historical v1 rejection, whole-sheet gallery/public projection and six-final isolation regressions. Synthetic human attestations exist only inside disposable tests and do not count as preview evidence.
-- Added regressions for pending/tampered review labels, on-disk image tampering, full-versus-scoped audit results, idempotent projection repair, no-upscale HTML/CSS and current Growth wording.
+- Added regressions for non-square native output, bad cell ratio/size/alignment/order, out-of-bounds and overlapping rectangles, malformed numeric fields, missing or pending label/framing attestations, receipt/review/image hash tampering, and direct old-schema promotion.
+- Retained transactional promotion, historical-gallery accessibility, scoped/full audit, whole-sheet no-upscale, public projection and six-independent-final isolation coverage. Synthetic `900x900` geometry and all-pass attestations remain disposable test fixtures only; they do not count as real review evidence.
 
 ### Verification
 
-- The 92-test repository suite, strict source and runtime production checks, pack lint, trigger regression, public scan, JSON parsing, diff hygiene and runtime-byte parity pass. Controller browser checks pass at desktop and mobile widths. No real preview image, human approval, promotion, release, remote action or installation was performed.
+- Task 1 reports 24/24 focused preview tests and 108/108 repository tests passing at implementation commit `0922c61`; its independent task spec/quality review reported no findings. Final combined tests and guide rendering are recorded separately in [the controller verification report](docs/verification/2026-09-13-preview-layout-label-contract.md) and must not be inferred before that report is closed.
+- This static change does not certify the existing real image or the full project. No native call, human approval, promotion, release, network action, installation or runtime change was performed. External lifecycle remains 0/1, non-maintainer installations 0/5, complete primary cases 1/3, and external-feedback fixes 0/1.
 
 ## 2026-09-13 — 1.0.0-beta.2
 
