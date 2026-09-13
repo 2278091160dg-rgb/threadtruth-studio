@@ -6,7 +6,7 @@
 
 ### Before you begin
 
-Use the Plugin ZIP from the [GitHub Releases landing page](https://github.com/2278091160dg-rgb/threadtruth-studio/releases), plus its separately downloaded `.sha256` sidecar. The optional original-media ZIP is evidence media, not the Plugin, and has a different checksum. Beta.2 is still a candidate until its artifact is published and release verification closes.
+Use the Plugin ZIP from the [GitHub Releases landing page](https://github.com/2278091160dg-rgb/threadtruth-studio/releases), plus its separately downloaded `.sha256` sidecar. The optional original-media ZIP is evidence media, not the Plugin, and has a different checksum. This guide describes beta.2; use only published assets from the Releases page.
 
 The release ZIP extracts to a versioned root such as `threadtruth-studio-1.0.0-beta.2/`. That whole root, containing `.codex-plugin/plugin.json` and `install-local.py`, is the install source. Do not use the inner `skills/threadtruth-studio/` folder.
 
@@ -86,7 +86,7 @@ See [compatibility](COMPATIBILITY.md). Submit sanitized installation results thr
 
 ### 开始前
 
-请从 [GitHub Releases 落地页](https://github.com/2278091160dg-rgb/threadtruth-studio/releases)下载 Plugin ZIP，并单独下载与它匹配的 `.sha256` 校验文件。可选的原始媒体 ZIP 是证据素材，不是 Plugin，校验文件也不同。beta.2 在制品发布且验证闭环前仍是候选。
+请从 [GitHub Releases 落地页](https://github.com/2278091160dg-rgb/threadtruth-studio/releases)下载 Plugin ZIP，并单独下载与它匹配的 `.sha256` 校验文件。可选的原始媒体 ZIP 是证据素材，不是 Plugin，校验文件也不同。本指南对应 beta.2；请仅使用 Releases 页面已公开的发行制品。
 
 发行 ZIP 会解压为带版本号的根目录，例如 `threadtruth-studio-1.0.0-beta.2/`。安装源是包含 `.codex-plugin/plugin.json` 与 `install-local.py` 的整个根目录，不是内层 `skills/threadtruth-studio/`。
 

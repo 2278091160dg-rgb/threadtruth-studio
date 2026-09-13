@@ -12,7 +12,7 @@ ThreadTruth Studio 是独立维护的社区 Codex Plugin。它从真实服饰图
 
 ## 安装并测试识别
 
-从 [Releases 页面](https://github.com/2278091160dg-rgb/threadtruth-studio/releases)分别下载 Plugin ZIP 与校验文件。`v1.0.0-beta.1` 保持不可变；beta.2 在实际制品通过静态、打包、checksum、版本与源注册发布检查前仍是候选。真实新宿主 CLI 激活是另行披露的兼容性缺口，不是补丁发布阻塞项。请按完整的[安装指南](docs/INSTALL.md)操作。
+从 [Releases 页面](https://github.com/2278091160dg-rgb/threadtruth-studio/releases)分别下载 Plugin ZIP 与校验文件。`v1.0.0-beta.1` 保持不可变；beta.2 包已通过静态、打包、checksum、版本与源注册检查。真实新宿主 CLI 激活是另行披露的兼容性缺口，不是补丁发布阻塞项。请按完整的[安装指南](docs/INSTALL.md)操作。
 
 安装后新建一个 **Codex 任务**，先上传服饰图，再原样输入：
 
@@ -42,7 +42,7 @@ ThreadTruth Studio 是独立维护的社区 Codex Plugin。它从真实服饰图
 
 ## 发布与兼容状态
 
-公开 Beta 从 [`v1.0.0-beta.1`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.1) 开始。beta.2 源码候选新增发行包自带的 personal source 安装器；其 mock home 聚焦测试已通过，但尚未验证新宿主 CLI 激活。已审计宿主：macOS `26.6.2`、`codex-cli 0.144.1`；Codex 桌面版 build 不可用，不能从 CLI 版本推断。详见[兼容性](docs/COMPATIBILITY.md)与[30 天 Beta 登记](docs/BETA.md)。
+公开 Beta 从 [`v1.0.0-beta.1`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.1) 开始。beta.2 预发行版新增发行包自带的 personal source 安装器；其 mock home 聚焦测试已通过，但尚未验证新宿主 CLI 激活。已审计宿主：macOS `26.6.2`、`codex-cli 0.144.1`；Codex 桌面版 build 不可用，不能从 CLI 版本推断。详见[兼容性](docs/COMPATIBILITY.md)与[30 天 Beta 登记](docs/BETA.md)。
 
 至少 30 天、5 个非维护者安装、3 个授权完整案例，是项目自己的退出目标，不是 OpenAI 固定准入条件。Codex for Open Source 申请细节只放在 [docs/CODEX-FOR-OSS.md](docs/CODEX-FOR-OSS.md)。
 

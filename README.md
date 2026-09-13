@@ -12,7 +12,7 @@ This is a real, rights-cleared source-to-six-result case: four photos of one whi
 
 ## Install and try recognition
 
-Download the Plugin ZIP and its separate checksum from the [Releases page](https://github.com/2278091160dg-rgb/threadtruth-studio/releases). `v1.0.0-beta.1` is immutable; beta.2 remains a candidate until its actual artifact passes static, package, checksum, version, and source-registration release checks. New-host CLI activation remains a separately disclosed compatibility gap, not a patch-release blocker. Follow the complete matching [installation guide](docs/INSTALL.md).
+Download the Plugin ZIP and its separate checksum from the [Releases page](https://github.com/2278091160dg-rgb/threadtruth-studio/releases). `v1.0.0-beta.1` is immutable; the beta.2 package has passed static, archive, checksum, version, and source-registration checks. New-host CLI activation remains a separately disclosed compatibility gap, not a patch-release blocker. Follow the complete matching [installation guide](docs/INSTALL.md).
 
 After installation, start a **new Codex task**, upload a garment image first, then enter exactly:
 
@@ -42,7 +42,7 @@ There is no runtime telemetry, MCP server, external connector, API-key flow, or 
 
 ## Release and compatibility status
 
-The public Beta began with [`v1.0.0-beta.1`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.1). The beta.2 source candidate adds a release-owned personal-source installer; its focused tests passed in a mock home, but a new-host CLI activation has not yet been verified. Audited host: macOS `26.6.2`, `codex-cli 0.144.1`. Codex desktop build: unavailable, not inferred. See [compatibility](docs/COMPATIBILITY.md) and the [30-day Beta register](docs/BETA.md).
+The public Beta began with [`v1.0.0-beta.1`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.1). The beta.2 prerelease adds a release-owned personal-source installer; its focused tests passed in a mock home, but a new-host CLI activation has not yet been verified. Audited host: macOS `26.6.2`, `codex-cli 0.144.1`. Codex desktop build: unavailable, not inferred. See [compatibility](docs/COMPATIBILITY.md) and the [30-day Beta register](docs/BETA.md).
 
 The project's own exit targets are at least 30 days, five non-maintainer installations, and three authorized complete cases; these are project targets, not OpenAI admission rules. Codex for Open Source application details live only in [docs/CODEX-FOR-OSS.md](docs/CODEX-FOR-OSS.md).
 

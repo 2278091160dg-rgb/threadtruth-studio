@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Security fixes target the latest published Beta or stable release. `v1.0.0-beta.1` is the current immutable public baseline; beta.2 remains a candidate until published and verified.
+Security fixes target the latest published Beta or stable release. Prior beta.1 assets are preserved; consult the [Releases page](https://github.com/2278091160dg-rgb/threadtruth-studio/releases) for the latest published version.
 
 ## Reporting a vulnerability
 
@@ -13,7 +13,7 @@ If GitHub temporarily cannot create a private report, retain it locally and cont
 ## Runtime security contract
 
 - No API key, token, credential, environment-variable, or hidden-file access.
-- No MCP server, connector, runtime telemetry, external upload, or network fallback.
+- No MCP server, external connector, runtime telemetry, or API/network fallback. Explicitly approved image references and prompts are processed by the host's native image provider; host account policies govern that processing.
 - Native image generation requires explicit user approval and is capped at six calls per request.
 - Ambiguous permission is treated as no permission.
 - Customer content and private evidence are excluded from public source and releases.
