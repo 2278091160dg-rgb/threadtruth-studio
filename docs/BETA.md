@@ -1,6 +1,10 @@
 # 30-day Beta evidence register
 
-The Beta clock begins on the public `v1.0.0-beta.1` Release timestamp, not on local repository creation.
+Status: **active**.
+
+The Beta clock began when [`v1.0.0-beta.1`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.1) was published at **2026-09-13T04:59:28Z** (Asia/Shanghai: **2026-09-13 12:59:28**). The 30-day minimum reaches **2026-10-13T04:59:28Z**; elapsed time alone does not satisfy the exit criteria.
+
+Publication baseline: one maintainer-owned authorized complete workflow, one auxiliary CC0 rights case, one of 24 styles with visual evidence, zero qualifying non-maintainer installations, and zero Release downloads at `publishedAt`.
 
 ## Maintainer preflight — 2026-09-12
 
@@ -27,6 +31,5 @@ Do not add runtime telemetry. For each opt-in tester, record a public handle or 
 
 | ID | Non-maintainer | Version | Install | Complete case | Feedback link | Publish consent | Date |
 |---|---:|---|---|---|---|---|---|
-| pending | — | — | — | — | — | — | — |
 
-The placeholder row is not evidence and must be removed when the Beta begins.
+No qualifying external tester record has been added yet.

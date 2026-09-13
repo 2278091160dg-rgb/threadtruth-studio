@@ -24,9 +24,9 @@ Record only public, auditable values:
 
 | Field | Source | Value |
 |---|---|---|
-| Non-maintainer installs | opt-in Beta records | pending |
-| Authorized complete cases | `docs/demo/RIGHTS.md` + case reports | pending |
-| Release downloads | GitHub Release insights | pending |
+| Non-maintainer installs | opt-in Beta records | 0 of 5 required at Beta publication |
+| Authorized complete cases | `docs/demo/RIGHTS.md` + case reports | 1 of 3 required |
+| Release downloads | GitHub Release insights | 0 at `2026-09-13T04:59:28Z` publication baseline |
 | Stars | GitHub repository | pending |
 | External issues/discussions | GitHub | pending |
 | Feedback-driven release | changelog + linked issue | pending |
