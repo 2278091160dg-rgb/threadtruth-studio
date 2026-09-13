@@ -18,6 +18,8 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+      - name: Install development image dependency
+        run: python3 -m pip install --requirement requirements-dev.txt
       - name: Repository contracts
         run: python3 -m unittest discover -s tests -v
       - name: Style-pack lint

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/2278091160dg-rgb/threadtruth-studio/raw/main/docs/demo/primary-rights-v1.schema.json",
+  "title": "ThreadTruth Studio primary demo rights record v1",
+  "type": "object",
+  "required": ["schema_version", "case_id", "work_id", "status", "role", "primary_demo_status", "style", "route", "source_rights", "media_license", "assets", "hero", "quality", "human_review", "ai_content_label", "promoted_at", "notices"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "case_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"},
+    "status": {"const": "promoted"},
+    "role": {"const": "primary"},
+    "primary_demo_status": {"const": "ready"},
+    "route": {"const": "B1"},
+    "media_license": {"type": "object", "required": ["id", "url"], "properties": {"id": {"const": "CC0-1.0"}, "url": {"const": "https://creativecommons.org/publicdomain/zero/1.0/"}}},
+    "assets": {"type": "array", "minItems": 10, "maxItems": 10, "items": {"type": "object", "required": ["role", "name", "path", "original_sha256", "public_sha256", "mime", "bytes", "width", "height"]}},
+    "quality": {"type": "object", "required": ["state", "expected_images", "actual_images", "preview_images_included", "generation_calls", "canvas_contract", "unique_original_output_hashes"], "properties": {"state": {"const": "image-ready"}, "expected_images": {"const": 6}, "actual_images": {"const": 6}, "preview_images_included": {"const": 0}, "generation_calls": {"const": 6}, "unique_original_output_hashes": {"const": 6}}},
+    "human_review": {"type": "object", "required": ["status", "reviewer", "reviewed_at", "confirmation"], "properties": {"status": {"const": "closed"}}},
+    "ai_content_label": {"type": "object", "required": ["status", "informed_at"], "properties": {"status": {"const": "required-and-disclosed"}}},
+    "notices": {"type": "array", "minItems": 3, "items": {"type": "string"}}
+  }
+}

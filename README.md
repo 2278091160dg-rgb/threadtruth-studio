@@ -4,7 +4,17 @@
 
 ThreadTruth Studio is an independent, community-maintained Codex Plugin that turns a real garment photograph into a governed fashion-portrait workflow. It recognizes visible garment facts, routes among 24 style packs, requires explicit approval before image generation, delivers six independent images serially, and closes with commercial QA. The project is preparing for the [Codex for Open Source](https://learn.chatgpt.com/community/codex-for-oss) program; it has not applied or been accepted.
 
-> Public release status: `v1.0.0-beta.1` candidate. The runtime and regression suite are implemented; the rights-cleared public demo and 30-day external Beta evidence are still pending. This repository is not an OpenAI product or endorsement.
+![A real white hooded puffer vest source beside six independent Korean Cold Editorial results](docs/demo/primary-cases/white-hooded-puffer-vest-korean-cold/hero.jpg)
+
+> Public release status: `v1.0.0-beta.1` release candidate. The runtime, regression suite, Plugin lifecycle, and first rights-cleared primary demo are complete. The 30-day external Beta begins only when the GitHub Release is published. This repository is not an OpenAI product or endorsement.
+
+## See the governed result
+
+The first primary case uses four authorized photographs of one real white hooded puffer vest and delivers six independent Korean Cold Editorial B1 images. Every public source and result has a recorded SHA-256 digest, the user closed the visual QA review, and the case identifies the results as AI-generated media.
+
+- [Open the complete source-to-six-image case](docs/demo/primary-cases/white-hooded-puffer-vest-korean-cold/README.md)
+- [Browse the 24-style evidence index](docs/demo/STYLES.md) — currently `1/24` styles have public visual evidence; planned cards do not pretend otherwise.
+- [Review media rights and limitations](docs/demo/RIGHTS.md)
 
 ## Why it exists
 
@@ -35,7 +45,7 @@ docs/                              Public evidence and project notes
 USER-GUIDE.html                    Offline bilingual-friendly guide
 ```
 
-The development-only [demo media pipeline](docs/demo/README.md) can collect The Met Open Access CC0 garment candidates into an ignored local quarantine. It verifies metadata, JPEG evidence, hashes, expiry, and state transitions; promotion requires a complete human rights review. Auxiliary institutional media never substitutes for the maintainer-owned primary demo. Apache-2.0 covers code and documentation, not demo media; see the [media policy](docs/demo/MEDIA-POLICY.md).
+The development-only [demo evidence workflow](docs/demo/README.md) governs both authorized primary cases and The Met Open Access CC0 auxiliary candidates. Institutional candidates enter an ignored local quarantine and require metadata, JPEG, hash, expiry, state-transition, and human-rights review before promotion. Auxiliary media never substitutes for a primary real-garment case. Apache-2.0 covers code and documentation, not demo media; see the [media policy](docs/demo/MEDIA-POLICY.md).
 
 ## Local validation
 
@@ -66,11 +76,12 @@ The first Beta Release will add the final marketplace command after a clean-envi
 - Static, trigger, privacy, and allowlist packaging checks: implemented.
 - Public repository and required GitHub Actions checks: active and passing.
 - Maintainer-machine Plugin lifecycle: install, discovery, upgrade, uninstall, and legacy rollback verified; `v1.0.0-beta.1` restored and enabled.
-- Rights-cleared public demo: `sample-blocked`, awaiting maintainer-owned source images.
-- Reproducible The Met CC0 auxiliary-media evidence pipeline: implemented; no candidate has been human-approved or promoted.
+- Rights-cleared primary demo: one `image-ready` source-to-six-image case is public.
+- 24-style visual evidence: `1/24` ready; the remaining cards are explicitly marked planned and require fresh source rights plus per-style generation approval.
+- Reproducible The Met CC0 auxiliary-media evidence pipeline: implemented; one human-approved case is promoted as auxiliary evidence.
 - External clean-environment validation: pending; the maintainer preflight does not count toward Beta adoption.
 - Known runtime issue: a minimal implicit missing-image request may skip Skill loading; see [Issue #1](https://github.com/2278091160dg-rgb/threadtruth-studio/issues/1). Explicit invocation is the Beta workaround.
-- GitHub Release and published checksums: pending the rights-cleared demo and remaining release gates.
+- GitHub Release and published checksums: release candidate assets are being prepared; publication starts the external Beta clock.
 - Codex for Open Source application: not submitted; requires stable `v1.0.0`, threshold evidence, and final user authorization.
 
 ## Community

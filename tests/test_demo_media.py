@@ -81,6 +81,10 @@ class FakeMetClient:
 
 
 class DemoMediaModuleTests(unittest.TestCase):
+    def test_combined_public_case_validation_accepts_primary_and_auxiliary_cases(self):
+        module = load_module()
+        self.assertEqual(module.validate_public_cases(ROOT), [])
+
     def create_audited_run(self, module, root, run_id="review-test"):
         item = met_item()
         client = FakeMetClient(
@@ -585,7 +589,9 @@ class DemoMediaModuleTests(unittest.TestCase):
                 result["source"]["metadata_sha256_at_promotion"],
                 module.sha256_bytes((case_dir / "source-metadata.json").read_bytes()),
             )
-            self.assertIn("not endorsed by The Metropolitan Museum of Art", (case_dir / "README.md").read_text())
+            case_readme = (case_dir / "README.md").read_text()
+            self.assertIn("not endorsed by The Metropolitan Museum of Art", case_readme)
+            self.assertNotIn("Primary maintainer-owned demo remains", case_readme)
             rights_index = (root / "docs" / "demo" / "RIGHTS.md").read_text()
             self.assertIn("met-coat-159228", rights_index)
             self.assertIn("Primary maintainer-owned demo remains `sample-blocked`", rights_index)
