@@ -1,93 +1,30 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light dark">
-  <title>ThreadTruth Studio｜离线用户指南</title>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark">
+  <title>ThreadTruth Studio | Offline User Guide / 离线用户指南</title>
   <style>
-    :root{--ink:#1b1a17;--muted:#655f55;--paper:#f5f0e7;--card:#fffaf1;--line:#d7cbbb;--accent:#a33b20;--ok:#1f6b4f;--hold:#9a6517;--code:#27231f}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.68 ui-serif,Georgia,"Noto Serif SC",serif}a{color:var(--accent);text-underline-offset:3px}.skip{position:absolute;left:-9999px}.skip:focus{left:1rem;top:1rem;background:var(--card);padding:.6rem;z-index:2}.wrap{width:min(1040px,calc(100% - 32px));margin:auto}.hero{padding:72px 0 48px;border-bottom:1px solid var(--line)}.eyebrow{font:700 .78rem/1.2 ui-sans-serif,system-ui;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}h1{font-size:clamp(2.35rem,7vw,5.6rem);line-height:.95;letter-spacing:-.045em;margin:.25em 0}.lede{font-size:1.18rem;max-width:780px;color:var(--muted)}.badge{display:inline-block;border:1px solid var(--hold);color:var(--hold);padding:.22rem .55rem;border-radius:999px;font:700 .78rem ui-sans-serif,system-ui}.layout{display:grid;grid-template-columns:230px 1fr;gap:44px;padding:38px 0 80px}nav{position:sticky;top:20px;align-self:start;border-left:3px solid var(--accent);padding-left:16px}nav a{display:block;padding:.25rem 0;text-decoration:none;font:600 .85rem ui-sans-serif,system-ui}main{min-width:0}section{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:clamp(22px,4vw,42px);margin-bottom:22px}h2{font-size:1.65rem;margin:0 0 .65rem}h3{font-size:1.05rem;margin-top:1.5rem}code,pre{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}code{background:#e9dfd0;padding:.08rem .28rem;border-radius:4px;color:var(--code)}pre{overflow:auto;background:var(--code);color:#f8efe1;padding:16px;border-radius:10px}.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:1.3rem 0}.flow div{border:1px solid var(--line);border-radius:10px;padding:12px;font:700 .82rem/1.35 ui-sans-serif,system-ui}.note{border-left:4px solid var(--accent);padding:.2rem 0 .2rem 1rem;color:var(--muted)}table{width:100%;border-collapse:collapse;font-size:.92rem}th,td{text-align:left;vertical-align:top;border-bottom:1px solid var(--line);padding:.65rem .45rem}th{font-family:ui-sans-serif,system-ui}.ok{color:var(--ok)}.hold{color:var(--hold)}footer{padding:30px 0 60px;color:var(--muted);font-size:.88rem}@media(max-width:760px){.layout{grid-template-columns:1fr}.hero{padding-top:48px}nav{position:static;columns:2}.flow{grid-template-columns:1fr 1fr}}@media(max-width:440px){body{font-size:16px}.wrap{width:min(100% - 20px,1040px)}nav{columns:1}.flow{grid-template-columns:1fr}section{border-radius:12px}}@media(prefers-color-scheme:dark){:root{--ink:#f4eadc;--muted:#c7bbaa;--paper:#171512;--card:#211e1a;--line:#433b32;--accent:#ff8a69;--ok:#74d5ad;--hold:#efb75e;--code:#0d0c0b}code{background:#332d27}}@media print{body{background:#fff;color:#000;font-size:11pt}.hero{padding:0 0 18px}nav{display:none}.layout{display:block;padding:18px 0}section{background:#fff;border:1px solid #aaa;break-inside:avoid;padding:18px}.badge{color:#000;border-color:#000}a{color:#000;text-decoration:none}pre{white-space:pre-wrap;color:#000;background:#eee}}
+    :root{--ink:#1b1a17;--muted:#655f55;--paper:#f5f0e7;--card:#fffaf1;--line:#d7cbbb;--accent:#a33b20;--ok:#1f6b4f;--hold:#80500f;--code:#27231f}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.65 ui-serif,Georgia,"Noto Serif SC",serif}a{color:var(--accent);text-underline-offset:3px}a:focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:2px}.skip{position:absolute;left:-9999px}.skip:focus{left:1rem;top:1rem;background:var(--card);padding:.6rem;z-index:2}.wrap{width:min(1060px,calc(100% - 32px));margin:auto}.hero{padding:64px 0 40px;border-bottom:1px solid var(--line)}.eyebrow{font:700 .78rem/1.2 ui-sans-serif,system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}h1{font-size:clamp(2.3rem,7vw,5.5rem);line-height:.96;letter-spacing:-.04em;margin:.22em 0}.lede{font-size:1.12rem;max-width:820px;color:var(--muted)}.badge{display:inline-block;border:1px solid var(--hold);color:var(--hold);padding:.22rem .55rem;border-radius:999px;font:700 .78rem ui-sans-serif,system-ui}.layout{display:grid;grid-template-columns:235px 1fr;gap:42px;padding:38px 0 80px}nav{position:sticky;top:20px;align-self:start;border-left:3px solid var(--accent);padding-left:16px}nav a{display:block;padding:.22rem 0;text-decoration:none;font:600 .84rem ui-sans-serif,system-ui}main{min-width:0}section{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:clamp(22px,4vw,40px);margin-bottom:22px}h2{font-size:1.55rem;margin:0 0 .65rem}h3{font-size:1.04rem;margin-top:1.35rem}code,pre{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}code{background:#e9dfd0;padding:.08rem .28rem;border-radius:4px;color:var(--code)}pre{overflow:auto;background:var(--code);color:#f8efe1;padding:16px;border-radius:10px}.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:1.2rem 0}.flow div{border:1px solid var(--line);border-radius:10px;padding:12px;font:700 .82rem/1.35 ui-sans-serif,system-ui}.note{border-left:4px solid var(--accent);padding:.2rem 0 .2rem 1rem;color:var(--muted)}table{width:100%;border-collapse:collapse;font-size:.9rem}th,td{text-align:left;vertical-align:top;border-bottom:1px solid var(--line);padding:.6rem .4rem}.ok{color:var(--ok)}.hold{color:var(--hold)}footer{padding:30px 0 60px;color:var(--muted);font-size:.88rem}@media(max-width:760px){.layout{grid-template-columns:1fr}.hero{padding-top:44px}nav{position:static;columns:2}.flow{grid-template-columns:1fr 1fr}}@media(max-width:440px){body{font-size:16px}.wrap{width:min(100% - 20px,1060px)}nav{columns:1}.flow{grid-template-columns:1fr}section{border-radius:12px}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}@media(prefers-color-scheme:dark){:root{--ink:#f4eadc;--muted:#c7bbaa;--paper:#171512;--card:#211e1a;--line:#433b32;--accent:#ff8a69;--ok:#74d5ad;--hold:#efb75e;--code:#0d0c0b}code{background:#332d27}}@media print{body{background:#fff;color:#000;font-size:11pt}.hero{padding:0 0 18px}nav{display:none}.layout{display:block;padding:18px 0}section{background:#fff;border:1px solid #aaa;break-inside:avoid;padding:18px}.badge{color:#000;border-color:#000}a{color:#000;text-decoration:none}pre{white-space:pre-wrap;color:#000;background:#eee}}
   </style>
 </head>
 <body>
-  <a class="skip" href="#content">跳到正文</a>
-  <header class="hero"><div class="wrap">
-    <div class="eyebrow">Offline guide · v1.0.0-beta.1 candidate</div>
-    <h1>ThreadTruth<br>Studio</h1>
-    <p class="lede">服饰保真不是一句提示词，而是一套有输入门禁、风格路由、付费授权、闭集交付与人工确认的生产契约。</p>
-    <span class="badge">公开 Beta 证据待完成</span>
-  </div></header>
-  <div class="wrap layout">
-    <nav aria-label="章节导航">
-      <a href="#capabilities">能力</a><a href="#boundaries">边界</a><a href="#installation">安装</a><a href="#quick-start">快速开始</a><a href="#privacy">隐私与权限</a><a href="#statuses">状态</a><a href="#rollback">回滚</a><a href="#troubleshooting">故障排查</a><a href="#provenance">来源</a>
-    </nav>
-    <main id="content">
-      <section id="capabilities" data-release-section="capabilities">
-        <h2>它做什么</h2>
-        <p>从一组真实、清晰、可识别的服饰照片开始，输出服饰识别卡、主推与备选风格、完整 24 风格目录，并在用户选择风格和动作后进入后续流程。</p>
-        <div class="flow"><div>01<br>事实识别</div><div>02<br>确定性路由</div><div>03<br>显式授权</div><div>04<br>六图 QA</div></div>
-        <ul><li>六宫格仅用于方向预览，不能当最终成片。</li><li>成片是六张独立图片，按 look-1 到 look-6 串行生成。</li><li>look-1 只锁 AI 模特身份；服饰事实始终来自上传源图。</li><li>每张执行服饰、人体、安全、构图、比例和同批尺寸检查。</li></ul>
-      </section>
-      <section id="boundaries" data-release-section="boundaries">
-        <h2>明确边界</h2>
-        <p>适用于服饰模特、电商人像和时尚编辑类生产。不适用于非服饰商品、纯文字概念图、通用虚拟试衣或 API 集成。</p>
-        <p class="note">本项目是独立社区项目，不是 OpenAI 官方产品；不保证 CAD/版型精度、真实上身合体效果、logo/小字 100% 准确、平台审核通过、投放效果或无人值守商业交付。</p>
-        <p>视频、第三方 API、跨平台适配、SaaS 批处理与新增风格包不属于首发范围。</p>
-      </section>
-      <section id="installation" data-release-section="installation">
-        <h2>安装与发现</h2>
-        <p>源码仓库为 <code>github.com/2278091160dg-rgb/threadtruth-studio</code>；签名 Beta Release 尚未创建。当前从源码候选仓库测试：在 Codex 的 Plugin source 流程中选择包含 <code>.codex-plugin/plugin.json</code> 的仓库根目录。</p>
-        <ol><li>确认根目录 manifest 版本为 <code>1.0.0-beta.1</code>。</li><li>添加本地 Plugin source，并启用 ThreadTruth Studio。</li><li>在新任务中输入 <code>$threadtruth-studio</code> 验证显式发现。</li><li>用“帮我把这件外套做成电商模特图”验证隐式触发；用“给手机做商品图”验证负向隔离。</li></ol>
-        <p>Beta Release 通过案例与干净安装门后，此处将补充 Release checksum 和已验证的 marketplace 安装步骤。</p>
-      </section>
-      <section id="quick-start" data-release-section="quick-start">
-        <h2>最快工作流</h2>
-        <pre><code>上传自有且有权使用的真实服饰图
-→ “请用 $threadtruth-studio 识别并推荐风格，不要生图”
-→ 查看识别卡、主推+2备选和完整24风格目录
-→ 选择单一风格代号 + 模式 + 动作
-→ 明确授权预览、单张测试或六张成片
-→ 对照实物确认服饰事实，关闭 qa-user-review</code></pre>
-        <p>动作 0 是一张标记为非成片的预览；动作 1 是六张独立成片；动作 2 是一张测试；动作 3 只输出六条提示词且不调用生图。</p>
-      </section>
-      <section id="privacy" data-release-section="privacy">
-        <h2>隐私、权限与成本</h2>
-        <ul><li>运行时不植入遥测。</li><li>不需要、不索取、不读取 API key、token、环境变量或历史私有文件。</li><li>只读取当前任务中用户主动提供的服饰图，以及本组用于身份锚定和 QA 的输出。</li><li>只有明确的生成措辞才授权宿主原生图片生成；六张前会提示额度消耗。</li><li>无原生能力时停止，不调用外部 API、CLI、联网脚本或第三方服务。</li></ul>
-        <p>公开案例必须进入权利清单。客户素材、来源不明图片、带许可疑问的历史证据均不得发布。</p>
-      </section>
-      <section id="statuses" data-release-section="statuses">
-        <h2>如何读状态</h2>
-        <table><thead><tr><th>状态</th><th>含义</th></tr></thead><tbody>
-          <tr><td><code>gate-blocked</code></td><td>不是合法服饰事实源或请求越界。</td></tr>
-          <tr><td><code>unclear-hold</code></td><td>图片太模糊，等待补图或保守处理。</td></tr>
-          <tr><td><code>recognition-ready</code></td><td>识别和推荐完成，等待选择风格与动作。</td></tr>
-          <tr><td><code>style-conflict-hold</code></td><td>多个风格冲突，等待确认主次。</td></tr>
-          <tr><td><code>prompts-only</code></td><td>仅输出提示词，没有生图。</td></tr>
-          <tr><td><code>preview-grid</code></td><td>方向预览，永远不是最终成片。</td></tr>
-          <tr><td><code>image-draft</code></td><td>已生成但商业 QA 或人工确认未关闭。</td></tr>
-          <tr><td><code>image-ready</code></td><td class="ok">六张、画布和 QA 全部通过，并经用户核对。</td></tr>
-          <tr><td><code>tool-blocked</code></td><td class="hold">宿主无可用原生生图能力；禁止 fallback。</td></tr>
-        </tbody></table>
-      </section>
-      <section id="rollback" data-release-section="rollback">
-        <h2>升级、卸载与回滚</h2>
-        <ol><li>升级前记录当前 Plugin 版本和测试结果。</li><li>不要同时启用两个具备重叠触发边界的活动 Skill。</li><li>新版失败时先停用新版，再恢复已验证的旧安装；不要删除回滚源。</li><li>卸载后重新打开任务，确认显式调用不再被发现、相邻请求不受影响。</li></ol>
-        <p>全局旧 Skill 的禁用或归档会改变用户环境，必须另行授权；本地源码构建不会执行这些操作。</p>
-      </section>
-      <section id="troubleshooting" data-release-section="troubleshooting">
-        <h2>常见问题</h2>
-        <h3>只上传了图片，为什么没有生图？</h3><p>上传不等于同意生成。先完成识别和风格选择，再明确选择动作。</p>
-        <h3>为什么不能把六宫格当成片？</h3><p>预览用于低成本判断方向；裁切预览无法证明六张独立图的身份、画布和服饰 QA。</p>
-        <h3>为什么停在 <code>qa-retry</code>？</h3><p>服饰硬事实、人体、安全、比例或同批尺寸有阻断问题。单次最多六次调用，额外重试需要新授权。</p>
-        <h3>没有生图工具怎么办？</h3><p>可继续输出识别卡或六条提示词；切换到支持原生图片生成的宿主任务。不要提供 API key。</p>
-      </section>
-      <section id="provenance" data-release-section="provenance">
-        <h2>来源与可验证性</h2>
-        <p>公开仓库由一个经过深度开发的私有前身在固定提交上净化导出。公开历史从干净快照开始，不携带个人邮箱、本机路径、客户素材或私有日志。准确的源版本和迁移边界记录在仓库的 <code>PROVENANCE.md</code>。</p>
-        <p>正式样例只接受维护者自有或取得明确公开许可的服饰素材；目前已有一个权利清晰、人工验收关闭的公开主案例。发布前仍应核对 checksum、静态验证、触发回归、隐私扫描和权利清单。</p>
-      </section>
-    </main>
-  </div>
-  <footer class="wrap">ThreadTruth Studio · Apache-2.0 · Offline, self-contained, no runtime telemetry.</footer>
-</body>
-</html>
+<a class="skip" href="#content">Skip to content / 跳到正文</a>
+<header class="hero"><div class="wrap"><div class="eyebrow">Offline guide · beta.2 candidate</div><h1>ThreadTruth<br>Studio</h1><p class="lede"><strong>English:</strong> Turn a real garment photo into a governed recognition, style-routing, consent, and six-image QA workflow.<br><strong>简体中文：</strong>把真实服饰图转为一套包含识别、风格路由、授权与六图 QA 的可治理流程。</p><span class="badge">Independent community project / 独立社区项目</span></div></header>
+<div class="wrap layout"><nav aria-label="Guide sections / 章节导航"><a href="#capabilities">Capabilities / 能力</a><a href="#boundaries">Boundaries / 边界</a><a href="#installation">Install / 安装</a><a href="#quick-start">First use / 首次使用</a><a href="#privacy">Privacy / 隐私</a><a href="#statuses">Statuses / 状态</a><a href="#rollback">Rollback / 回滚</a><a href="#troubleshooting">Help / 排障</a><a href="#provenance">Evidence / 来源</a></nav>
+<main id="content">
+<section id="capabilities" data-release-section="capabilities"><h2>Capabilities / 能力</h2><p>Starts with a real, legible garment image and returns a recognition card, primary plus alternative styles, and the full 24-style catalogue. / 从真实、清晰的服饰图开始，返回识别卡、主推与备选风格和完整 24 风格目录。</p><div class="flow"><div>01<br>Recognition<br>事实识别</div><div>02<br>Routing<br>风格路由</div><div>03<br>Consent<br>明确授权</div><div>04<br>Six-image QA<br>六图质检</div></div><p>The public real case has six independent finals (<code>1/24</code>). Four planned developer boards will show the same white vest in all 24 styles, six tiles per board; until human review, preview coverage is <code>0/24</code>. Each board carries a visible bottom-right “AI PREVIEW / NOT FINAL” label and tile IDs; its public page identifies every tile as an AI style preview, not a final. / 已公开真实案例有六张独立成片（<code>1/24</code>）。计划用同一件白色马甲制作四张、每张六风格的开发者看板；人工验收前预览覆盖为 <code>0/24</code>。每张看板右下角统一显示“AI PREVIEW / NOT FINAL”并带格子 ID，公开页面逐格说明其为 AI 风格预览、非最终成片。</p></section>
+<section id="boundaries" data-release-section="boundaries"><h2>Boundaries / 边界</h2><p>For apparel portraits, ecommerce and fashion editorial—not non-apparel products, text-only concepts, general virtual try-on, CAD fit, API integration, or unattended delivery. The garment source controls product facts. Gendered or culturally named styles translate atmosphere, styling, light and setting only; they do not infer a person's identity, ethnicity, nationality, body, or gender. / 用于服饰人像、电商和时尚编辑；不用于非服饰商品、纯文字概念、通用虚拟试衣、CAD 合体、API 集成或无人值守交付。源图决定商品事实；性别/文化风格名只翻译氛围、造型、光线与场景，不推断人物身份、族裔、国籍、身体或性别。</p></section>
+<section id="installation" data-release-section="installation"><h2>Install / 安装</h2><p>Download the Plugin ZIP and matching <code>.sha256</code> from the <a href="https://github.com/2278091160dg-rgb/threadtruth-studio/releases">Releases page</a>. Optional original-media ZIP is separate. Beta.2 remains a candidate until published and verified. / 从 Releases 页面分别下载 Plugin ZIP 与匹配校验文件；可选原始媒体 ZIP 是另一份制品。beta.2 在发布验证前仍为候选。</p><pre><code>shasum -a 256 -c threadtruth-studio-1.0.0-beta.2.zip.sha256
+unzip threadtruth-studio-1.0.0-beta.2.zip
+cd threadtruth-studio-1.0.0-beta.2
+python3 install-local.py
+python3 install-local.py --apply
+codex plugin add threadtruth-studio@personal --json</code></pre><p><code>--apply</code> registers the source at <strong>home directory → plugins → threadtruth-studio</strong> but does not enable it. Run the helper's exact printed <code>Next:</code> command because its returned selector is already the full <code>plugin@marketplace</code> value; the concrete command above is the default-personal example. Do not hand-edit config. Full bilingual instructions: <a href="docs/INSTALL.md">docs/INSTALL.md</a>. / <code>--apply</code> 注册到<strong>用户主目录 → plugins → threadtruth-studio</strong>，但不启用。运行安装器打印的完整 <code>Next:</code> 命令；返回 selector 已是完整 <code>plugin@marketplace</code>，上方是默认 personal 示例。不要手改配置。</p></section>
+<section id="quick-start" data-release-section="quick-start"><h2>First use / 首次使用</h2><p>Start a <strong>new Codex task</strong>, upload a garment first, then enter exactly / 新建 Codex 任务，先上传服饰图，再原样输入：</p><pre><code>请用 $threadtruth-studio 识别并推荐风格，不要生图</code></pre><p>Expected: recognition card, recommended styles, complete catalogue, and no generation. Generation requires a later explicit choice and cost approval. / 预期为识别卡、推荐风格、完整目录，且不生图；后续生图需要另行明确选择和费用授权。</p></section>
+<section id="privacy" data-release-section="privacy"><h2>Privacy and cost / 隐私与费用</h2><ul><li>No runtime telemetry, extra API keys, connectors, MCP server, or fallback service. / 无运行时遥测、额外 API key、连接器、MCP 服务或降级服务。</li><li>After explicit generation approval, the host's native image provider processes the approved reference images and prompts and consumes host quota. / 明确授权生图后，批准的参考图与提示词会由宿主原生图片服务处理，并消耗宿主额度。</li><li>Outputs are kept locally or copied to the workspace the user chooses; the user controls deletion. Host-side retention follows the user's host account and provider policy and is not claimed to be local-only. / 输出保存在本地或复制到用户选择的工作区，由用户控制删除；宿主侧留存遵循用户的宿主账号和服务商政策，本项目不宣称仅本地处理。</li><li>Never publish customer media, credentials, private prompts, or full logs. / 不公开客户素材、凭据、私有提示词或完整日志。</li><li>Native generation stops if unavailable; there is no extra API or connector fallback. / 原生生图不可用时停止，不使用额外 API 或连接器降级。</li></ul><p>For vulnerabilities use the <a href="https://github.com/2278091160dg-rgb/threadtruth-studio/security/advisories/new">private GitHub report</a>.</p></section>
+<section id="statuses" data-release-section="statuses"><h2>Statuses / 状态</h2><table><tr><th>Status</th><th>Meaning / 含义</th></tr><tr><td><code>gate-blocked</code></td><td>Invalid source or out of scope / 来源不合法或越界</td></tr><tr><td><code>unclear-hold</code></td><td>Needs clearer images / 等待清晰补图</td></tr><tr><td><code>recognition-ready</code></td><td>Recognition complete; awaiting choice / 识别完成，等待选择</td></tr><tr><td><code>style-conflict-hold</code></td><td>Conflicting styles need confirmation / 风格冲突待确认</td></tr><tr><td><code>prompts-only</code></td><td>No generation / 仅提示词</td></tr><tr><td><code>preview-grid</code></td><td>Direction preview, never finals / 方向预览，非成片</td></tr><tr><td><code>image-draft</code></td><td>QA or human review open / QA 或人工确认未关闭</td></tr><tr><td><code>image-ready</code></td><td class="ok">Six-image QA and user review closed / 六图 QA 与用户验收完成</td></tr><tr><td><code>tool-blocked</code></td><td class="hold">Native generation unavailable; no fallback / 原生生图不可用且不降级</td></tr></table></section>
+<section id="rollback" data-release-section="rollback"><h2>Upgrade and rollback / 升级与回滚</h2><p>Use a separately extracted, checksum-verified release. Because the active source exists, dry-run with <code>python3 install-local.py --replace</code>, then apply with <code>--apply --replace</code> and run the printed <code>Next:</code> command. Backups receive UTC names and the installed manifest gets a UTC cachebuster. On failure, restore with <code>--source &lt;reported-source_backup-path&gt; --replace</code>, dry-run first and then add <code>--apply</code>; never blindly overwrite marketplace config from its backup because later valid changes may exist. Re-enable using the newly printed command and start a new task. / 使用独立解压且校验过的版本；活动源已存在，因此 dry-run 必须带 <code>--replace</code>，再用 <code>--apply --replace</code> 应用并执行打印的 <code>Next:</code>。失败时以输出的 <code>source_backup</code> 路径作为 <code>--source</code>，先 dry-run 再加 <code>--apply</code> 恢复；不要用 marketplace 备份盲目覆盖后续合法变更。重新执行打印的启用命令并新建任务。</p></section>
+<section id="troubleshooting" data-release-section="troubleshooting"><h2>Troubleshooting / 故障排查</h2><h3>Plugin is not discovered / 未发现 Plugin</h3><p>Confirm checksum, release root, helper output, exact selector, successful <code>plugin add</code>, then open a new task. / 核对校验、发行根目录、安装器输出、准确 selector 与 add 结果，再新建任务。</p><h3>No image appeared / 没有出图</h3><p>The first-use prompt deliberately forbids generation. Choose a style and explicitly approve a later action. / 首次提示明确禁止生图；选择风格后另行明确授权。</p><h3>Compatibility / 兼容性</h3><p>Audited: macOS 26.6.2 and codex-cli 0.144.1. New-host beta.2 activation is pending; Codex desktop build was unavailable. See <a href="docs/COMPATIBILITY.md">compatibility details</a>.</p></section>
+<section id="provenance" data-release-section="provenance"><h2>Evidence and contact / 证据与联系</h2><p>The repository preserves provenance without publishing credentials, private logs, or customer content. Apache-2.0 does not cover demo media. Project Beta targets—30 days, five non-maintainer installations, three authorized complete cases—are project criteria, not OpenAI requirements. / 仓库保留来源记录，但不公开凭据、私有日志或客户内容；Apache-2.0 不覆盖 demo 媒体。30 天、5 个非维护者安装、3 个授权完整案例是项目目标，不是 OpenAI 要求。</p><p><a href="https://github.com/2278091160dg-rgb/threadtruth-studio/issues/new?template=installation-feedback.yml">Installation feedback / 安装反馈</a> · <a href="https://github.com/2278091160dg-rgb/threadtruth-studio/issues">Issues</a> · <a href="https://github.com/2278091160dg-rgb/threadtruth-studio/discussions">Discussions</a> · Maintainer / 维护者 <a href="https://github.com/2278091160dg-rgb">DENGGUI</a> · WeChat <code>Lvmusic0930</code>.</p></section>
+</main></div><footer class="wrap">ThreadTruth Studio · Apache-2.0 · Offline and self-contained / 离线自包含</footer>
+</body></html>

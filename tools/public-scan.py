@@ -33,8 +33,21 @@ def scan_text(text: str, source: str) -> list[str]:
 
 def scan_tree(root: Path) -> list[str]:
     findings = []
-    for path in root.rglob("*"):
-        if not path.is_file() or ".git" in path.parts or "dist" in path.parts:
+    root = root.resolve()
+    probe = subprocess.run(['git', 'rev-parse', '--show-toplevel'], cwd=root,
+                           capture_output=True, text=True)
+    if probe.returncode == 0 and Path(probe.stdout.strip()).resolve() == root:
+        # Scan every tracked file (even force-added ignored evidence) and
+        # every publishable untracked file. Respect local scratch exclusions.
+        listing = subprocess.run(['git', 'ls-files', '--cached', '--others',
+                                  '--exclude-standard', '-z'], cwd=root,
+                                 capture_output=True, text=True, check=True)
+        paths = (root / name for name in set(listing.stdout.split('\0')) if name)
+    else:
+        # Cleanly extracted release: no Git allowlist exists; inspect all files.
+        paths = root.rglob('*')
+    for path in paths:
+        if not path.is_file() or '.git' in path.relative_to(root).parts:
             continue
         if path.suffix.lower() not in TEXT_SUFFIXES:
             continue

@@ -25,10 +25,12 @@ class ReleaseBuildTests(unittest.TestCase):
             with zipfile.ZipFile(archive) as bundle:
                 names = set(bundle.namelist())
 
-            prefix = "threadtruth-studio-1.0.0-beta.1/"
+            version = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())["version"]
+            prefix = f"threadtruth-studio-{version}/"
             self.assertIn(prefix + ".codex-plugin/plugin.json", names)
             self.assertIn(prefix + "skills/threadtruth-studio/SKILL.md", names)
             self.assertIn(prefix + "USER-GUIDE.html", names)
+            self.assertIn(prefix + "install-local.py", names)
             self.assertIn(prefix + "CONTRIBUTING.md", names)
             self.assertIn(prefix + "SECURITY.md", names)
             self.assertIn(prefix + "ROADMAP.md", names)

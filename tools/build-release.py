@@ -18,6 +18,7 @@ from pathlib import Path
 
 
 PUBLIC_FILES = (
+    "install-local.py",
     "CHANGELOG.md",
     "CODE_OF_CONDUCT.md",
     "CONTRIBUTING.md",

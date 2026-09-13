@@ -14,6 +14,6 @@ We pledge to make participation in ThreadTruth Studio respectful and harassment-
 
 ## Enforcement
 
-Maintainers may edit or remove harmful content and may temporarily or permanently restrict participation. Reports should use the same private channel described in `SECURITY.md`; a concrete contact will be configured before the first public Release.
+Maintainers may edit or remove harmful content and may temporarily or permanently restrict participation. Sensitive conduct reports should follow the private-first guidance in [SECURITY.md](SECURITY.md); ordinary project discussion belongs in [Discussions](https://github.com/2278091160dg-rgb/threadtruth-studio/discussions). Maintainer: [DENGGUI](https://github.com/2278091160dg-rgb), WeChat `Lvmusic0930`.
 
 Enforcement decisions should explain the violated rule while minimizing redistribution of sensitive content.

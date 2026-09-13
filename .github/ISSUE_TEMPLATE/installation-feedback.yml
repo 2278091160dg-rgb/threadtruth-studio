@@ -1,0 +1,55 @@
+name: Installation feedback / 安装反馈
+description: Optional, sanitized Beta installation and recognition report.
+title: "[Install feedback] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This Issue is public. Do not attach customer media, local paths, private prompts, credentials or full logs.
+        此 Issue 公开可见；是否计入 Beta 统计需下方单独同意。不要提供私有素材或凭据。
+  - type: input
+    id: plugin_version
+    attributes:
+      label: Plugin version / 插件版本
+      placeholder: 1.0.0-beta.2
+    validations:
+      required: true
+  - type: input
+    id: host_version
+    attributes:
+      label: Host, host version, OS / 宿主、版本与系统
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: Installation / 安装
+      options: [pass, fail, not-tested]
+    validations:
+      required: true
+  - type: dropdown
+    id: discovery
+    attributes:
+      label: Explicit Skill discovery / 显式发现
+      options: [pass, fail, not-tested]
+    validations:
+      required: true
+  - type: dropdown
+    id: recognition
+    attributes:
+      label: Recognition only with garment input / 上传服饰后的只识别测试
+      options: [pass, fail, not-tested]
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Sanitized result / 脱敏结果
+      description: Optional brief error or result; no full logs or private files.
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: Optional evidence declaration / 自愿证据声明
+      options:
+        - label: I am not a ThreadTruth Studio maintainer. / 我不是本项目维护者。
+        - label: I consent to this sanitized result being counted under my public GitHub handle in the Beta register. / 同意以公开 GitHub 身份将脱敏结果计入 Beta 台账。

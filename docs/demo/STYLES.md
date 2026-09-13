@@ -2,6 +2,9 @@
 
 Visual evidence progress: **1/24 ready**. The runtime contains 24 routed packs; this page separately tracks rights-cleared public image evidence and never treats a planned card as a completed generation.
 
+Preview coverage: **0/24**. Final representative coverage: **1/24**. Preview boards never satisfy final-image or six-image case requirements.
+
+
 | Style | Tier | Representative | Six-image case | Source family |
 |---|---|---|---|---|
 | [American Street](styles/american-street.md) | featured | planned | planned | denim or workwear outerwear |

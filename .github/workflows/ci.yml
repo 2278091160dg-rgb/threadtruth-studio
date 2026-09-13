@@ -41,5 +41,10 @@ jobs:
       - name: Allowlist release staging
         run: |
           python3 tools/build-release.py
-          test -f dist/threadtruth-studio-1.0.0-beta.1.zip
-          test -f dist/threadtruth-studio-1.0.0-beta.1.zip.sha256
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          version = json.loads(Path('.codex-plugin/plugin.json').read_text())['version']
+          for suffix in ('.zip', '.zip.sha256'):
+              assert Path(f'dist/threadtruth-studio-{version}{suffix}').is_file()
+          PY

@@ -72,7 +72,7 @@ class RepositoryContractTests(unittest.TestCase):
     def test_plugin_manifest_has_public_identity(self):
         manifest = json.loads((ROOT / ".codex-plugin" / "plugin.json").read_text())
         self.assertEqual(manifest["name"], "threadtruth-studio")
-        self.assertEqual(manifest["version"], "1.0.0-beta.1")
+        self.assertRegex(manifest["version"], r"^1\.0\.0-beta\.[1-9][0-9]*$")
         self.assertEqual(manifest["license"], "Apache-2.0")
         self.assertEqual(
             manifest["repository"],

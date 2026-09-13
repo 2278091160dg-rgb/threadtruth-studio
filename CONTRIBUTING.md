@@ -4,7 +4,7 @@ Thank you for improving source-faithful fashion portrait production.
 
 ## Before opening a change
 
-1. Open an Issue describing the user problem, trigger boundary, and expected state transition.
+1. Open an [Issue](https://github.com/2278091160dg-rgb/threadtruth-studio/issues) describing the user problem, trigger boundary, and expected state transition, or use [Discussions](https://github.com/2278091160dg-rgb/threadtruth-studio/discussions) for exploratory proposals.
 2. Keep runtime code under `skills/threadtruth-studio/`; keep evals, audit tools, CI, and evidence at repository root.
 3. Do not add external connectors, API-key flows, telemetry, network fallback, or paid actions without a separately reviewed design.
 4. Never commit customer content, secrets, private logs, personal paths, or media without documented publication rights.
@@ -36,3 +36,5 @@ Include:
 Reviews resolve each finding as `open`, `fixed`, `deferred(issue)`, or `wontfix(reason)`. A passing checker does not replace human review of safety, source fidelity, or trigger scope.
 
 By submitting a contribution, you agree that it is licensed under Apache-2.0.
+
+Maintainer: [DENGGUI](https://github.com/2278091160dg-rgb) · WeChat: `Lvmusic0930`. Never send secrets or private customer media through public channels; security reports belong in the private channel described by [SECURITY.md](SECURITY.md).
