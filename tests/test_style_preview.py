@@ -9,7 +9,7 @@ import sys
 import tempfile
 import unittest
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
@@ -44,10 +44,54 @@ class PreviewTests(unittest.TestCase):
             "prompt_sha256": preview["prompt_sha256"],
         }
 
-    def image(self, number):
+    def image(self, number, size=(900, 900)):
         path = self.root / f"input-{number}.png"
-        Image.new("RGB", (601, 607), ((number * 31) % 256, 100, 150)).save(path)
+        image = Image.new("RGB", size, ((number * 31) % 256, 100, 150))
+        if size == (900, 900):
+            draw = ImageDraw.Draw(image)
+            for index, bounds in enumerate(
+                (
+                    (90, 120, 299, 399), (345, 120, 554, 399), (600, 120, 809, 399),
+                    (90, 420, 299, 699), (345, 420, 554, 699), (600, 420, 809, 699),
+                )
+            ):
+                draw.rectangle(bounds, fill=(30 + index * 20, 80 + index * 10, 160 - index * 10))
+            draw.rectangle((60, 20, 839, 54), fill=(245, 245, 245))
+            draw.rectangle((60, 70, 839, 99), fill=(220, 220, 220))
+            draw.rectangle((90, 750, 809, 799), fill=(200, 200, 200))
+        image.save(path)
         return path
+
+    def completed_review(self, record, style):
+        review = self.m.review_template(record, style)
+        review.update(
+            reviewer="github:test-human",
+            reviewed_at="2026-09-13T02:00:00Z",
+            confirmation=self.m.confirmation(style),
+            public_use_approved=True,
+        )
+        review["geometry"] = {
+            "cells": [
+                [90, 120, 210, 280], [345, 120, 210, 280], [600, 120, 210, 280],
+                [90, 420, 210, 280], [345, 420, 210, 280], [600, 420, 210, 280],
+            ],
+            "title": [60, 20, 780, 35],
+            "subtitle": [60, 70, 780, 30],
+            "footer": [90, 750, 720, 50],
+        }
+        review["checks"] = {
+            "observed_boundaries": "pass",
+            "full_bilingual_title": "pass",
+            "correct_subtitle": "pass",
+            "readable_ai_footer": "pass",
+            "text_subject_non_overlap": "pass",
+        }
+        for pose in review["poses"]:
+            pose.update(
+                product="pass", pose_layout="pass", identity_style="pass",
+                ai_disclosure="pass", framing="pass",
+            )
+        return review
 
     def ingest_all(self):
         run = self.prepare()
@@ -65,26 +109,91 @@ class PreviewTests(unittest.TestCase):
         run = self.ingest_all()
         for preview in run["previews"]:
             current = self.m.read_json(self.m.run_dir(self.root, "test-run") / "evidence.json")
-            review = self.m.review_template(current, preview["style"])
-            review.update(
-                reviewer="github:test-human",
-                reviewed_at="2026-09-13T02:00:00Z",
-                confirmation=self.m.confirmation(preview["style"]),
-                public_use_approved=True,
-            )
-            for pose in review["poses"]:
-                pose.update(product="pass", pose_layout="pass", identity_style="pass", ai_disclosure="pass")
+            review = self.completed_review(current, preview["style"])
             self.m.approve(self.root, "test-run", preview["style"], review)
         return self.m.read_json(self.m.run_dir(self.root, "test-run") / "evidence.json")
 
     def test_prepare_builds_24_single_style_six_pose_previews(self):
         run = self.prepare()
-        self.assertEqual(run["schema_version"], "2.0")
+        self.assertEqual(run["schema_version"], "3.0")
         self.assertEqual(len(run["previews"]), 24)
         self.assertEqual(len({p["style"] for p in run["previews"]}), 24)
         for preview in run["previews"]:
             self.assertEqual([pose["ordinal"] for pose in preview["poses"]], list(range(1, 7)))
             self.assertTrue(all("style" not in pose for pose in preview["poses"]))
+
+    def test_prepare_binds_square_board_cell_framing_and_exact_native_labels(self):
+        run = self.prepare()
+        preview = run["previews"][0]
+        self.assertEqual(
+            preview["layout_contract"],
+            {
+                "board_aspect_ratio": "1:1",
+                "rows": 2,
+                "columns": 3,
+                "cell_aspect_ratio": "3:4",
+                "label_bands": ["title", "subtitle", "footer"],
+                "framing": ["full-body", "full-body", "half-body-permitted", "full-body", "half-body-permitted", "full-body"],
+            },
+        )
+        self.assertEqual(
+            preview["label_contract"],
+            {
+                "title": preview["display_name"],
+                "subtitle": f"同款白马甲 · {preview['mode']} 场景版 · 六姿势预览",
+                "footer": "AI生成 · 方向预览 · 非成片 / PREVIEW ONLY — NOT FINAL",
+            },
+        )
+        prompt = (self.m.run_dir(self.root, "test-run") / "prompts" / f"{preview['style']}.txt").read_text()
+        for exact_text in preview["label_contract"].values():
+            self.assertIn(exact_text, prompt)
+        self.assertIn("square 1:1 board", prompt)
+        self.assertIn("3:4", prompt)
+        self.assertIn("independent title, subtitle and footer bands", prompt)
+
+    def test_non_square_native_output_is_retained_but_never_auditable_or_approvable(self):
+        run = self.prepare()
+        preview = run["previews"][0]
+        record = self.m.ingest(
+            self.root, "test-run", preview["style"], self.image(1, (601, 607)), self.generation(preview, 1)
+        )
+        stored = record["previews"][0]
+        retained = self.m.run_dir(self.root, "test-run") / "native-outputs" / preview["style"]
+        self.assertEqual((stored["width"], stored["height"]), (601, 607))
+        self.assertTrue(any(retained.parent.glob(retained.name + ".*")))
+        self.assertEqual(
+            self.m.audit(self.root, "test-run", style=preview["style"]),
+            [f"{preview['style']}: preview board must be square"],
+        )
+        with self.assertRaisesRegex(ValueError, "preview board must be square"):
+            self.m.approve(self.root, "test-run", preview["style"], {})
+
+    def test_schema_two_record_is_historical_and_rejected_by_every_mutation(self):
+        run = self.prepare()
+        preview = run["previews"][0]
+        self.m.ingest(self.root, "test-run", preview["style"], self.image(1), self.generation(preview, 1))
+        path = self.m.run_dir(self.root, "test-run") / "evidence.json"
+        record = json.loads(path.read_text())
+        record["schema_version"] = "2.0"
+        path.write_text(json.dumps(record))
+        before = path.read_bytes()
+        self.assertIn("historical", " ".join(self.m.audit(self.root, "test-run")))
+        self.assertIn("not approved for current standard", self.m.gallery(self.root, "test-run").read_text())
+        for mutate in (
+            lambda: self.m.prepare(self.root, "test-run"),
+            lambda: self.m.ingest(self.root, "test-run", preview["style"], self.image(2), self.generation(preview, 2)),
+            lambda: self.m.approve(self.root, "test-run", preview["style"], {}),
+            lambda: self.m.promote(self.root, "test-run"),
+        ):
+            with self.assertRaisesRegex(ValueError, "historical"):
+                mutate()
+        self.assertEqual(path.read_bytes(), before)
+        public = self.root / "docs/demo/style-previews/historical-v2"
+        public.mkdir(parents=True)
+        public_record = copy.deepcopy(record)
+        public_record["run_id"] = "historical-v2"
+        (public / "evidence.json").write_text(json.dumps(public_record))
+        self.assertIn("historical preview evidence", " ".join(self.m.validate_public_previews(self.root)))
 
     def test_prepare_binds_registry_packs_runtime_rules_and_canonical_action_zero_prompt(self):
         run = self.prepare()
@@ -145,13 +254,7 @@ class PreviewTests(unittest.TestCase):
         self.assertIn("<p>review invalid / pending</p>", content)
         self.assertNotIn("<p>approved</p>", content)
 
-        review = self.m.review_template(run, style)
-        review.update(
-            reviewer="github:test-human", reviewed_at="2026-09-13T02:00:00Z",
-            confirmation=self.m.confirmation(style), public_use_approved=True,
-        )
-        for pose in review["poses"]:
-            pose.update(product="pass", pose_layout="pass", identity_style="pass", ai_disclosure="pass")
+        review = self.completed_review(run, style)
         run["previews"][0]["human_review"] = review
         path.write_text(json.dumps(run))
         self.assertIn("<p>approved</p>", self.m.gallery(self.root, "test-run", style=style).read_text())
@@ -159,7 +262,7 @@ class PreviewTests(unittest.TestCase):
         content = self.m.gallery(self.root, "test-run", style=style).read_text()
         self.assertIn("<p>review invalid / pending</p>", content)
         self.assertNotIn("<p>approved</p>", content)
-        self.assertIn('width="601" height="607"', content)
+        self.assertIn('width="900" height="900"', content)
 
         review = run["previews"][0]["human_review"]
         review.update(
@@ -167,8 +270,6 @@ class PreviewTests(unittest.TestCase):
             confirmation=self.m.confirmation(style), public_use_approved=True,
             preview_sha256="0" * 64,
         )
-        for pose in review["poses"]:
-            pose.update(product="pass", pose_layout="pass", identity_style="pass", ai_disclosure="pass")
         path.write_text(json.dumps(run))
         content = self.m.gallery(self.root, "test-run", style=style).read_text()
         self.assertIn("<p>review invalid / pending</p>", content)
@@ -186,6 +287,90 @@ class PreviewTests(unittest.TestCase):
             [f"{style}: human review incomplete"],
         )
 
+    def test_review_template_requires_observed_geometry_and_explicit_label_checks(self):
+        run = self.ingest_all()
+        style = run["previews"][0]["style"]
+        review = self.m.review_template(run, style)
+        self.assertEqual(
+            review["geometry"],
+            {"cells": [None, None, None, None, None, None], "title": None, "subtitle": None, "footer": None},
+        )
+        self.assertTrue(all(value == "pending" for value in review["checks"].values()))
+        self.assertTrue(all(pose["framing"] == "pending" for pose in review["poses"]))
+        with self.assertRaisesRegex(ValueError, "human review incomplete"):
+            self.m.approve(self.root, "test-run", style, review)
+
+    def test_review_rejects_bad_cell_shape_bounds_overlap_order_and_size(self):
+        run = self.ingest_all()
+        style = run["previews"][0]["style"]
+        mutations = (
+            lambda review: review["geometry"]["cells"][0].__setitem__(2, 200),
+            lambda review: review["geometry"]["cells"][5].__setitem__(0, 800),
+            lambda review: review["geometry"]["cells"][1].__setitem__(0, 200),
+            lambda review: review["geometry"]["cells"][1].__setitem__(0, 50),
+            lambda review: review["geometry"]["cells"][1].__setitem__(2, 207),
+            lambda review: review["geometry"]["cells"][4].__setitem__(1, 424),
+        )
+        for mutate in mutations:
+            review = self.completed_review(run, style)
+            mutate(review)
+            with self.subTest(geometry=review["geometry"]["cells"]):
+                with self.assertRaisesRegex(ValueError, "observed geometry invalid"):
+                    self.m.approve(self.root, "test-run", style, review)
+
+    def test_review_rejects_malformed_coordinates_and_text_band_placement(self):
+        run = self.ingest_all()
+        style = run["previews"][0]["style"]
+        mutations = (
+            lambda review: review["geometry"]["cells"][0].__setitem__(0, True),
+            lambda review: review["geometry"]["cells"][0].__setitem__(0, 90.0),
+            lambda review: review["geometry"]["cells"][0].__setitem__(0, "90"),
+            lambda review: review["geometry"]["cells"][0].__setitem__(2, 0),
+            lambda review: review["geometry"].__setitem__("title", [60, 125, 780, 35]),
+            lambda review: review["geometry"].__setitem__("subtitle", [60, 40, 780, 30]),
+            lambda review: review["geometry"].__setitem__("footer", [90, 680, 720, 50]),
+        )
+        for mutate in mutations:
+            review = self.completed_review(run, style)
+            mutate(review)
+            with self.subTest(geometry=review["geometry"]):
+                with self.assertRaisesRegex(ValueError, "observed geometry invalid"):
+                    self.m.approve(self.root, "test-run", style, review)
+
+    def test_review_rejects_missing_pending_or_failed_text_and_framing_checks(self):
+        run = self.ingest_all()
+        style = run["previews"][0]["style"]
+        mutations = (
+            lambda review: review["checks"].pop("full_bilingual_title"),
+            lambda review: review["checks"].update(correct_subtitle="pending"),
+            lambda review: review["checks"].update(readable_ai_footer="fail"),
+            lambda review: review["checks"].update(text_subject_non_overlap="pending"),
+            lambda review: review["poses"][0].update(framing="pending"),
+            lambda review: review["poses"][5].pop("framing"),
+        )
+        for mutate in mutations:
+            review = self.completed_review(run, style)
+            mutate(review)
+            with self.subTest(review=review):
+                with self.assertRaisesRegex(ValueError, "human review incomplete"):
+                    self.m.approve(self.root, "test-run", style, review)
+
+    def test_receipt_contract_binding_and_review_hash_tampering_fail_closed(self):
+        run = self.ingest_all()
+        preview = run["previews"][0]
+        style = preview["style"]
+        receipt_path = self.m.run_dir(self.root, "test-run") / "native-receipts" / f"{style}.json"
+        receipt = json.loads(receipt_path.read_text())
+        receipt["bindings"]["layout_contract_sha256"] = "0" * 64
+        receipt_path.write_text(json.dumps(receipt))
+        self.assertIn("native receipt binding mismatch", " ".join(self.m.audit(self.root, "test-run", style=style)))
+        receipt["bindings"]["layout_contract_sha256"] = self.m.object_hash(preview["layout_contract"])
+        receipt_path.write_text(json.dumps(receipt))
+        review = self.completed_review(run, style)
+        review["evidence_sha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "human review incomplete"):
+            self.m.approve(self.root, "test-run", style, review)
+
     def test_style_ingest_preserves_native_dimensions_and_requires_exact_receipt(self):
         run = self.prepare()
         preview = run["previews"][0]
@@ -193,9 +378,15 @@ class PreviewTests(unittest.TestCase):
         generation = self.generation(preview, 1)
         record = self.m.ingest(self.root, "test-run", preview["style"], image, generation)
         stored = record["previews"][0]
-        self.assertEqual((stored["width"], stored["height"]), (601, 607))
+        self.assertEqual((stored["width"], stored["height"]), (900, 900))
         receipt = self.m.run_dir(self.root, "test-run") / "native-receipts" / f"{preview['style']}.json"
-        self.assertEqual(json.loads(receipt.read_text())["generation"], generation)
+        receipt_record = json.loads(receipt.read_text())
+        self.assertEqual(receipt_record["generation"], generation)
+        self.assertEqual(receipt_record["native_dimensions"], [900, 900])
+        self.assertEqual(
+            set(receipt_record["bindings"]),
+            {"style", "source_sha256", "rules_sha256", "pack_sha256", "prompt_sha256", "layout_contract_sha256", "label_contract_sha256"},
+        )
         self.assertEqual(self.m.ingest(self.root, "test-run", preview["style"], image, generation), record)
         bad = dict(generation, prompt_sha256="0" * 64)
         with self.assertRaisesRegex(ValueError, "generation prompt mismatch"):
@@ -239,25 +430,28 @@ class PreviewTests(unittest.TestCase):
         self.assertTrue(self.m.audit(self.root, "test-run"))
         path.write_text(json.dumps(run))
         style = run["previews"][0]["style"]
-        review = self.m.review_template(run, style)
-        review.update(
-            reviewer="github:test-human", reviewed_at="2026-09-13T02:00:00Z",
-            confirmation=self.m.confirmation(style), public_use_approved=True,
-        )
-        for pose in review["poses"]:
-            pose.update(product="pass", pose_layout="pass", identity_style="pass", ai_disclosure="pass")
+        review = self.completed_review(run, style)
         review["poses"][5]["pose_layout"] = "pending"
         with self.assertRaisesRegex(ValueError, "human review incomplete"):
             self.m.approve(self.root, "test-run", style, review)
 
     def test_approved_24_sheet_promotion_is_publicly_verifiable_and_idempotent(self):
         self.approve_all()
+        index_path = self.root / "docs/demo/style-index.json"
+        original_index = index_path.read_bytes()
+        broken_index = json.loads(original_index)
+        broken_index["styles"].pop()
+        index_path.write_text(json.dumps(broken_index))
+        with self.assertRaisesRegex(ValueError, "style index and approved previews differ"):
+            self.m.promote(self.root, "test-run")
+        self.assertFalse((self.root / "docs/demo/style-previews/test-run").exists())
+        index_path.write_bytes(original_index)
         public = self.m.promote(self.root, "test-run")
         self.assertEqual(self.m.validate_public_previews(self.root), [])
         self.assertEqual(self.m.promote(self.root, "test-run"), public)
         self.assertEqual(len(list(public.glob("*.jpg"))), 24)
         evidence = json.loads((public / "evidence.json").read_text())
-        self.assertEqual(evidence["schema_version"], "2.0")
+        self.assertEqual(evidence["schema_version"], "3.0")
         self.assertNotIn(str(self.root), (public / "evidence.json").read_text())
         index = json.loads((self.root / "docs/demo/style-index.json").read_text())
         self.assertEqual(sum(bool(style.get("preview")) for style in index["styles"]), 24)
@@ -278,13 +472,7 @@ class PreviewTests(unittest.TestCase):
     def test_promotion_requires_all_24_unique_approved_sheets(self):
         run = self.ingest_all()
         style = run["previews"][0]["style"]
-        review = self.m.review_template(run, style)
-        review.update(
-            reviewer="github:test-human", reviewed_at="2026-09-13T02:00:00Z",
-            confirmation=self.m.confirmation(style), public_use_approved=True,
-        )
-        for pose in review["poses"]:
-            pose.update(product="pass", pose_layout="pass", identity_style="pass", ai_disclosure="pass")
+        review = self.completed_review(run, style)
         self.m.approve(self.root, "test-run", style, review)
         with self.assertRaisesRegex(ValueError, "unapproved styles"):
             self.m.promote(self.root, "test-run")
@@ -293,11 +481,21 @@ class PreviewTests(unittest.TestCase):
         self.m = module()
         directory = self.m.run_dir(self.root, "legacy")
         directory.mkdir(parents=True)
-        legacy = {"schema_version": "1.0", "run_id": "legacy", "status": "approved", "boards": []}
+        Image.new("RGB", (600, 600), "gray").save(directory / "legacy.jpg")
+        legacy = {
+            "schema_version": "1.0", "run_id": "legacy", "status": "approved",
+            "boards": [{"path": "legacy.jpg", "width": 600, "height": 600, "status": "machine-pass"}],
+        }
         (directory / "evidence.json").write_text(json.dumps(legacy))
         before = (directory / "evidence.json").read_bytes()
         self.assertIn("superseded", " ".join(self.m.audit(self.root, "legacy")))
-        self.assertIn("Historical v1", self.m.gallery(self.root, "legacy").read_text())
+        content = self.m.gallery(self.root, "legacy").read_text()
+        self.assertIn("Historical v1", content)
+        self.assertIn("not approved for current standard", content)
+        self.assertIn('<a href="legacy.jpg"><img src="legacy.jpg"', content)
+        self.assertIn('name="viewport"', content)
+        self.assertIn("white-space:pre-wrap;overflow-wrap:anywhere", content)
+        self.assertIn("img{display:block;width:auto;max-width:100%;height:auto}", content)
         with self.assertRaisesRegex(ValueError, "superseded"):
             self.m.promote(self.root, "legacy")
         with self.assertRaisesRegex(ValueError, "superseded"):

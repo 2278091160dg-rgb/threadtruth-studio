@@ -34,7 +34,18 @@ RULE_PATHS = {
     "style_router": "skills/threadtruth-studio/references/style-router.md",
 }
 AI_LABEL = "AI-generated style preview — not six independent final images."
-PREVIEW_MARK = "方向预览·非成片 / PREVIEW ONLY — NOT FINAL"
+PREVIEW_MARK = "AI生成 · 方向预览 · 非成片 / PREVIEW ONLY — NOT FINAL"
+CURRENT_SCHEMA = "3.0"
+LEGACY_SCHEMAS = {"1.0", "2.0"}
+MODE_NAMES = {"B": "棚拍版", "C": "场景版", "D": "混合版"}
+LAYOUT_CONTRACT = {
+    "board_aspect_ratio": "1:1",
+    "rows": 2,
+    "columns": 3,
+    "cell_aspect_ratio": "3:4",
+    "label_bands": ["title", "subtitle", "footer"],
+    "framing": ["full-body", "full-body", "half-body-permitted", "full-body", "half-body-permitted", "full-body"],
+}
 ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,79}")
 HASH = re.compile(r"[a-f0-9]{64}")
 MAX_BYTES = 8 * 1024 * 1024
@@ -209,8 +220,12 @@ def _prompt(preview, source, anchor, preview_negative):
     visual = preview["visual"]
     lines = [
         f"Create one action-0 preview for style {preview['style']}.",
-        "Use a single 2x3 grid contact-sheet preview showing the SAME one white hooded puffer vest in six different directions.",
-        "Top row poses 1-2-3; bottom row poses 4-5-6. Six equal cells, one pose per cell, one adult female model identity throughout this sheet.",
+        "Use a single 2x3 grid contact-sheet preview on a square 1:1 board showing the SAME one white hooded puffer vest in six different directions.",
+        "Top row poses 1-2-3; bottom row poses 4-5-6. Six equal 3:4 portrait cells, one pose per cell, one adult female model identity throughout this sheet.",
+        "Reserve independent title, subtitle and footer bands outside all six pose cells; keep the three text bands distinct and clear of every subject.",
+        f"Render this exact full bilingual title natively at the top: {preview['label_contract']['title']}",
+        f"Render this exact subtitle natively below the title: {preview['label_contract']['subtitle']}",
+        f"Render this exact disclosure natively in the footer: {preview['label_contract']['footer']}",
         "Attached images 1-4 are the only authoritative garment truth. Preserve the white color, hood, zipper, length, padding, seams and construction.",
         "Never replace or redesign the vest and never invent details. Keep it clearly visible in every cell.",
         "Attached image 5 is identity-only: preserve face, hair, apparent age and body proportions; never treat it as garment authority.",
@@ -219,8 +234,8 @@ def _prompt(preview, source, anchor, preview_negative):
         f"Mood only: {visual['mood']}",
         f"Attitude: {visual['persona']}",
         f"Lighting/background palette: {visual['lighting']}",
-        f"This is a LOW-RES DIRECTION PREVIEW, not a final deliverable. Draw the visible, unobtrusive label '{PREVIEW_MARK}' near the bottom-right or bottom margin, no larger than about 3-4% of image height.",
-        "Never cover the model, face, vest, shoes, bag or pose. Do not place a large centered watermark.",
+        "This is a LOW-RES DIRECTION PREVIEW, not a final deliverable. Keep the footer visible and unobtrusive, no larger than about 3-4% of image height.",
+        "All requested text must be native-rendered in the generated board. Never cover the model, face, vest, shoes, bag or pose. Do not place a large centered watermark.",
         "Garment references: " + ", ".join(asset["path"] for asset in source["assets"]),
         "Identity-only reference: " + anchor["path"],
     ]
@@ -230,6 +245,7 @@ def _prompt(preview, source, anchor, preview_negative):
             f"POSE {pose['ordinal']} / row {pose['row']} column {pose['column']}: {pose['master']} — {pose['description']}",
             f"Head/gaze: {pose['head_gaze']}",
             f"Mode/scene: {pose['scene']}",
+            f"Framing: {preview['layout_contract']['framing'][pose['ordinal'] - 1]}",
             "Retain white vest color and every visible source construction detail.",
         ])
     lines.extend([
@@ -266,28 +282,34 @@ def _plan(root, run_id):
             "visual": _visual(text),
             "negative_delta_add": _list_field(text, "negative_delta_add"),
             "poses": poses,
+            "layout_contract": copy.deepcopy(LAYOUT_CONTRACT),
+            "label_contract": {
+                "title": _field(text, "name"),
+                "subtitle": f"同款白马甲 · {mode} {MODE_NAMES[mode]} · 六姿势预览",
+                "footer": PREVIEW_MARK,
+            },
         }
         preview["prompt_sha256"] = digest(_prompt(preview, source, anchor, preview_negative).encode())
         previews.append(preview)
     return {
-        "schema_version": "2.0", "run_id": run_id, "role": "style-preview", "status": "prepared",
+        "schema_version": CURRENT_SCHEMA, "run_id": run_id, "role": "style-preview", "status": "prepared",
         "source": source, "identity_anchor": anchor, "rules": rules, "ai_label": AI_LABEL, "previews": previews,
     }
 
 
-def _legacy_error():
-    return "preview schema 1.0 is superseded; historical v1 is read-only and cannot be prepared, ingested, approved or promoted"
+def _legacy_error(schema):
+    return f"preview schema {schema} is superseded historical evidence, not approved for current standard; it is read-only and cannot be prepared, ingested, approved or promoted"
 
 
 def prepare(root, run_id):
-    plan = _plan(root, run_id)
     directory = run_dir(root, run_id)
     if directory.exists():
         existing = read_json(directory / "evidence.json")
-        if existing.get("schema_version") == "1.0":
-            raise ValueError(_legacy_error())
+        if existing.get("schema_version") in LEGACY_SCHEMAS:
+            raise ValueError(_legacy_error(existing.get("schema_version")))
         _check_plan(root, existing, directory)
         return existing
+    plan = _plan(root, run_id)
     directory.mkdir(parents=True)
     (directory / "prompts").mkdir()
     _, preview_negative = _canonical_action_zero(root)
@@ -300,9 +322,9 @@ def prepare(root, run_id):
 
 
 def _check_plan(root, record, directory=None):
-    if record.get("schema_version") == "1.0":
-        raise ValueError(_legacy_error())
-    if record.get("schema_version") != "2.0":
+    if record.get("schema_version") in LEGACY_SCHEMAS:
+        raise ValueError(_legacy_error(record.get("schema_version")))
+    if record.get("schema_version") != CURRENT_SCHEMA:
         raise ValueError("unsupported preview schema")
     if record.get("status") not in {"prepared", "awaiting-human-review", "approved"}:
         raise ValueError("invalid preview state")
@@ -379,7 +401,19 @@ def _receipt_bindings(record, preview):
         "style": preview["style"], "source_sha256": object_hash(record["source"]),
         "rules_sha256": object_hash(record["rules"]), "pack_sha256": preview["pack"]["sha256"],
         "prompt_sha256": preview["prompt_sha256"],
+        "layout_contract_sha256": object_hash(preview["layout_contract"]),
+        "label_contract_sha256": object_hash(preview["label_contract"]),
     }
+
+
+def _native_dimensions(path):
+    from PIL import Image, ImageOps
+    with Image.open(path) as opened:
+        if opened.format not in {"PNG", "JPEG", "WEBP"}:
+            raise ValueError("unsupported native image format")
+        oriented = ImageOps.exif_transpose(opened)
+        oriented.load()
+        return [oriented.width, oriented.height]
 
 
 def ingest(root, run_id, style, image, generation):
@@ -416,7 +450,9 @@ def ingest(root, run_id, style, image, generation):
             native = child(directory, native_relative)
             if native.exists():
                 raise ValueError("refuse to overwrite native output")
-            ImageOps.exif_transpose(opened).convert("RGB").save(output, "JPEG", quality=86, optimize=True, progressive=True)
+            oriented = ImageOps.exif_transpose(opened)
+            native_dimensions = [oriented.width, oriented.height]
+            oriented.convert("RGB").save(output, "JPEG", quality=86, optimize=True, progressive=True)
         metadata = _image(output)
         if any(other.get("sha256") == metadata["sha256"] for other in record["previews"]):
             raise ValueError("duplicate optimized preview")
@@ -426,7 +462,8 @@ def ingest(root, run_id, style, image, generation):
     receipt.parent.mkdir(exist_ok=True)
     write_json(receipt, {
         "native_output_path": str(image.resolve()), "retained_path": native_relative,
-        "original_sha256": original, "generation": generation, "bindings": _receipt_bindings(record, preview),
+        "native_dimensions": native_dimensions, "original_sha256": original,
+        "generation": generation, "bindings": _receipt_bindings(record, preview),
     })
     preview.update(metadata, path=target.name, original_sha256=original, generation=generation)
     record["status"] = "awaiting-human-review"
@@ -451,11 +488,83 @@ def review_template(record, style):
     return {
         "reviewer": "", "reviewed_at": "", "confirmation": "", "preview_sha256": preview.get("sha256", ""),
         "evidence_sha256": _review_hash(record, preview), "public_use_approved": False,
+        "geometry": {
+            "cells": [None, None, None, None, None, None],
+            "title": None,
+            "subtitle": None,
+            "footer": None,
+        },
+        "checks": {
+            "observed_boundaries": "pending",
+            "full_bilingual_title": "pending",
+            "correct_subtitle": "pending",
+            "readable_ai_footer": "pending",
+            "text_subject_non_overlap": "pending",
+        },
         "poses": [
-            {"ordinal": ordinal, "product": "pending", "pose_layout": "pending", "identity_style": "pending", "ai_disclosure": "pending"}
+            {
+                "ordinal": ordinal, "product": "pending", "pose_layout": "pending",
+                "identity_style": "pending", "ai_disclosure": "pending", "framing": "pending",
+            }
             for ordinal in range(1, 7)
         ],
     }
+
+
+def _rect(value, width, height):
+    if not isinstance(value, list) or len(value) != 4 or any(type(item) is not int for item in value):
+        raise ValueError("observed geometry invalid")
+    x, y, rect_width, rect_height = value
+    if x < 0 or y < 0 or rect_width <= 0 or rect_height <= 0 or x + rect_width > width or y + rect_height > height:
+        raise ValueError("observed geometry invalid")
+    return value
+
+
+def _overlap(first, second):
+    return (
+        first[0] < second[0] + second[2]
+        and second[0] < first[0] + first[2]
+        and first[1] < second[1] + second[3]
+        and second[1] < first[1] + first[3]
+    )
+
+
+def _check_geometry(geometry, width, height):
+    if not isinstance(geometry, dict) or set(geometry) != {"cells", "title", "subtitle", "footer"}:
+        raise ValueError("observed geometry invalid")
+    cells = geometry["cells"]
+    if not isinstance(cells, list) or len(cells) != 6:
+        raise ValueError("observed geometry invalid")
+    cells = [_rect(value, width, height) for value in cells]
+    title = _rect(geometry["title"], width, height)
+    subtitle = _rect(geometry["subtitle"], width, height)
+    footer = _rect(geometry["footer"], width, height)
+    rectangles = [*cells, title, subtitle, footer]
+    if any(_overlap(first, second) for index, first in enumerate(rectangles) for second in rectangles[index + 1:]):
+        raise ValueError("observed geometry invalid")
+    widths = [cell[2] for cell in cells]
+    heights = [cell[3] for cell in cells]
+    if max(widths) - min(widths) > 1 or max(heights) - min(heights) > 1:
+        raise ValueError("observed geometry invalid")
+    if any(abs(4 * cell[2] - 3 * cell[3]) > 4 for cell in cells):
+        raise ValueError("observed geometry invalid")
+    top, bottom = cells[:3], cells[3:]
+    if max(cell[1] for cell in top) - min(cell[1] for cell in top) > 1:
+        raise ValueError("observed geometry invalid")
+    if max(cell[1] for cell in bottom) - min(cell[1] for cell in bottom) > 1:
+        raise ValueError("observed geometry invalid")
+    if any(abs(top[index][0] - bottom[index][0]) > 1 for index in range(3)):
+        raise ValueError("observed geometry invalid")
+    if any(row[index][0] + row[index][2] > row[index + 1][0] for row in (top, bottom) for index in range(2)):
+        raise ValueError("observed geometry invalid")
+    if max(cell[1] + cell[3] for cell in top) > min(cell[1] for cell in bottom):
+        raise ValueError("observed geometry invalid")
+    first_row_y = min(cell[1] for cell in top)
+    last_row_bottom = max(cell[1] + cell[3] for cell in bottom)
+    if title[1] + title[3] > subtitle[1] or subtitle[1] + subtitle[3] > first_row_y:
+        raise ValueError("observed geometry invalid")
+    if footer[1] < last_row_bottom:
+        raise ValueError("observed geometry invalid")
 
 
 def _check_review(record, preview):
@@ -467,12 +576,18 @@ def _check_review(record, preview):
         raise ValueError("human review incomplete")
     if review["public_use_approved"] is not True or review["preview_sha256"] != preview.get("sha256") or review["evidence_sha256"] != template["evidence_sha256"]:
         raise ValueError("human review incomplete")
+    if review["checks"] != {key: "pass" for key in template["checks"]}:
+        raise ValueError("human review incomplete")
     if len(review["poses"]) != 6:
         raise ValueError("human review incomplete")
     for ordinal, pose in enumerate(review["poses"], start=1):
-        expected = {"ordinal": ordinal, "product": "pass", "pose_layout": "pass", "identity_style": "pass", "ai_disclosure": "pass"}
+        expected = {
+            "ordinal": ordinal, "product": "pass", "pose_layout": "pass",
+            "identity_style": "pass", "ai_disclosure": "pass", "framing": "pass",
+        }
         if pose != expected:
             raise ValueError("human review incomplete")
+    _check_geometry(review["geometry"], preview["width"], preview["height"])
     if _primary().parse_iso_z(review["reviewed_at"]) < _primary().parse_iso_z(preview["generation"]["generated_at"]):
         raise ValueError("review predates generation")
 
@@ -484,6 +599,8 @@ def _validate_preview(record, preview, directory, require_approval, local):
     actual = _image(child(directory, preview["path"]))
     if any(preview.get(key) != value for key, value in actual.items()):
         raise ValueError("preview hash or metadata mismatch")
+    if actual["width"] != actual["height"]:
+        raise ValueError("preview board must be square")
     if not HASH.fullmatch(str(preview.get("original_sha256"))):
         raise ValueError("original preview hash missing")
     _generation(preview.get("generation"), preview)
@@ -493,8 +610,13 @@ def _validate_preview(record, preview, directory, require_approval, local):
             raise ValueError("native receipt mismatch")
         if receipt.get("bindings") != _receipt_bindings(record, preview):
             raise ValueError("native receipt binding mismatch")
-        if digest(child(directory, receipt["retained_path"]).read_bytes()) != preview["original_sha256"]:
+        native = child(directory, receipt["retained_path"])
+        if digest(native.read_bytes()) != preview["original_sha256"]:
             raise ValueError("native output hash mismatch")
+        if receipt.get("native_dimensions") != _native_dimensions(native):
+            raise ValueError("native output dimensions mismatch")
+        if receipt["native_dimensions"][0] != receipt["native_dimensions"][1]:
+            raise ValueError("preview board must be square")
     if _primary().parse_iso_z(preview["generation"]["generated_at"]) < _primary().parse_iso_z(record["source"]["authorization"]["declared_at"]):
         raise ValueError("generation predates source authorization")
     if require_approval or "human_review" in preview:
@@ -505,8 +627,8 @@ def audit(root, run_id, style=None, require_approval=False):
     try:
         directory = run_dir(root, run_id)
         record = read_json(directory / "evidence.json")
-        if record.get("schema_version") == "1.0":
-            return [_legacy_error()]
+        if record.get("schema_version") in LEGACY_SCHEMAS:
+            return [_legacy_error(record.get("schema_version"))]
         _check_plan(root, record, directory)
         selected = [_find_preview(record, style)] if style is not None else record["previews"]
     except (OSError, ValueError, KeyError, TypeError, AttributeError, StopIteration) as error:
@@ -540,10 +662,33 @@ def approve(root, run_id, style, review):
 
 
 def _legacy_html(record):
+    schema = html.escape(str(record.get("schema_version", "unknown")))
+    candidates = [*record.get("boards", []), *record.get("previews", [])]
+    images = []
+    for item in candidates:
+        path = item.get("path") if isinstance(item, dict) else None
+        if not isinstance(path, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,100}", path):
+            continue
+        width, height = item.get("width"), item.get("height")
+        dimensions = (
+            f' width="{width}" height="{height}"'
+            if type(width) is int and type(height) is int and width > 0 and height > 0
+            else ""
+        )
+        escaped = html.escape(path)
+        images.append(
+            f'<li><a href="{escaped}"><img src="{escaped}"{dimensions} '
+            'alt="Historical preview image; not approved for current standard"></a></li>'
+        )
+    image_list = "<ul>" + "".join(images) + "</ul>" if images else "<p>No retained image path is recorded.</p>"
     return (
-        '<!doctype html><html lang="en"><meta charset="utf-8"><title>Historical v1 preview</title>'
-        '<body><h1>Historical v1 preview — read only</h1><p>This mixed-style format is superseded and cannot be promoted.</p>'
-        f'<pre>{html.escape(json.dumps(record, ensure_ascii=False, indent=2))}</pre></body></html>\n'
+        f'<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width">'
+        f'<title>Historical v{schema[0]} preview</title><style>body{{max-width:900px;margin:2rem auto;font-family:system-ui}}'
+        'img{display:block;width:auto;max-width:100%;height:auto}pre{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}'
+        'a:focus-visible{outline:3px solid currentColor}</style>'
+        f'<body><h1>Historical v{schema[0]} preview — read only</h1><p>Legacy evidence: not approved for current standard. '
+        'Any earlier pass label is historical only; this record cannot be promoted.</p>'
+        f'{image_list}<pre>{html.escape(json.dumps(record, ensure_ascii=False, indent=2))}</pre></body></html>\n'
     )
 
 
@@ -594,7 +739,7 @@ def _html(record, style=None, directory=None, local=False):
 def gallery(root, run_id, style=None):
     directory = run_dir(root, run_id)
     record = read_json(directory / "evidence.json")
-    if record.get("schema_version") == "1.0":
+    if record.get("schema_version") in LEGACY_SCHEMAS:
         content, filename = _legacy_html(record), "gallery.html"
     else:
         _check_plan(root, record, directory)
@@ -640,8 +785,8 @@ def validate_public_previews(root):
             if directory.is_symlink() or not directory.is_dir() or not ID.fullmatch(directory.name):
                 raise ValueError("orphan or unsafe preview entry")
             record = read_json(directory / "evidence.json")
-            if record.get("schema_version") == "1.0":
-                raise ValueError("superseded v1 preview evidence cannot be public")
+            if record.get("schema_version") in LEGACY_SCHEMAS:
+                raise ValueError("historical preview evidence cannot be public under current display standard")
             if record["run_id"] != directory.name:
                 raise ValueError("run id mismatch")
             _public_record_valid(root, record, directory)
@@ -714,8 +859,8 @@ def _project_preview(root, record):
 def promote(root, run_id):
     directory = run_dir(root, run_id)
     record = read_json(directory / "evidence.json")
-    if record.get("schema_version") == "1.0":
-        raise ValueError(_legacy_error())
+    if record.get("schema_version") in LEGACY_SCHEMAS:
+        raise ValueError(_legacy_error(record.get("schema_version")))
     _check_plan(root, record, directory)
     unapproved = [preview["style"] for preview in record["previews"] if "human_review" not in preview]
     if unapproved:
