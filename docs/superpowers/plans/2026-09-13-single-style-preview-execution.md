@@ -29,7 +29,7 @@
 
 **Interface decisions:** Keep prepare/ingest/audit/gallery/approve/promote operations and the existing run directory. A new run uses schema version 2.0 and `previews`: a list of 24 entries. Each entry owns `style`, one `pack` reference/hash, one `prompt_sha256`, six numbered `poses`, and eventually one native-output receipt, image metadata and human review. It must not put six style slugs on six cells. The CLI selector becomes `--style <registered-slug>`; `--board A/B/C/D` must fail clearly, not silently map to a style. Audit/gallery may inspect incomplete runs; promotion requires all 24 approved entries.
 
-- [ ] Write a failing contract test in the existing PreviewTests harness:
+- [x] Write a failing contract test in the existing PreviewTests harness:
 
 ```python
 def test_prepare_builds_24_single_style_six_pose_previews(self):
@@ -42,14 +42,16 @@ def test_prepare_builds_24_single_style_six_pose_previews(self):
         self.assertTrue(all('style' not in pose for pose in preview['poses']))
 ```
 
-- [ ] Run `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p test_style_preview.py -v`; retain the expected failure against the old four-board model.
-- [ ] Change preparation to load the actual registry/packs and the existing action-0 pose/head-gaze/negative rules. Each stored prompt names only its own style; source truth, canonical poses and readable preview mark remain explicit. Store the source rule/pack hashes so prompt regeneration cannot silently change evidence.
-- [ ] Add `--style` selection to ingest, scoped audit and approval. Full audit reports missing/unapproved style IDs without pretending the collection is complete. Gallery renders ungenerated entries as text, not mock images. Only native image receipts with the exact submitted prompt hash can register generated evidence.
-- [ ] Bind human review to each whole-sheet hash plus all six pose checks (product, pose/layout, identity/style, AI disclosure). Do not pre-fill real approval. Existing hash/source/pack drift, duplicate call/hash, unsafe path, overwrite and idempotence checks must remain. Full promotion requires 24 unique, approved styles and writes the public index atomically enough to leave no half-approved gallery.
-- [ ] Reject legacy v1 records in the new promote path with a clear superseded-format error; retain historical read-only inspection. Do not migrate the rejected mixed-style output into a new single-style slot.
-- [ ] Keep actual pixel metadata. Apply action-0 preview layout checks; do not inherit independent-final batch canvas rules or assert a native pixel size without observing it. Do not rely on divisibility by three to prove six-pose layout: layout/content require visual review. Never stretch an image to force acceptance.
-- [ ] Add negative tests for six styles in one sheet, missing/duplicate pose IDs, reused native call/hash, missing source authorization, incomplete human review and preview-as-final promotion. Add a positive synthetic 24-sheet collection fixture with human attestations explicitly limited to tests. Verify the original six-final workflow still rejects five/seven images and any preview.
-- [ ] Run the complete test suite, pack lint, trigger regressions, Plugin/Skill/governor checks and public scan. Obtain independent spec/quality review. Commit only development changes, with runtime byte parity verified. Do not publish a new Release here.
+- [x] Run `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p test_style_preview.py -v`; retain the expected failure against the old four-board model.
+- [x] Change preparation to load the actual registry/packs and the existing action-0 pose/head-gaze/negative rules. Each stored prompt names only its own style; source truth, canonical poses and readable preview mark remain explicit. Store the source rule/pack hashes so prompt regeneration cannot silently change evidence.
+- [x] Add `--style` selection to ingest, scoped audit and approval. Full audit reports missing/unapproved style IDs without pretending the collection is complete. Gallery renders ungenerated entries as text, not mock images. Only native image receipts with the exact submitted prompt hash can register generated evidence.
+- [x] Bind human review to each whole-sheet hash plus all six pose checks (product, pose/layout, identity/style, AI disclosure). Do not pre-fill real approval. Existing hash/source/pack drift, duplicate call/hash, unsafe path, overwrite and idempotence checks must remain. Full promotion requires 24 unique, approved styles and writes the public index atomically enough to leave no half-approved gallery.
+- [x] Reject legacy v1 records in the new promote path with a clear superseded-format error; retain historical read-only inspection. Do not migrate the rejected mixed-style output into a new single-style slot.
+- [x] Keep actual pixel metadata. Apply action-0 preview layout checks; do not inherit independent-final batch canvas rules or assert a native pixel size without observing it. Do not rely on divisibility by three to prove six-pose layout: layout/content require visual review. Never stretch an image to force acceptance.
+- [x] Add negative tests for six styles in one sheet, missing/duplicate pose IDs, reused native call/hash, missing source authorization, incomplete human review and preview-as-final promotion. Add a positive synthetic 24-sheet collection fixture with human attestations explicitly limited to tests. Verify the original six-final workflow still rejects five/seven images and any preview.
+- [x] Run the complete test suite, pack lint, trigger regressions, Plugin/Skill/governor checks and public scan. Obtain independent spec/quality review. Commit only development changes, with runtime byte parity verified. Do not publish a new Release here.
+
+Task 1 completed locally on September 13: implementation `75c1b40`, changelog-format correction `76f4def`, reviewed fixes `3594c6d`; controller 95 tests and production gates PASS, independent spec/quality PASS. See [verification](../../verification/2026-09-13-single-style-preview-v2.md). No new native call, real approval or public release.
 
 ## Task 2 — Risk-first pilots, then the remaining previews (T12)
 
@@ -95,4 +97,4 @@ Start outreach approval and the two source-rights requests while Task1 is being 
 
 ## Scope check and current execution status
 
-This is an execution schedule, not a background worker or permission escalation. Foundation T01–T10 is retained. Only the status audit and current-document/hand-off correction were performed while writing this plan; Tasks1–5 above still have their recorded gates. The corrected collector is **not implemented**, the correct collection is **0/24**, and no new images were generated during this planning/status task.
+This is an execution schedule, not a background worker or permission escalation. Foundation T01–T10 is retained. Task 1/T11 is now implemented and independently verified locally; it is not yet pushed or released. Task 3's template and fixture checks were brought forward, but real preview approval/publication remain pending. Task 4's external acceptance packet is prepared, not completed adoption evidence. The correct collection remains **0/24**; no new images were generated during this development task. Software finished ahead of provisional D1: once the next native gate is satisfied, do not wait for a calendar date merely to begin.
