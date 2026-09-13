@@ -37,8 +37,9 @@ DEMO_ROOT_FILES = {
     "primary-rights-v1.schema.json",
     "rights-v1.schema.json",
     "style-index.json",
+    "style-preview-v1.schema.json",
 }
-DEMO_ROOT_DIRS = {"cases", "primary-cases", "styles"}
+DEMO_ROOT_DIRS = {"cases", "primary-cases", "styles", "style-previews"}
 PUBLIC_CASE_FILES = {"README.md", "rights.json", "source-metadata.json", "source.jpg"}
 CC0_ID = "CC0-1.0"
 CC0_URL = "https://creativecommons.org/publicdomain/zero/1.0/"
@@ -1206,6 +1207,17 @@ def validate_public_cases(root: Path) -> list[str]:
             findings.extend(primary.validate_public_primary_cases(root))
             findings.extend(primary.validate_style_index(root))
             findings.extend(primary.validate_style_pages(root))
+    preview_path = Path(__file__).with_name("style_preview.py")
+    spec = importlib.util.spec_from_file_location("threadtruth_style_preview", preview_path)
+    if spec is None or spec.loader is None:
+        findings.append("preview validator unavailable")
+    else:
+        preview = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(preview)
+        try:
+            findings.extend(preview.validate_public_previews(root))
+        except (OSError, ValueError, TypeError):
+            findings.append("unsafe preview root")
     index_path = root.resolve() / "docs" / "demo" / "RIGHTS.md"
     try:
         current_index = index_path.read_text(encoding="utf-8")

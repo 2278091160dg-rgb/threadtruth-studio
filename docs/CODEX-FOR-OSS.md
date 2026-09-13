@@ -2,6 +2,8 @@
 
 Official target: [**Codex for Open Source**](https://learn.chatgpt.com/community/codex-for-oss), using the [official application form](https://openai.com/form/codex-for-oss/). Application submission is an external action and must not occur until the stable release and final maintainer authorization.
 
+The project's readiness targets are at least 30 elapsed Beta days, five qualifying non-maintainer installations, and three authorized complete cases. These are self-imposed project gates, not published OpenAI admission requirements, and satisfying them does not imply acceptance.
+
 ## Eligibility narrative
 
 Use this base copy only after replacing bracketed metrics with facts measured on the submission date:
@@ -32,6 +34,8 @@ Record only public, auditable values:
 | Feedback-driven release | changelog + linked issue | pending |
 | Open high-severity issues | security/issue triage | pending |
 
+Developer preview boards do not count as complete cases. Four planned six-style boards use the same white vest and remain `0/24` until human review; independent six-final coverage remains `1/24`.
+
 ## Private form fields
 
 Name, ChatGPT email, GitHub username, and OpenAI Organization ID are collected only in the official form after the user provides them. They must never be committed to this repository.
@@ -44,3 +48,5 @@ Name, ChatGPT email, GitHub username, and OpenAI Organization ID are collected o
 - `not-selected`: OpenAI declined or the application expired.
 
 Never infer `accepted` from a successful form submission.
+
+Public project contact: [DENGGUI](https://github.com/2278091160dg-rgb) · WeChat `Lvmusic0930`. Application identifiers and account details remain private and must not be committed.

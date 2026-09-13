@@ -1,55 +1,52 @@
 # ThreadTruth Studio
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 **Source-faithful fashion portrait production for Codex**
 
-ThreadTruth Studio is an independent, community-maintained Codex Plugin that turns a real garment photograph into a governed fashion-portrait workflow. It recognizes visible garment facts, routes among 24 style packs, requires explicit approval before image generation, delivers six independent images serially, and closes with commercial QA. The project is preparing for the [Codex for Open Source](https://learn.chatgpt.com/community/codex-for-oss) program; it has not applied or been accepted.
+ThreadTruth Studio is an independent, community-maintained Codex Plugin. It reads visible facts from a real garment photo, routes among 24 style packs, waits for explicit approval before paid image generation, and governs a six-image delivery with commercial QA. It is not an OpenAI product or endorsement.
 
 ![A real white hooded puffer vest source beside six independent Korean Cold Editorial results](docs/demo/primary-cases/white-hooded-puffer-vest-korean-cold/hero.jpg)
 
-> Public Beta: [`v1.0.0-beta.1`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.1). The runtime, regression suite, Plugin lifecycle, and first rights-cleared primary demo are complete. The GitHub Release `publishedAt` timestamp starts the 30-day external Beta. This repository is not an OpenAI product or endorsement.
+This is a real, rights-cleared source-to-six-result case: four photos of one white hooded puffer vest produced six independent Korean Cold Editorial B1 images, with SHA-256 records and closed human review. [Open the case](docs/demo/primary-cases/white-hooded-puffer-vest-korean-cold/README.md) · [Media rights](docs/demo/RIGHTS.md)
 
-## See the governed result
+## Install and try recognition
 
-The first primary case uses four authorized photographs of one real white hooded puffer vest and delivers six independent Korean Cold Editorial B1 images. Every public source and result has a recorded SHA-256 digest, the user closed the visual QA review, and the case identifies the results as AI-generated media.
+Download the Plugin ZIP and its separate checksum from the [Releases page](https://github.com/2278091160dg-rgb/threadtruth-studio/releases). `v1.0.0-beta.1` is immutable; the beta.2 package has passed static, archive, checksum, version, and source-registration checks. New-host CLI activation remains a separately disclosed compatibility gap, not a patch-release blocker. Follow the complete matching [installation guide](docs/INSTALL.md).
 
-- [Open the complete source-to-six-image case](docs/demo/primary-cases/white-hooded-puffer-vest-korean-cold/README.md)
-- [Browse the 24-style evidence index](docs/demo/STYLES.md) — currently `1/24` styles have public visual evidence; planned cards do not pretend otherwise.
-- [Review media rights and limitations](docs/demo/RIGHTS.md)
-
-## Why it exists
-
-Most image workflows optimize for visual novelty. ThreadTruth optimizes for source truth: the uploaded garment remains authoritative for color, material appearance, silhouette, length, construction, pattern, logo placement, and accessories. Style changes the visual treatment, never the product facts.
-
-The project adds four controls that are often missing from prompt collections and thin API wrappers:
-
-- a real-garment input gate;
-- deterministic routing across 24 versioned styles;
-- a separate, explicit paid-generation consent gate;
-- a six-image closed set with identity anchoring, canvas checks, and evidence-backed QA.
-
-## Boundaries
-
-Use it for apparel model portraits, fashion editorial, and ecommerce portrait sets. Do not use it for non-apparel product images, text-only concept generation, general virtual try-on or API integration. It does not promise CAD-grade garment geometry, exact virtual-fit simulation, unattended commercial delivery, platform approval, or sales performance.
-
-There is no runtime telemetry, MCP server, external connector, API-key flow, or network fallback. Image generation uses only the host's native capability after explicit user approval. Without that capability, the workflow stops at `tool-blocked` and can still provide recognition or prompts.
-
-## Repository layout
+After installation, start a **new Codex task**, upload a garment image first, then enter exactly:
 
 ```text
-.codex-plugin/plugin.json          Plugin manifest
-skills/threadtruth-studio/         Runtime payload only
-evals/                             Trigger and behavior fixtures
-tests/                             Repository and release contracts
-tools/                             Development validation and packaging
-docs/                              Public evidence and project notes
-USER-GUIDE.html                    Offline bilingual-friendly guide
+请用 $threadtruth-studio 识别并推荐风格，不要生图
 ```
 
-The development-only [demo evidence workflow](docs/demo/README.md) governs both authorized primary cases and The Met Open Access CC0 auxiliary candidates. Institutional candidates enter an ignored local quarantine and require metadata, JPEG, hash, expiry, state-transition, and human-rights review before promotion. Auxiliary media never substitutes for a primary real-garment case. Apache-2.0 covers code and documentation, not demo media; see the [media policy](docs/demo/MEDIA-POLICY.md).
+Expected: a garment recognition card, primary and alternative recommendations, and the full 24-style catalogue. This prompt does **not** authorize image generation.
 
-## Local validation
+Installed it? Share a sanitized result through the [installation feedback form](https://github.com/2278091160dg-rgb/threadtruth-studio/issues/new?template=installation-feedback.yml). Use [GitHub Issues](https://github.com/2278091160dg-rgb/threadtruth-studio/issues) for bugs or [Discussions](https://github.com/2278091160dg-rgb/threadtruth-studio/discussions) for questions. Do not post private garments, customer data, credentials, or full logs. Maintainer: [DENGGUI](https://github.com/2278091160dg-rgb) · WeChat: `Lvmusic0930`.
 
-Python 3.10+ is sufficient for the repository tests and tools.
+## What is public today
+
+- Independent six-final coverage: `1/24`, the real case above.
+- Developer style-preview coverage: `0/24` until human approval. Four planned boards will show the **same white vest** across six styles each. Each board carries a visible bottom-right “AI PREVIEW / NOT FINAL” label and tile IDs; its public page identifies every tile as an AI style preview, not a final. No board is published or counted before review.
+- Gendered and culturally named styles translate atmosphere, styling language, lighting, and setting only. They never infer identity, ethnicity, nationality, body, or gender from the garment or wearer.
+
+[Browse the 24-style evidence index](docs/demo/STYLES.md). A six-tile board is a direction preview, not six independent finals and not a completed workflow.
+
+## Why it exists and its boundaries
+
+The uploaded garment remains authoritative for color, material appearance, silhouette, length, construction, pattern, logo placement, and accessories. Style changes treatment, never product facts. The workflow adds a real-garment input gate, deterministic style routing, a separate paid-generation consent gate, serial six-image delivery, identity anchoring, canvas checks, and evidence-backed QA.
+
+Use it for apparel portraits, fashion editorial, and ecommerce portrait sets. Do not use it for non-apparel products, text-only concept generation, general virtual try-on, CAD-grade fit simulation, API integration, or unattended commercial delivery. It does not promise exact small text/logo reproduction, platform approval, or sales performance.
+
+There is no runtime telemetry, MCP server, external connector, API-key flow, or network fallback. Native image generation is used only after explicit approval. Without that host capability, recognition and prompt work can continue, but generation stops at `tool-blocked`.
+
+## Release and compatibility status
+
+The public Beta began with [`v1.0.0-beta.1`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.1). The beta.2 prerelease adds a release-owned personal-source installer; its focused tests passed in a mock home, but a new-host CLI activation has not yet been verified. Audited host: macOS `26.6.2`, `codex-cli 0.144.1`. Codex desktop build: unavailable, not inferred. See [compatibility](docs/COMPATIBILITY.md) and the [30-day Beta register](docs/BETA.md).
+
+The project's own exit targets are at least 30 days, five non-maintainer installations, and three authorized complete cases; these are project targets, not OpenAI admission rules. Codex for Open Source application details live only in [docs/CODEX-FOR-OSS.md](docs/CODEX-FOR-OSS.md).
+
+## Development
 
 ```bash
 python3 -m unittest discover -s tests -v
@@ -58,34 +55,4 @@ python3 tools/trigger-eval.py
 python3 tools/build-release.py
 ```
 
-The generated release archive is allowlist-built into `dist/`; development evals, tests, and audit tools are excluded from the Plugin runtime payload.
-
-## Install for local testing
-
-Clone the source into your local plugins directory. Do not install the inner skill directory directly: the distributable unit is the repository containing `.codex-plugin/plugin.json`.
-
-```bash
-git clone https://github.com/2278091160dg-rgb/threadtruth-studio.git "$HOME/plugins/threadtruth-studio"
-```
-
-The first Beta Release will add the final marketplace command after a clean-environment installation proves it. Until then, use the local Plugin source workflow and select this repository root. See [USER-GUIDE.html](USER-GUIDE.html) for the interaction model and [MIGRATION.md](MIGRATION.md) for safe coexistence and rollback.
-
-## Development status
-
-- Runtime identity and 24 style packs: implemented.
-- Static, trigger, privacy, and allowlist packaging checks: implemented.
-- Public repository and required GitHub Actions checks: active and passing.
-- Maintainer-machine Plugin lifecycle: install, discovery, upgrade, uninstall, and legacy rollback verified; `v1.0.0-beta.1` restored and enabled.
-- Rights-cleared primary demo: one `image-ready` source-to-six-image case is public.
-- 24-style visual evidence: `1/24` ready; the remaining cards are explicitly marked planned and require fresh source rights plus per-style generation approval.
-- Reproducible The Met CC0 auxiliary-media evidence pipeline: implemented; one human-approved case is promoted as auxiliary evidence.
-- External clean-environment validation: pending; the maintainer preflight does not count toward Beta adoption.
-- Known runtime issue: a minimal implicit missing-image request may skip Skill loading; see [Issue #1](https://github.com/2278091160dg-rgb/threadtruth-studio/issues/1). Explicit invocation is the Beta workaround.
-- GitHub Release and published checksums: distributed with [`v1.0.0-beta.1`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.1); its publication starts the external Beta clock.
-- Codex for Open Source application: not submitted; requires stable `v1.0.0`, threshold evidence, and final user authorization.
-
-## Community
-
-Read [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), the [roadmap](ROADMAP.md), and the [competitive boundary](docs/COMPETITIVE-LANDSCAPE.md). GitHub Issues and Discussions are the public support channels.
-
-Licensed under [Apache-2.0](LICENSE).
+Runtime lives under `skills/threadtruth-studio/`; repository tests, evals, release tooling, and evidence stay outside it. Read [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), [USER-GUIDE.html](USER-GUIDE.html), [MIGRATION.md](MIGRATION.md), and [PROVENANCE.md](PROVENANCE.md). Apache-2.0 covers code and documentation, not demo media.

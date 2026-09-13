@@ -16,6 +16,8 @@ Institution-sourced CC0 auxiliary cases are also excluded from the installation 
 
 ## Exit criteria
 
+These are the project's own evidence targets, not fixed OpenAI admission requirements. Patch releases do not restart the clock. Admission remains an external decision.
+
 - At least five non-maintainer installations.
 - At least three complete, authorized real workflows.
 - At least one patch release driven by external feedback.
@@ -29,7 +31,17 @@ Do not add runtime telemetry. For each opt-in tester, record a public handle or 
 
 ## Register
 
-| ID | Non-maintainer | Version | Install | Complete case | Feedback link | Publish consent | Date |
-|---|---:|---|---|---|---|---|---|
+| ID | Non-maintainer | Host / version / OS | Plugin version | Install / discovery / recognition | Complete case | Feedback link | Publish consent | Date |
+|---|---:|---|---|---|---|---|---|---|
 
 No qualifying external tester record has been added yet.
+
+## Opt-in feedback and local metrics
+
+Use the [installation feedback form](https://github.com/2278091160dg-rgb/threadtruth-studio/issues/new?template=installation-feedback.yml). Issues and Discussions are public even without evidence consent; consent controls whether a sanitized record is counted in this register. Do not submit customer media, private prompts, email, tokens, or full logs. A nickname/public handle is sufficient. Count a consenting non-maintainer once, regardless of repeated reports or versions; record failed discovery/recognition separately instead of treating a download as a working installation.
+
+Maintainers can run `python3 tools/beta-metrics.py` from the development checkout using an already authenticated GitHub CLI. This makes read-only GitHub requests and writes summary snapshots only to ignored `.threadtruth/beta-metrics/`. It never publishes or adds runtime telemetry. Optional `--install-register` accepts a local JSON list with `public_id`, `host`, `host_version`, `plugin_version`, `date`, boolean `non_maintainer` / `public_consent`, and `install` / `discovery` / `recognition` results (`pass`, `fail`, `not-tested`). Counts are deduplicated case-insensitively; raw identities are not copied into snapshots. Cross-handle duplicates require maintainer review.
+
+Plugin ZIP, original media ZIP, checksum and other downloads are recorded separately. Traffic is a UTC rolling 14-day snapshot; overlapping weeks must never be added together. Unavailable/forbidden data is marked unavailable, not zero. Only reviewed aggregates may be added to this public register. Retain local summaries through the Beta review; inspect and explicitly delete selected dated snapshots when no longer needed.
+
+The four six-style preview boards remain a separate developer-gallery workflow: preview coverage starts at `0/24`, independent six-final case coverage is `1/24`. Preview acceptance cannot satisfy the three-complete-workflow target.

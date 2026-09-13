@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://threadtruth.local/schemas/style-preview-v1",
+  "title": "ThreadTruth style preview evidence (development and public projection)",
+  "description": "Machine validation additionally recomputes source authorization, actual pack files, exact A-D mapping, prompts, media and human-review digest. Status alone cannot authorize publication. Human attestations are not cryptographic identity proofs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "role", "status", "source", "identity_anchor", "ai_label", "boards"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "run_id": {"$ref": "#/$defs/id"},
+    "role": {"const": "style-preview"},
+    "status": {"enum": ["prepared", "awaiting-human-review", "approved"]},
+    "ai_label": {"const": "AI-generated style preview — not six independent final images."},
+    "source": {
+      "type": "object", "additionalProperties": false,
+      "required": ["rights_ref", "rights_sha256", "authorization", "assets"],
+      "properties": {
+        "rights_ref": {"const": "docs/demo/primary-cases/white-hooded-puffer-vest-korean-cold/rights.json"},
+        "rights_sha256": {"$ref": "#/$defs/hash"},
+        "authorization": {
+          "type": "object", "additionalProperties": false,
+          "required": ["reviewer", "declared_at", "declaration", "public_use_authorized", "project_media_policy_accepted", "source_model_display_authorized"],
+          "properties": {
+            "reviewer": {"$ref": "#/$defs/reviewer"}, "declared_at": {"$ref": "#/$defs/time"},
+            "declaration": {"type": "string", "minLength": 1},
+            "public_use_authorized": {"const": true}, "project_media_policy_accepted": {"const": true},
+            "source_model_display_authorized": {"const": true}
+          }
+        },
+        "assets": {"type": "array", "minItems": 4, "maxItems": 4, "uniqueItems": true, "items": {"$ref": "#/$defs/source"}}
+      }
+    },
+    "identity_anchor": {
+      "type": "object", "additionalProperties": false, "required": ["path", "sha256", "role"],
+      "properties": {"path": {"const": "docs/demo/primary-cases/white-hooded-puffer-vest-korean-cold/look-1.jpg"}, "sha256": {"$ref": "#/$defs/hash"}, "role": {"const": "identity-only"}}
+    },
+    "boards": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"$ref": "#/$defs/board"}},
+    "human_review": {
+      "type": "object", "additionalProperties": false,
+      "required": ["reviewer", "reviewed_at", "confirmation", "ai_label_acknowledged", "public_use_approved", "evidence_sha256", "tiles"],
+      "properties": {
+        "reviewer": {"$ref": "#/$defs/reviewer"}, "reviewed_at": {"$ref": "#/$defs/time"},
+        "confirmation": {"const": "I reviewed all 24 preview tiles against the authorized sources."},
+        "ai_label_acknowledged": {"const": true}, "public_use_approved": {"const": true},
+        "evidence_sha256": {"$ref": "#/$defs/hash"},
+        "tiles": {"type": "array", "minItems": 24, "maxItems": 24, "uniqueItems": true,
+          "items": {"type": "object", "additionalProperties": false,
+            "required": ["board", "ordinal", "style", "board_sha256", "product", "style_check", "identity_layout"],
+            "properties": {"board": {"enum": ["A", "B", "C", "D"]}, "ordinal": {"type": "integer", "minimum": 1, "maximum": 6},
+              "style": {"$ref": "#/$defs/id"}, "board_sha256": {"$ref": "#/$defs/hash"}, "product": {"const": "pass"},
+              "style_check": {"const": "pass"}, "identity_layout": {"const": "pass"}}
+          }
+        }
+      }
+    }
+  },
+  "allOf": [{"if": {"properties": {"status": {"const": "approved"}}}, "then": {"required": ["human_review"]}}],
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"},
+    "hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "time": {"type": "string", "format": "date-time", "pattern": "Z$"},
+    "reviewer": {"type": "string", "pattern": "^github:[A-Za-z0-9][A-Za-z0-9-]{0,38}$"},
+    "source": {"type": "object", "additionalProperties": false, "required": ["path", "sha256", "role"],
+      "properties": {"path": {"type": "string", "pattern": "^docs/demo/primary-cases/white-hooded-puffer-vest-korean-cold/source-[1-4]-[a-z-]+\\.jpg$"}, "sha256": {"$ref": "#/$defs/hash"}, "role": {"const": "garment-source"}}},
+    "board": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "grid", "tiles", "prompt_sha256"],
+      "properties": {
+        "id": {"enum": ["A", "B", "C", "D"]},
+        "grid": {"const": {"columns": 3, "rows": 2}},
+        "prompt_sha256": {"$ref": "#/$defs/hash"},
+        "path": {"type": "string", "pattern": "^board-[ABCD]\\.jpg$"},
+        "sha256": {"$ref": "#/$defs/hash"}, "original_sha256": {"$ref": "#/$defs/hash"},
+        "width": {"type": "integer", "minimum": 600, "multipleOf": 3},
+        "height": {"type": "integer", "minimum": 600, "multipleOf": 2},
+        "bytes": {"type": "integer", "minimum": 1, "maximum": 8388608},
+        "generation": {"type": "object", "additionalProperties": false,
+          "required": ["tool", "call_id", "generated_at", "prompt_sha256"],
+          "properties": {"tool": {"const": "native-imagegen"}, "call_id": {"$ref": "#/$defs/id"},
+            "generated_at": {"$ref": "#/$defs/time"}, "prompt_sha256": {"$ref": "#/$defs/hash"}}},
+        "tiles": {"type": "array", "minItems": 6, "maxItems": 6, "items": {
+          "type": "object", "additionalProperties": false,
+          "required": ["ordinal", "row", "column", "style", "pack", "visual"],
+          "properties": {"ordinal": {"type": "integer", "minimum": 1, "maximum": 6},
+            "row": {"type": "integer", "minimum": 1, "maximum": 2}, "column": {"type": "integer", "minimum": 1, "maximum": 3},
+            "style": {"$ref": "#/$defs/id"},
+            "pack": {"type": "object", "additionalProperties": false, "required": ["path", "sha256", "version"],
+              "properties": {"path": {"type": "string", "pattern": "^skills/threadtruth-studio/references/styles/[a-z0-9-]+\\.pack\\.yaml$"},
+                "sha256": {"$ref": "#/$defs/hash"}, "version": {"type": "string", "minLength": 1}}},
+            "visual": {"type": "object", "additionalProperties": false, "required": ["mood", "persona", "scene", "lighting"],
+              "properties": {"mood": {"type": "string"}, "persona": {"type": "string"}, "scene": {"type": "string"}, "lighting": {"type": "string"}}}
+          }
+        }}
+      },
+      "dependentRequired": {"path": ["sha256", "original_sha256", "width", "height", "bytes", "generation"]}
+    }
+  }
+}

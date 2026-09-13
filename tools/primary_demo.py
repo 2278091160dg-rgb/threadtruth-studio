@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import re
 import shutil
@@ -477,6 +478,13 @@ def _public_asset(original: Path, public: Path, role: str, name: str) -> dict[st
     }
 
 
+def _preview_module():
+    spec = importlib.util.spec_from_file_location("primary_style_preview", Path(__file__).with_name("style_preview.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def primary_rights_index_content(root: Path) -> str:
     rows: list[str] = []
     primary_root = root.resolve() / "docs" / "demo" / "primary-cases"
@@ -499,6 +507,10 @@ def primary_rights_index_content(root: Path) -> str:
                 f"| `{rights.get('case_id', '')}` | auxiliary | The Met `{source.get('object_id', '')}` | "
                 f"CC0-1.0 | `{str(asset.get('sha256', ''))[:12]}` | {rights.get('status', '')} |"
             )
+    preview_root = root.resolve() / "docs/demo/style-previews"
+    for path in sorted(preview_root.glob("*/evidence.json")):
+        evidence = read_json(path)
+        rows.append(f"| `{evidence.get('run_id', '')}` | style-preview | authorized primary garment | CC0-1.0 | `{str(evidence.get('boards', [{}])[0].get('sha256', ''))[:12]}` | human-approved preview; not finals |")
     table = (
         "| Case | Role | Source | License | SHA-256 prefix | Status |\n"
         "|---|---|---|---|---|---|\n" + "\n".join(rows)
@@ -1225,6 +1237,11 @@ def validate_style_index(root: Path) -> list[str]:
                     relative = f"primary-cases/{rights_path.parent.name}/{asset.get('path', '')}"
                     approved_images[relative] = (str(rights["style"]), asset)
 
+    try:
+        approved_previews = _preview_module().preview_links(root)
+    except (OSError, ValueError, TypeError):
+        approved_previews = {}
+        findings.append("style preview evidence is invalid")
     ready_images: list[str] = []
     for item in styles:
         if not isinstance(item, dict) or item.get("status") not in {"ready", "planned"}:
@@ -1241,6 +1258,8 @@ def validate_style_index(root: Path) -> list[str]:
         ):
             findings.append(f"{item.get('slug')}: style index metadata is incomplete")
         image = item.get("representative_image")
+        if item.get("preview") != approved_previews.get(item.get("slug")):
+            findings.append(f"{item.get('slug')}: preview is not bound to approved evidence")
         if item["status"] == "ready":
             try:
                 image_path = safe_child(demo_root, image)
@@ -1279,6 +1298,13 @@ def style_page_content(item: dict[str, object]) -> str:
         visual = ""
         status_note = "No public representative image has been generated or approved yet."
     full_case = item.get("full_case", "none")
+    preview_note = ""
+    if "preview" in item:
+        preview = item["preview"]
+        if preview:
+            preview_note = f"\nStyle preview: [board {preview['board']}, tile {preview['tile']}](../{preview['path']}) (3 columns × 2 rows, row-major). AI-generated style preview; not an independent final.\n"
+        else:
+            preview_note = "\nStyle preview: `planned`. No approved preview tile yet.\n"
     return f"""# {item['display_name']}
 
 Status: `{item['status']}` · Featured: `{str(bool(item['featured'])).lower()}` · Full six-image case: `{full_case}`
@@ -1287,7 +1313,7 @@ Recommended source family: **{item['source_family']}**.
 
 {status_note}
 
-{visual}A style page records visual evidence only after source rights, generation approval, six-image or single-image QA as applicable, and AI-content labeling are complete. A planned page is not generation evidence.
+{visual}{preview_note}A style page records visual evidence only after source rights, generation approval, six-image or single-image QA as applicable, and AI-content labeling are complete. A planned page is not generation evidence.
 """
 
 
@@ -1300,9 +1326,14 @@ def style_overview_content(index: dict[str, object]) -> str:
             f"{item['full_case']} | {item['source_family']} |"
         )
     ready = sum(item["status"] == "ready" for item in index["styles"])
+    preview_coverage = ""
+    if any("preview" in item for item in index["styles"]):
+        count = sum(bool(item.get("preview")) for item in index["styles"])
+        preview_coverage = f"\nPreview coverage: **{count}/24**. Final representative coverage: **{ready}/24**. Preview boards never satisfy final-image or six-image case requirements.\n"
     return f"""# 24-style public evidence index
 
 Visual evidence progress: **{ready}/24 ready**. The runtime contains 24 routed packs; this page separately tracks rights-cleared public image evidence and never treats a planned card as a completed generation.
+{preview_coverage}
 
 | Style | Tier | Representative | Six-image case | Source family |
 |---|---|---|---|---|
