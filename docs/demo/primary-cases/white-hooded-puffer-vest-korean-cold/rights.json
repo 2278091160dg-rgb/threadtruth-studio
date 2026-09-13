@@ -176,7 +176,8 @@
   },
   "ai_content_label": {
     "status": "required-and-disclosed",
-    "informed_at": "2026-09-12T17:38:24Z"
+    "informed_at": "2026-09-12T17:38:24Z",
+    "requirement": "Public ecommerce, social-media, or other applicable publication must carry required AI-generated or synthetic-content labeling."
   },
   "promoted_at": "2026-09-12T22:59:56Z",
   "notices": [

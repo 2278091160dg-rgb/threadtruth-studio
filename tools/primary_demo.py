@@ -20,6 +20,7 @@ SCHEMA_VERSION = "1.0"
 CC0_URL = "https://creativecommons.org/publicdomain/zero/1.0/"
 CASE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
+GITHUB_REVIEWER = re.compile(r"^github:[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")
 JPEG_MAX_BYTES = 8 * 1024 * 1024
 PRIMARY_ROOT_FILES = {"README.md", "rights.json", "hero.jpg"}
 SUPPORTED_STYLES = {
@@ -71,6 +72,13 @@ GROUP_QA_ACCEPTED = {
     "identity_consistency": {"pass", "no blocking visual drift observed"},
     "garment_hard_facts": {"pass", "no blocking visual drift observed"},
 }
+SENSITIVE_TEXT_PATTERNS = (
+    re.compile(r"(?:/Users/|/home/|/private/|file://|[A-Za-z]:\\Users\\)"),
+    re.compile(r"(?:^|\s)~/(?:\S+)"),
+    re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"),
+    re.compile(r"\b(?:sk-[A-Za-z0-9_-]{8,}|ghp_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+|AKIA[A-Z0-9]{12,})\b"),
+    re.compile(r"(?i)\b(?:api[_-]?key|access[_-]?token|secret|password)\s*[:=]\s*\S+"),
+)
 
 
 def read_json(path: Path) -> dict[str, object]:
@@ -99,6 +107,25 @@ def parse_iso_z(value: object) -> datetime:
     if parsed.tzinfo is None or parsed.utcoffset() != timezone.utc.utcoffset(parsed):
         raise ValueError("timestamp must be UTC ISO-8601")
     return parsed
+
+
+def iter_text_values(value: object) -> Iterable[str]:
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for nested in value.values():
+            yield from iter_text_values(nested)
+    elif isinstance(value, list):
+        for nested in value:
+            yield from iter_text_values(nested)
+
+
+def has_sensitive_public_text(value: object) -> bool:
+    return any(
+        pattern.search(text)
+        for text in iter_text_values(value)
+        for pattern in SENSITIVE_TEXT_PATTERNS
+    )
 
 
 def safe_child(root: Path, relative: str) -> Path:
@@ -167,6 +194,65 @@ def validate_staged_primary_case(staging: Path) -> list[str]:
     except (OSError, ValueError, json.JSONDecodeError):
         return ["EVIDENCE_INCOMPLETE"]
 
+    rights_required = {
+        "schema_version",
+        "work_id",
+        "status",
+        "reviewer",
+        "declared_at",
+        "declaration",
+        "public_use_authorized",
+        "project_media_policy_accepted",
+        "source_model_display_authorized",
+        "sources",
+        "public_status",
+    }
+    promotion_fields = {"promoted_case_id", "promoted_at"}
+    run_required = {
+        "schema_version",
+        "work_id",
+        "generated_at",
+        "action",
+        "style",
+        "mode",
+        "route",
+        "output_form",
+        "state",
+        "identity_anchor",
+        "canvas_contract",
+        "generation_calls",
+        "expected_images",
+        "actual_images",
+        "preview_images_included",
+        "outputs",
+        "group_qa",
+        "ai_content_label_notice",
+        "public_status",
+    }
+    if (
+        not rights_required.issubset(rights)
+        or not set(rights).issubset(rights_required | promotion_fields)
+        or not run_required.issubset(run)
+        or not set(run).issubset(run_required | promotion_fields)
+        or not isinstance(run.get("canvas_contract"), dict)
+        or set(run.get("canvas_contract", {}))
+        != {"target_ratio", "target_orientation", "batch_canvas_baseline", "all_files_match"}
+    ):
+        _add(findings, "EVIDENCE_FIELDS_INVALID")
+    rights_is_promoted = rights.get("public_status") == "promoted"
+    run_is_promoted = run.get("public_status") == "promoted"
+    if (
+        rights.get("public_status") not in {"not-promoted", "promoted"}
+        or run.get("public_status") not in {"not-promoted", "promoted"}
+        or rights_is_promoted != run_is_promoted
+        or (set(rights) & promotion_fields)
+        != (promotion_fields if rights_is_promoted else set())
+        or (set(run) & promotion_fields)
+        != (promotion_fields if run_is_promoted else set())
+    ):
+        _add(findings, "EVIDENCE_FIELDS_INVALID")
+    if has_sensitive_public_text(rights) or has_sensitive_public_text(run):
+        _add(findings, "PUBLIC_TEXT_SENSITIVE")
     if rights.get("schema_version") != SCHEMA_VERSION or run.get("schema_version") != SCHEMA_VERSION:
         _add(findings, "SCHEMA_INVALID")
     if rights.get("work_id") != run.get("work_id"):
@@ -178,7 +264,7 @@ def validate_staged_primary_case(staging: Path) -> list[str]:
         _add(findings, "SOURCE_RIGHTS_INCOMPLETE")
     if (
         not isinstance(rights.get("reviewer"), str)
-        or not str(rights["reviewer"]).startswith("github:")
+        or not GITHUB_REVIEWER.fullmatch(str(rights["reviewer"]))
         or not isinstance(rights.get("declaration"), str)
         or not rights["declaration"].strip()
     ):
@@ -193,6 +279,9 @@ def validate_staged_primary_case(staging: Path) -> list[str]:
         source_hashes: list[str] = []
         for index, source in enumerate(sources, start=1):
             try:
+                if not isinstance(source, dict) or set(source) != {"role", "path", "sha256"}:
+                    _add(findings, "EVIDENCE_FIELDS_INVALID")
+                    raise ValueError("invalid source record")
                 role = str(source["role"])
                 relative = Path(str(source["path"]))
                 path = safe_child(staging, str(relative))
@@ -232,7 +321,12 @@ def validate_staged_primary_case(staging: Path) -> list[str]:
     if run.get("preview_images_included") != 0:
         _add(findings, "PREVIEW_INCLUDED")
     canvas = run.get("canvas_contract")
-    if not isinstance(canvas, dict) or canvas.get("target_ratio") != "2:3" or canvas.get("all_files_match") is not True:
+    if (
+        not isinstance(canvas, dict)
+        or canvas.get("target_ratio") != "2:3"
+        or canvas.get("target_orientation") != "portrait"
+        or canvas.get("all_files_match") is not True
+    ):
         _add(findings, "CANVAS_CONTRACT_INVALID")
     baseline = canvas.get("batch_canvas_baseline") if isinstance(canvas, dict) else None
 
@@ -243,6 +337,16 @@ def validate_staged_primary_case(staging: Path) -> list[str]:
     else:
         for expected, output in enumerate(outputs, start=1):
             try:
+                if not isinstance(output, dict) or set(output) != {
+                    "look",
+                    "path",
+                    "sha256",
+                    "pixels",
+                    "qa",
+                    "user_review",
+                }:
+                    _add(findings, "EVIDENCE_FIELDS_INVALID")
+                    raise ValueError("invalid output record")
                 if output.get("look") != expected or output.get("path") != f"finals/look-{expected}.png":
                     _add(findings, "FINAL_SET_INCOMPLETE")
                 if output.get("qa") != "qa-pass" or output.get("user_review") != "closed":
@@ -263,6 +367,24 @@ def validate_staged_primary_case(staging: Path) -> list[str]:
 
     group_qa = run.get("group_qa")
     review = group_qa.get("user_review_closure") if isinstance(group_qa, dict) else None
+    expected_group_keys = set(GROUP_QA_ACCEPTED) | {
+        "requires_user_review",
+        "user_review_closure",
+    }
+    if (
+        not isinstance(group_qa, dict)
+        or set(group_qa) != expected_group_keys
+        or not isinstance(review, dict)
+        or set(review)
+        != {"status", "reviewer", "reviewed_at", "confirmation", "closed_items"}
+        or not isinstance(review.get("closed_items"), list)
+        or not review.get("closed_items")
+        or not all(
+            isinstance(item, str) and item.strip()
+            for item in review.get("closed_items", [])
+        )
+    ):
+        _add(findings, "EVIDENCE_FIELDS_INVALID")
     if not isinstance(group_qa, dict) or any(
         group_qa.get(key) not in accepted for key, accepted in GROUP_QA_ACCEPTED.items()
     ):
@@ -273,12 +395,20 @@ def validate_staged_primary_case(staging: Path) -> list[str]:
         or not isinstance(review, dict)
         or review.get("status") != "closed"
         or review.get("reviewer") != rights.get("reviewer")
+        or not isinstance(review.get("reviewer"), str)
+        or not GITHUB_REVIEWER.fullmatch(str(review.get("reviewer")))
         or not isinstance(review.get("confirmation"), str)
         or not review["confirmation"].strip()
     ):
         _add(findings, "USER_REVIEW_INCOMPLETE")
     label = run.get("ai_content_label_notice")
-    if not isinstance(label, dict) or label.get("status") != "informed":
+    if (
+        not isinstance(label, dict)
+        or set(label) != {"status", "informed_at", "requirement"}
+        or label.get("status") != "informed"
+        or not isinstance(label.get("requirement"), str)
+        or not str(label.get("requirement")).strip()
+    ):
         _add(findings, "AI_LABEL_NOTICE_INCOMPLETE")
     try:
         declared_at = parse_iso_z(rights.get("declared_at"))
@@ -503,6 +633,7 @@ def promote_primary_case(
             "ai_content_label": {
                 "status": "required-and-disclosed",
                 "informed_at": run["ai_content_label_notice"]["informed_at"],
+                "requirement": run["ai_content_label_notice"]["requirement"],
             },
             "promoted_at": promoted_at,
             "notices": [
@@ -542,6 +673,7 @@ See `rights.json` for hashes, rights evidence, QA closure, and limitations.
 
 def validate_public_primary_cases(root: Path) -> list[str]:
     findings: list[str] = []
+    case_styles: list[str] = []
     cases_root = root.resolve() / "docs" / "demo" / "primary-cases"
     if not cases_root.is_dir() or cases_root.is_symlink():
         return ["primary public cases directory is missing"]
@@ -573,7 +705,7 @@ def validate_public_primary_cases(root: Path) -> list[str]:
             "promoted_at",
             "notices",
         }
-        if not required_top.issubset(rights):
+        if set(rights) != required_top:
             findings.append(f"{case_dir.name}: primary rights contract is incomplete")
         if rights.get("schema_version") != SCHEMA_VERSION:
             findings.append(f"{case_dir.name}: unsupported primary rights schema")
@@ -589,14 +721,25 @@ def validate_public_primary_cases(root: Path) -> list[str]:
             or not CASE_ID.fullmatch(str(rights.get("work_id")))
         ):
             findings.append(f"{case_dir.name}: case identifier mismatch")
-        if rights.get("style") not in SUPPORTED_STYLES or rights.get("route") != "B1":
+        if rights.get("style") not in FULL_CASE_STYLES or rights.get("route") != "B1":
             findings.append(f"{case_dir.name}: style or route is invalid")
+        elif isinstance(rights.get("style"), str):
+            case_styles.append(str(rights["style"]))
 
         source_rights = rights.get("source_rights")
         if (
             not isinstance(source_rights, dict)
+            or set(source_rights)
+            != {
+                "reviewer",
+                "declared_at",
+                "declaration",
+                "public_use_authorized",
+                "project_media_policy_accepted",
+                "source_model_display_authorized",
+            }
             or not isinstance(source_rights.get("reviewer"), str)
-            or not str(source_rights.get("reviewer")).startswith("github:")
+            or not GITHUB_REVIEWER.fullmatch(str(source_rights.get("reviewer")))
             or not isinstance(source_rights.get("declaration"), str)
             or not str(source_rights.get("declaration")).strip()
             or any(
@@ -613,13 +756,18 @@ def validate_public_primary_cases(root: Path) -> list[str]:
         ai_label = rights.get("ai_content_label")
         if (
             not isinstance(ai_label, dict)
+            or set(ai_label) != {"status", "informed_at", "requirement"}
             or ai_label.get("status") != "required-and-disclosed"
             or not isinstance(ai_label.get("informed_at"), str)
+            or not isinstance(ai_label.get("requirement"), str)
+            or not str(ai_label.get("requirement")).strip()
         ):
             findings.append(f"{case_dir.name}: AI label evidence is incomplete")
         human_review = rights.get("human_review")
         if (
             not isinstance(human_review, dict)
+            or set(human_review)
+            != {"status", "reviewer", "reviewed_at", "confirmation", "closed_items"}
             or human_review.get("status") != "closed"
             or human_review.get("reviewer") != (
                 source_rights.get("reviewer") if isinstance(source_rights, dict) else None
@@ -627,11 +775,18 @@ def validate_public_primary_cases(root: Path) -> list[str]:
             or not isinstance(human_review.get("confirmation"), str)
             or not str(human_review.get("confirmation")).strip()
             or not isinstance(human_review.get("reviewed_at"), str)
+            or not isinstance(human_review.get("closed_items"), list)
+            or not human_review.get("closed_items")
+            or not all(
+                isinstance(item, str) and item.strip()
+                for item in human_review.get("closed_items", [])
+            )
         ):
             findings.append(f"{case_dir.name}: human review is incomplete")
         license_record = rights.get("media_license")
         if (
             not isinstance(license_record, dict)
+            or set(license_record) != {"id", "url", "scope"}
             or license_record.get("id") != "CC0-1.0"
             or license_record.get("url") != CC0_URL
             or not isinstance(license_record.get("scope"), str)
@@ -644,6 +799,18 @@ def validate_public_primary_cases(root: Path) -> list[str]:
         checks = quality.get("checks") if isinstance(quality, dict) else None
         if (
             not isinstance(quality, dict)
+            or set(quality)
+            != {
+                "state",
+                "generated_at",
+                "expected_images",
+                "actual_images",
+                "preview_images_included",
+                "generation_calls",
+                "canvas_contract",
+                "unique_original_output_hashes",
+                "checks",
+            }
             or quality.get("state") != "image-ready"
             or quality.get("expected_images") != 6
             or quality.get("actual_images") != 6
@@ -651,6 +818,13 @@ def validate_public_primary_cases(root: Path) -> list[str]:
             or quality.get("generation_calls") != 6
             or quality.get("unique_original_output_hashes") != 6
             or not isinstance(canvas, dict)
+            or set(canvas)
+            != {
+                "target_ratio",
+                "target_orientation",
+                "batch_canvas_baseline",
+                "all_files_match",
+            }
             or canvas.get("target_ratio") != "2:3"
             or canvas.get("target_orientation") != "portrait"
             or canvas.get("all_files_match") is not True
@@ -705,6 +879,18 @@ def validate_public_primary_cases(root: Path) -> list[str]:
             if not isinstance(asset, dict):
                 findings.append(f"{case_dir.name}: malformed primary asset")
                 continue
+            if set(asset) != {
+                "role",
+                "name",
+                "path",
+                "original_sha256",
+                "public_sha256",
+                "mime",
+                "bytes",
+                "width",
+                "height",
+            }:
+                findings.append(f"{case_dir.name}: malformed primary asset")
             path_name = asset.get("path")
             if not isinstance(path_name, str) or Path(path_name).name != path_name:
                 findings.append(f"{case_dir.name}: unsafe primary asset path")
@@ -762,6 +948,15 @@ def validate_public_primary_cases(root: Path) -> list[str]:
                 findings.append(f"{case_dir.name}: output canvas evidence does not match assets")
         hero = rights.get("hero")
         try:
+            if not isinstance(hero, dict) or set(hero) != {
+                "path",
+                "sha256",
+                "mime",
+                "bytes",
+                "width",
+                "height",
+            }:
+                raise ValueError("invalid hero record")
             hero_path = case_dir / str(hero["path"])
             hero_data = hero_path.read_bytes()
             hero_dimensions = jpeg_dimensions(hero_data)
@@ -787,6 +982,10 @@ def validate_public_primary_cases(root: Path) -> list[str]:
                 findings.append(f"{case_dir.name}: primary case README is stale")
         except OSError:
             findings.append(f"{case_dir.name}: primary case README is missing")
+        if has_sensitive_public_text(rights):
+            findings.append(f"{case_dir.name}: primary rights contain sensitive text")
+    if len(case_styles) != len(set(case_styles)):
+        findings.append("primary cases must use unique approved full-case styles")
     return findings
 
 
@@ -927,12 +1126,24 @@ def build_primary_media_bundle(
                 key: run["group_qa"][key]
                 for key in GROUP_QA_ACCEPTED
             },
-            "human_review": run["group_qa"]["user_review_closure"],
+            "human_review": {
+                key: run["group_qa"]["user_review_closure"][key]
+                for key in (
+                    "status",
+                    "reviewer",
+                    "reviewed_at",
+                    "confirmation",
+                    "closed_items",
+                )
+            },
             "ai_content_label": {
                 "status": "required-and-disclosed",
                 "informed_at": run["ai_content_label_notice"]["informed_at"],
+                "requirement": run["ai_content_label_notice"]["requirement"],
             },
         }
+        if has_sensitive_public_text(public_rights) or has_sensitive_public_text(public_run):
+            raise ValueError("PUBLIC_TEXT_SENSITIVE: release evidence contains private data")
         rights_path = temporary / "rights.json"
         run_path = temporary / "run-evidence.json"
         readme_path = temporary / "README.md"

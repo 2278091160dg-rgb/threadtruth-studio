@@ -140,9 +140,18 @@ def write_staging(root, *, state="image-ready", ai_notice="informed"):
                         "reviewer": "github:maintainer",
                         "reviewed_at": "2026-09-12T17:38:24Z",
                         "confirmation": "I reviewed looks 1 through 6 and approve image-ready.",
+                        "closed_items": [
+                            "garment detail fidelity",
+                            "model identity consistency",
+                            "six-image set acceptance",
+                        ],
                     },
                 },
-                "ai_content_label_notice": {"status": ai_notice, "informed_at": "2026-09-12T17:38:24Z"},
+                "ai_content_label_notice": {
+                    "status": ai_notice,
+                    "informed_at": "2026-09-12T17:38:24Z",
+                    "requirement": "Public use requires applicable AI-generated labeling.",
+                },
                 "public_status": "not-promoted",
             }
         )
@@ -292,10 +301,13 @@ class PrimaryDemoTests(unittest.TestCase):
             mutations = (
                 lambda value: value.update(schema_version="999"),
                 lambda value: value.pop("source_rights"),
+                lambda value: value.update(unexpected_private_field="forbidden"),
+                lambda value: value["source_rights"].update(reviewer="github:"),
                 lambda value: value.update(route="B2"),
                 lambda value: value["quality"].update(state="image-draft"),
                 lambda value: value["quality"]["checks"].update(garment_hard_facts="fail"),
                 lambda value: value["human_review"].pop("confirmation"),
+                lambda value: value["human_review"].pop("closed_items"),
                 lambda value: value["ai_content_label"].pop("informed_at"),
                 lambda value: value.update(promoted_at="2026-09-12T00:00:00Z"),
             )
@@ -329,6 +341,32 @@ class PrimaryDemoTests(unittest.TestCase):
             self.assertTrue(any(name.endswith("README.md") for name in names))
             self.assertTrue(any(name.endswith("rights.json") for name in names))
             self.assertTrue(any(name.endswith("run-evidence.json") for name in names))
+
+    def test_staging_and_bundle_reject_sensitive_or_unexpected_text_evidence(self):
+        module = load_module()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            staging = write_staging(root)
+            rights_path = staging / "rights-declaration.json"
+            run_path = staging / "final-run.json"
+            rights = json.loads(rights_path.read_text())
+            rights["declaration"] += " /private/customer/source.jpg sk-secret-value"
+            rights_path.write_text(json.dumps(rights))
+            run = json.loads(run_path.read_text())
+            run["group_qa"]["user_review_closure"]["private_note"] = "customer@example.com"
+            run_path.write_text(json.dumps(run))
+
+            findings = module.validate_staged_primary_case(staging)
+            self.assertIn("PUBLIC_TEXT_SENSITIVE", findings)
+            self.assertIn("EVIDENCE_FIELDS_INVALID", findings)
+            with self.assertRaises(ValueError):
+                module.build_primary_media_bundle(
+                    staging,
+                    "white-vest-korean-cold",
+                    "1.0.0-beta.1",
+                    root / "dist",
+                    sanitizer=lambda source, destination: shutil.copyfile(source, destination),
+                )
 
     def test_media_sanitizer_strips_jpeg_exif_and_png_text(self):
         module = load_module()
@@ -399,6 +437,41 @@ class PrimaryDemoTests(unittest.TestCase):
             index_path.write_text(json.dumps(drifted))
             module.render_style_pages(root)
             self.assertTrue(module.validate_style_index(root))
+
+    def test_public_primary_cases_are_unique_and_limited_to_three_approved_styles(self):
+        module = load_module()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(
+                ROOT / "docs" / "demo" / "primary-cases",
+                root / "docs" / "demo" / "primary-cases",
+            )
+            case_root = (
+                root
+                / "docs"
+                / "demo"
+                / "primary-cases"
+                / "white-hooded-puffer-vest-korean-cold"
+            )
+            rights_path = case_root / "rights.json"
+            original = json.loads(rights_path.read_text())
+
+            outside_plan = json.loads(json.dumps(original))
+            outside_plan["style"] = "old-money"
+            rights_path.write_text(json.dumps(outside_plan))
+            (case_root / "README.md").write_text(module.primary_case_readme(outside_plan))
+            self.assertTrue(module.validate_public_primary_cases(root))
+
+            rights_path.write_text(json.dumps(original))
+            (case_root / "README.md").write_text(module.primary_case_readme(original))
+            duplicate_root = case_root.parent / "duplicate-korean-cold"
+            shutil.copytree(case_root, duplicate_root)
+            duplicate_rights_path = duplicate_root / "rights.json"
+            duplicate = json.loads(duplicate_rights_path.read_text())
+            duplicate["case_id"] = duplicate_root.name
+            duplicate_rights_path.write_text(json.dumps(duplicate))
+            (duplicate_root / "README.md").write_text(module.primary_case_readme(duplicate))
+            self.assertTrue(module.validate_public_primary_cases(root))
 
 
 if __name__ == "__main__":
