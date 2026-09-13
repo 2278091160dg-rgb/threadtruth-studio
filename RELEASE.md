@@ -40,4 +40,4 @@ python3 tools/primary-demo.py build-media \
   --output dist
 ```
 
-Both commands create a versioned ZIP and a separate SHA-256 sidecar under `dist/`. The Plugin ZIP excludes development tools and original PNGs; the media ZIP contains the four authorized sources, six accepted original results, rights declaration, public-safe run and prompt evidence, and an internal checksum manifest.
+Both commands create a versioned ZIP and a separate SHA-256 sidecar under `dist/`. The Plugin ZIP excludes development tools and full-resolution PNGs; the media ZIP contains four metadata-stripped authorized sources, six metadata-stripped full-resolution PNG results, allowlisted rights/run evidence, a README, and an internal checksum manifest. Raw prompts, private logs, previews, and staging records are excluded.

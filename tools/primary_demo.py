@@ -11,6 +11,7 @@ import shutil
 import struct
 import tempfile
 import zipfile
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Iterable
 
@@ -21,6 +22,55 @@ CASE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 JPEG_MAX_BYTES = 8 * 1024 * 1024
 PRIMARY_ROOT_FILES = {"README.md", "rights.json", "hero.jpg"}
+SUPPORTED_STYLES = {
+    "american-street",
+    "athleisure",
+    "balletcore",
+    "british-heritage",
+    "cityboy",
+    "clean-fit",
+    "coquette-ladylike",
+    "ecommerce-studio",
+    "french-effortless",
+    "gorpcore",
+    "guochao-street",
+    "italian-luxe",
+    "japanese-lifestyle",
+    "korean-cold-editorial",
+    "korean-menswear",
+    "neo-chinese",
+    "nordic-minimal",
+    "office-commute-women",
+    "old-money",
+    "preppy",
+    "quiet-luxury",
+    "resort-vacation",
+    "workwear-vintage",
+    "y2k-millennium",
+}
+FEATURED_STYLES = {
+    "american-street",
+    "coquette-ladylike",
+    "ecommerce-studio",
+    "gorpcore",
+    "korean-cold-editorial",
+    "korean-menswear",
+    "neo-chinese",
+    "old-money",
+}
+FULL_CASE_STYLES = {
+    "american-street",
+    "ecommerce-studio",
+    "korean-cold-editorial",
+}
+GROUP_QA_ACCEPTED = {
+    "file_count": {"pass"},
+    "unique_hashes": {"pass"},
+    "canvas_ratio": {"pass"},
+    "pixel_consistency": {"pass"},
+    "identity_consistency": {"pass", "no blocking visual drift observed"},
+    "garment_hard_facts": {"pass", "no blocking visual drift observed"},
+}
 
 
 def read_json(path: Path) -> dict[str, object]:
@@ -40,6 +90,15 @@ def sha256_bytes(data: bytes) -> str:
 
 def sha256_file(path: Path) -> str:
     return sha256_bytes(path.read_bytes())
+
+
+def parse_iso_z(value: object) -> datetime:
+    if not isinstance(value, str) or not value.endswith("Z"):
+        raise ValueError("timestamp must be UTC ISO-8601")
+    parsed = datetime.fromisoformat(value[:-1] + "+00:00")
+    if parsed.tzinfo is None or parsed.utcoffset() != timezone.utc.utcoffset(parsed):
+        raise ValueError("timestamp must be UTC ISO-8601")
+    return parsed
 
 
 def safe_child(root: Path, relative: str) -> Path:
@@ -117,27 +176,57 @@ def validate_staged_primary_case(staging: Path) -> list[str]:
         for key in ("public_use_authorized", "project_media_policy_accepted", "source_model_display_authorized")
     ):
         _add(findings, "SOURCE_RIGHTS_INCOMPLETE")
-    if not isinstance(rights.get("declaration"), str) or not rights["declaration"].strip():
+    if (
+        not isinstance(rights.get("reviewer"), str)
+        or not str(rights["reviewer"]).startswith("github:")
+        or not isinstance(rights.get("declaration"), str)
+        or not rights["declaration"].strip()
+    ):
         _add(findings, "SOURCE_RIGHTS_INCOMPLETE")
 
     sources = rights.get("sources")
     if not isinstance(sources, list) or len(sources) != 4:
         _add(findings, "SOURCE_SET_INCOMPLETE")
     else:
-        for source in sources:
+        source_roles: list[str] = []
+        source_paths: list[Path] = []
+        source_hashes: list[str] = []
+        for index, source in enumerate(sources, start=1):
             try:
-                path = safe_child(staging, str(source["path"]))
+                role = str(source["role"])
+                relative = Path(str(source["path"]))
+                path = safe_child(staging, str(relative))
                 data = path.read_bytes()
                 jpeg_dimensions(data)
-                if source.get("sha256") != sha256_bytes(data):
+                digest = sha256_bytes(data)
+                if (
+                    not CASE_ID.fullmatch(role)
+                    or relative.parent != Path("sources")
+                    or not re.fullmatch(rf"source-{index}-[a-z0-9-]+\.jpg", relative.name)
+                ):
+                    _add(findings, "SOURCE_SET_INCOMPLETE")
+                if source.get("sha256") != digest:
                     _add(findings, "ASSET_HASH_MISMATCH")
+                source_roles.append(role)
+                source_paths.append(path)
+                source_hashes.append(digest)
             except (KeyError, OSError, ValueError, TypeError):
                 _add(findings, "SOURCE_SET_INCOMPLETE")
+        if (
+            len(set(source_roles)) != 4
+            or len(set(source_paths)) != 4
+            or len(set(source_hashes)) != 4
+        ):
+            _add(findings, "SOURCE_SET_DUPLICATED")
 
     if run.get("state") != "image-ready":
         _add(findings, "PRIMARY_NOT_IMAGE_READY")
     if run.get("action") != "six-independent-final-images" or run.get("route") != "B1":
         _add(findings, "ROUTE_INVALID")
+    if run.get("mode") != "B" or run.get("style") not in SUPPORTED_STYLES:
+        _add(findings, "STYLE_UNREGISTERED")
+    if run.get("identity_anchor") != "finals/look-1.png":
+        _add(findings, "IDENTITY_ANCHOR_INVALID")
     if any(run.get(key) != 6 for key in ("generation_calls", "expected_images", "actual_images")):
         _add(findings, "FINAL_SET_INCOMPLETE")
     if run.get("preview_images_included") != 0:
@@ -174,6 +263,10 @@ def validate_staged_primary_case(staging: Path) -> list[str]:
 
     group_qa = run.get("group_qa")
     review = group_qa.get("user_review_closure") if isinstance(group_qa, dict) else None
+    if not isinstance(group_qa, dict) or any(
+        group_qa.get(key) not in accepted for key, accepted in GROUP_QA_ACCEPTED.items()
+    ):
+        _add(findings, "GROUP_QA_INCOMPLETE")
     if (
         not isinstance(group_qa, dict)
         or group_qa.get("requires_user_review") != []
@@ -187,6 +280,24 @@ def validate_staged_primary_case(staging: Path) -> list[str]:
     label = run.get("ai_content_label_notice")
     if not isinstance(label, dict) or label.get("status") != "informed":
         _add(findings, "AI_LABEL_NOTICE_INCOMPLETE")
+    try:
+        declared_at = parse_iso_z(rights.get("declared_at"))
+        generated_at = parse_iso_z(run.get("generated_at"))
+        reviewed_at = parse_iso_z(review.get("reviewed_at") if isinstance(review, dict) else None)
+        informed_at = parse_iso_z(label.get("informed_at") if isinstance(label, dict) else None)
+        if not declared_at <= generated_at <= informed_at <= reviewed_at:
+            raise ValueError("invalid chronology")
+        if rights.get("public_status") == "promoted" or run.get("public_status") == "promoted":
+            if (
+                rights.get("public_status") != "promoted"
+                or run.get("public_status") != "promoted"
+                or rights.get("promoted_case_id") != run.get("promoted_case_id")
+                or rights.get("promoted_at") != run.get("promoted_at")
+                or reviewed_at > parse_iso_z(run.get("promoted_at"))
+            ):
+                raise ValueError("invalid promotion chronology")
+    except (AttributeError, TypeError, ValueError):
+        _add(findings, "EVIDENCE_TIMESTAMP_INVALID")
     return findings
 
 
@@ -307,6 +418,9 @@ def promote_primary_case(
     staging = staging.resolve()
     rights_declaration = read_json(staging / "rights-declaration.json")
     run = read_json(staging / "final-run.json")
+    reviewed_at = parse_iso_z(run["group_qa"]["user_review_closure"]["reviewed_at"])
+    if reviewed_at > parse_iso_z(promoted_at):
+        raise ValueError("promotion timestamp predates human review")
     destination = root / "docs" / "demo" / "primary-cases" / case_id
     if destination.exists():
         raise FileExistsError(f"primary case already exists: {case_id}")
@@ -348,6 +462,7 @@ def promote_primary_case(
                 "declared_at": rights_declaration["declared_at"],
                 "declaration": rights_declaration["declaration"],
                 "public_use_authorized": True,
+                "project_media_policy_accepted": True,
                 "source_model_display_authorized": True,
             },
             "media_license": {
@@ -366,18 +481,24 @@ def promote_primary_case(
             },
             "quality": {
                 "state": "image-ready",
+                "generated_at": run["generated_at"],
                 "expected_images": 6,
                 "actual_images": 6,
                 "preview_images_included": 0,
                 "generation_calls": 6,
                 "canvas_contract": run["canvas_contract"],
                 "unique_original_output_hashes": 6,
+                "checks": {
+                    key: run["group_qa"][key]
+                    for key in GROUP_QA_ACCEPTED
+                },
             },
             "human_review": {
                 "status": "closed",
                 "reviewer": review["reviewer"],
                 "reviewed_at": review["reviewed_at"],
                 "confirmation": review["confirmation"],
+                "closed_items": review.get("closed_items", []),
             },
             "ai_content_label": {
                 "status": "required-and-disclosed",
@@ -433,28 +554,162 @@ def validate_public_primary_cases(root: Path) -> list[str]:
         except (OSError, ValueError, json.JSONDecodeError) as exc:
             findings.append(f"{case_dir.name}: unreadable primary rights: {exc}")
             continue
-        if rights.get("status") != "promoted" or rights.get("role") != "primary" or rights.get("primary_demo_status") != "ready":
+        required_top = {
+            "schema_version",
+            "case_id",
+            "work_id",
+            "status",
+            "role",
+            "primary_demo_status",
+            "style",
+            "route",
+            "source_rights",
+            "media_license",
+            "assets",
+            "hero",
+            "quality",
+            "human_review",
+            "ai_content_label",
+            "promoted_at",
+            "notices",
+        }
+        if not required_top.issubset(rights):
+            findings.append(f"{case_dir.name}: primary rights contract is incomplete")
+        if rights.get("schema_version") != SCHEMA_VERSION:
+            findings.append(f"{case_dir.name}: unsupported primary rights schema")
+        if (
+            rights.get("status") != "promoted"
+            or rights.get("role") != "primary"
+            or rights.get("primary_demo_status") != "ready"
+        ):
             findings.append(f"{case_dir.name}: primary promotion status is invalid")
-        if rights.get("case_id") != case_dir.name:
+        if (
+            rights.get("case_id") != case_dir.name
+            or not isinstance(rights.get("work_id"), str)
+            or not CASE_ID.fullmatch(str(rights.get("work_id")))
+        ):
             findings.append(f"{case_dir.name}: case identifier mismatch")
-        if rights.get("ai_content_label", {}).get("status") != "required-and-disclosed":
+        if rights.get("style") not in SUPPORTED_STYLES or rights.get("route") != "B1":
+            findings.append(f"{case_dir.name}: style or route is invalid")
+
+        source_rights = rights.get("source_rights")
+        if (
+            not isinstance(source_rights, dict)
+            or not isinstance(source_rights.get("reviewer"), str)
+            or not str(source_rights.get("reviewer")).startswith("github:")
+            or not isinstance(source_rights.get("declaration"), str)
+            or not str(source_rights.get("declaration")).strip()
+            or any(
+                source_rights.get(key) is not True
+                for key in (
+                    "public_use_authorized",
+                    "project_media_policy_accepted",
+                    "source_model_display_authorized",
+                )
+            )
+        ):
+            findings.append(f"{case_dir.name}: source rights evidence is incomplete")
+
+        ai_label = rights.get("ai_content_label")
+        if (
+            not isinstance(ai_label, dict)
+            or ai_label.get("status") != "required-and-disclosed"
+            or not isinstance(ai_label.get("informed_at"), str)
+        ):
             findings.append(f"{case_dir.name}: AI label evidence is incomplete")
-        if rights.get("human_review", {}).get("status") != "closed":
+        human_review = rights.get("human_review")
+        if (
+            not isinstance(human_review, dict)
+            or human_review.get("status") != "closed"
+            or human_review.get("reviewer") != (
+                source_rights.get("reviewer") if isinstance(source_rights, dict) else None
+            )
+            or not isinstance(human_review.get("confirmation"), str)
+            or not str(human_review.get("confirmation")).strip()
+            or not isinstance(human_review.get("reviewed_at"), str)
+        ):
             findings.append(f"{case_dir.name}: human review is incomplete")
         license_record = rights.get("media_license")
-        if not isinstance(license_record, dict) or license_record.get("id") != "CC0-1.0" or license_record.get("url") != CC0_URL:
+        if (
+            not isinstance(license_record, dict)
+            or license_record.get("id") != "CC0-1.0"
+            or license_record.get("url") != CC0_URL
+            or not isinstance(license_record.get("scope"), str)
+            or not str(license_record.get("scope")).strip()
+        ):
             findings.append(f"{case_dir.name}: media license is invalid")
+
+        quality = rights.get("quality")
+        canvas = quality.get("canvas_contract") if isinstance(quality, dict) else None
+        checks = quality.get("checks") if isinstance(quality, dict) else None
+        if (
+            not isinstance(quality, dict)
+            or quality.get("state") != "image-ready"
+            or quality.get("expected_images") != 6
+            or quality.get("actual_images") != 6
+            or quality.get("preview_images_included") != 0
+            or quality.get("generation_calls") != 6
+            or quality.get("unique_original_output_hashes") != 6
+            or not isinstance(canvas, dict)
+            or canvas.get("target_ratio") != "2:3"
+            or canvas.get("target_orientation") != "portrait"
+            or canvas.get("all_files_match") is not True
+            or not isinstance(canvas.get("batch_canvas_baseline"), str)
+            or not isinstance(checks, dict)
+            or set(checks) != set(GROUP_QA_ACCEPTED)
+            or any(checks.get(key) not in accepted for key, accepted in GROUP_QA_ACCEPTED.items())
+        ):
+            findings.append(f"{case_dir.name}: quality evidence is incomplete")
+
+        try:
+            declared_at = parse_iso_z(
+                source_rights.get("declared_at") if isinstance(source_rights, dict) else None
+            )
+            generated_at = parse_iso_z(
+                quality.get("generated_at") if isinstance(quality, dict) else None
+            )
+            informed_at = parse_iso_z(
+                ai_label.get("informed_at") if isinstance(ai_label, dict) else None
+            )
+            reviewed_at = parse_iso_z(
+                human_review.get("reviewed_at") if isinstance(human_review, dict) else None
+            )
+            promoted_at = parse_iso_z(rights.get("promoted_at"))
+            if not declared_at <= generated_at <= informed_at <= reviewed_at <= promoted_at:
+                raise ValueError("invalid chronology")
+        except (TypeError, ValueError):
+            findings.append(f"{case_dir.name}: evidence chronology is invalid")
+
+        notices = rights.get("notices")
+        if (
+            not isinstance(notices, list)
+            or len(notices) < 3
+            or not all(isinstance(item, str) and item.strip() for item in notices)
+            or not any("Apache-2.0" in item for item in notices)
+            or not any("AI-generated" in item for item in notices)
+            or not any("CC0" in item for item in notices)
+        ):
+            findings.append(f"{case_dir.name}: public notices are incomplete")
+
         assets = rights.get("assets")
         if not isinstance(assets, list) or len(assets) != 10:
             findings.append(f"{case_dir.name}: primary asset set is incomplete")
             assets = []
         expected_files = {"README.md", "rights.json", "hero.jpg"}
         output_original_hashes: list[str] = []
+        source_original_hashes: list[str] = []
+        generated_names: list[str] = []
+        asset_paths: list[str] = []
+        output_dimensions: list[tuple[int, int]] = []
         for asset in assets:
+            if not isinstance(asset, dict):
+                findings.append(f"{case_dir.name}: malformed primary asset")
+                continue
             path_name = asset.get("path")
             if not isinstance(path_name, str) or Path(path_name).name != path_name:
                 findings.append(f"{case_dir.name}: unsafe primary asset path")
                 continue
+            asset_paths.append(path_name)
             expected_files.add(path_name)
             path = case_dir / path_name
             try:
@@ -465,12 +720,46 @@ def validate_public_primary_cases(root: Path) -> list[str]:
                 continue
             if asset.get("public_sha256") != sha256_bytes(data):
                 findings.append(f"{case_dir.name}/{path_name}: hash mismatch")
-            if asset.get("mime") != "image/jpeg" or asset.get("bytes") != len(data) or asset.get("width") != width or asset.get("height") != height:
+            if (
+                asset.get("mime") != "image/jpeg"
+                or asset.get("bytes") != len(data)
+                or asset.get("width") != width
+                or asset.get("height") != height
+                or not isinstance(asset.get("original_sha256"), str)
+                or not SHA256.fullmatch(str(asset.get("original_sha256")))
+            ):
                 findings.append(f"{case_dir.name}/{path_name}: media evidence is incomplete")
             if asset.get("role") == "generated-final":
                 output_original_hashes.append(str(asset.get("original_sha256", "")))
+                generated_names.append(str(asset.get("name", "")))
+                output_dimensions.append((width, height))
+                if path_name != f"{asset.get('name')}.jpg":
+                    findings.append(f"{case_dir.name}/{path_name}: generated asset name is invalid")
+            elif asset.get("role") == "source":
+                source_original_hashes.append(str(asset.get("original_sha256", "")))
+                if not isinstance(asset.get("name"), str) or not CASE_ID.fullmatch(str(asset.get("name"))):
+                    findings.append(f"{case_dir.name}/{path_name}: source asset name is invalid")
+            else:
+                findings.append(f"{case_dir.name}/{path_name}: asset role is invalid")
         if len(output_original_hashes) != 6 or len(set(output_original_hashes)) != 6 or not all(SHA256.fullmatch(value) for value in output_original_hashes):
             findings.append(f"{case_dir.name}: generated output hashes are incomplete or duplicated")
+        if sorted(generated_names) != [f"look-{index}" for index in range(1, 7)]:
+            findings.append(f"{case_dir.name}: generated output names are incomplete")
+        if (
+            len(source_original_hashes) != 4
+            or len(set(source_original_hashes)) != 4
+            or len(asset_paths) != len(set(asset_paths))
+        ):
+            findings.append(f"{case_dir.name}: source assets are incomplete or duplicated")
+        if output_dimensions:
+            baseline = f"{output_dimensions[0][0]}x{output_dimensions[0][1]}"
+            if (
+                len(set(output_dimensions)) != 1
+                or output_dimensions[0][0] * 3 != output_dimensions[0][1] * 2
+                or not isinstance(canvas, dict)
+                or canvas.get("batch_canvas_baseline") != baseline
+            ):
+                findings.append(f"{case_dir.name}: output canvas evidence does not match assets")
         hero = rights.get("hero")
         try:
             hero_path = case_dir / str(hero["path"])
@@ -479,11 +768,25 @@ def validate_public_primary_cases(root: Path) -> list[str]:
         except (KeyError, TypeError, OSError, ValueError):
             findings.append(f"{case_dir.name}: social preview is invalid")
         else:
-            if hero_dimensions != (1280, 640) or len(hero_data) >= 1024 * 1024 or hero.get("sha256") != sha256_bytes(hero_data):
+            if (
+                hero.get("path") != "hero.jpg"
+                or hero.get("mime") != "image/jpeg"
+                or hero.get("bytes") != len(hero_data)
+                or hero.get("width") != 1280
+                or hero.get("height") != 640
+                or hero_dimensions != (1280, 640)
+                or len(hero_data) >= 1024 * 1024
+                or hero.get("sha256") != sha256_bytes(hero_data)
+            ):
                 findings.append(f"{case_dir.name}: social preview evidence is invalid")
         actual_files = {entry.name for entry in case_dir.iterdir() if entry.is_file() and not entry.is_symlink()}
         if actual_files != expected_files or any(entry.is_symlink() or not entry.is_file() for entry in case_dir.iterdir()):
             findings.append(f"{case_dir.name}: unregistered or missing primary case artifact")
+        try:
+            if (case_dir / "README.md").read_text(encoding="utf-8") != primary_case_readme(rights):
+                findings.append(f"{case_dir.name}: primary case README is stale")
+        except OSError:
+            findings.append(f"{case_dir.name}: primary case README is missing")
     return findings
 
 
@@ -496,7 +799,36 @@ def _zip_files(files: Iterable[tuple[Path, str]], archive: Path) -> None:
             bundle.writestr(info, path.read_bytes())
 
 
-def build_primary_media_bundle(staging: Path, case_id: str, version: str, output_dir: Path) -> tuple[Path, Path]:
+def sanitize_release_image(source: Path, destination: Path) -> None:
+    """Decode and re-encode an image without source metadata or ancillary text."""
+    from PIL import Image, ImageOps
+
+    with Image.open(source) as opened:
+        image = ImageOps.exif_transpose(opened)
+        if destination.suffix.lower() == ".jpg":
+            image.convert("RGB").save(
+                destination,
+                "JPEG",
+                quality=95,
+                optimize=True,
+                progressive=True,
+            )
+        elif destination.suffix.lower() == ".png":
+            if image.mode not in {"RGB", "RGBA"}:
+                image = image.convert("RGBA" if "transparency" in opened.info else "RGB")
+            image.save(destination, "PNG", optimize=True)
+        else:
+            raise ValueError("unsupported release image type")
+
+
+def build_primary_media_bundle(
+    staging: Path,
+    case_id: str,
+    version: str,
+    output_dir: Path,
+    *,
+    sanitizer: Callable[[Path, Path], None] = sanitize_release_image,
+) -> tuple[Path, Path]:
     findings = validate_staged_primary_case(staging)
     if findings:
         raise ValueError("primary demo validation failed: " + ", ".join(findings))
@@ -506,24 +838,124 @@ def build_primary_media_bundle(staging: Path, case_id: str, version: str, output
     checksum = output_dir / f"{root_name}.zip.sha256"
     rights = read_json(staging / "rights-declaration.json")
     run = read_json(staging / "final-run.json")
-    selected: list[tuple[Path, str]] = []
-    manifest_lines: list[str] = []
-    for record_name in ("rights-declaration.json", "final-run.json", "final-prompts.md"):
-        path = staging / record_name
-        selected.append((path, f"{root_name}/{record_name}"))
-        manifest_lines.append(f"{sha256_file(path)}  {record_name}")
-    for source in rights["sources"]:
-        path = safe_child(staging, source["path"])
-        relative = f"sources/{path.name}"
-        selected.append((path, f"{root_name}/{relative}"))
-        manifest_lines.append(f"{sha256_file(path)}  {relative}")
-    for output in run["outputs"]:
-        path = safe_child(staging, output["path"])
-        relative = f"finals/{path.name}"
-        selected.append((path, f"{root_name}/{relative}"))
-        manifest_lines.append(f"{sha256_file(path)}  {relative}")
     with tempfile.TemporaryDirectory() as temp_dir:
-        manifest = Path(temp_dir) / "SHA256SUMS"
+        temporary = Path(temp_dir)
+        selected: list[tuple[Path, str]] = []
+        manifest_lines: list[str] = []
+        source_evidence: list[dict[str, object]] = []
+        output_evidence: list[dict[str, object]] = []
+
+        for source in rights["sources"]:
+            original = safe_child(staging, source["path"])
+            relative = f"sources/{original.name}"
+            clean = temporary / relative
+            clean.parent.mkdir(parents=True, exist_ok=True)
+            sanitizer(original, clean)
+            width, height = jpeg_dimensions(clean.read_bytes())
+            release_hash = sha256_file(clean)
+            selected.append((clean, f"{root_name}/{relative}"))
+            manifest_lines.append(f"{release_hash}  {relative}")
+            source_evidence.append(
+                {
+                    "role": source["role"],
+                    "path": relative,
+                    "original_sha256": source["sha256"],
+                    "release_sha256": release_hash,
+                    "pixels": f"{width}x{height}",
+                }
+            )
+
+        for output in run["outputs"]:
+            original = safe_child(staging, output["path"])
+            relative = f"finals/{original.name}"
+            clean = temporary / relative
+            clean.parent.mkdir(parents=True, exist_ok=True)
+            sanitizer(original, clean)
+            width, height = png_dimensions(clean.read_bytes())
+            release_hash = sha256_file(clean)
+            selected.append((clean, f"{root_name}/{relative}"))
+            manifest_lines.append(f"{release_hash}  {relative}")
+            output_evidence.append(
+                {
+                    "look": output["look"],
+                    "path": relative,
+                    "original_sha256": output["sha256"],
+                    "release_sha256": release_hash,
+                    "pixels": f"{width}x{height}",
+                    "qa": output["qa"],
+                    "user_review": output["user_review"],
+                }
+            )
+
+        public_rights = {
+            "schema_version": SCHEMA_VERSION,
+            "case_id": case_id,
+            "work_id": rights["work_id"],
+            "status": rights["status"],
+            "reviewer": rights["reviewer"],
+            "declared_at": rights["declared_at"],
+            "declaration": rights["declaration"],
+            "public_use_authorized": rights["public_use_authorized"],
+            "project_media_policy_accepted": rights["project_media_policy_accepted"],
+            "source_model_display_authorized": rights["source_model_display_authorized"],
+            "media_license": {
+                "id": "CC0-1.0",
+                "url": CC0_URL,
+                "scope": "Included media to the extent the project can grant rights.",
+            },
+            "sources": source_evidence,
+        }
+        public_run = {
+            "schema_version": SCHEMA_VERSION,
+            "case_id": case_id,
+            "work_id": run["work_id"],
+            "generated_at": run["generated_at"],
+            "action": run["action"],
+            "style": run["style"],
+            "mode": run["mode"],
+            "route": run["route"],
+            "output_form": run["output_form"],
+            "state": run["state"],
+            "identity_anchor": "finals/look-1.png",
+            "canvas_contract": run["canvas_contract"],
+            "generation_calls": run["generation_calls"],
+            "expected_images": run["expected_images"],
+            "actual_images": run["actual_images"],
+            "preview_images_included": run["preview_images_included"],
+            "outputs": output_evidence,
+            "group_qa": {
+                key: run["group_qa"][key]
+                for key in GROUP_QA_ACCEPTED
+            },
+            "human_review": run["group_qa"]["user_review_closure"],
+            "ai_content_label": {
+                "status": "required-and-disclosed",
+                "informed_at": run["ai_content_label_notice"]["informed_at"],
+            },
+        }
+        rights_path = temporary / "rights.json"
+        run_path = temporary / "run-evidence.json"
+        readme_path = temporary / "README.md"
+        write_json(rights_path, public_rights)
+        write_json(run_path, public_run)
+        readme_path.write_text(
+            f"""# ThreadTruth Studio primary media — {case_id}
+
+This bundle contains four authorized real-garment sources and six independently generated, human-accepted final PNGs for the `{run['style']}` route `{run['route']}`.
+
+All images were decoded and re-encoded before packaging to remove embedded metadata while preserving the recorded canvas. The results are AI-generated media and require applicable synthetic-content labeling. Apache-2.0 does not cover media; the included media is offered under CC0 only to the extent the project can grant rights.
+""",
+            encoding="utf-8",
+        )
+        for path, name in (
+            (readme_path, "README.md"),
+            (rights_path, "rights.json"),
+            (run_path, "run-evidence.json"),
+        ):
+            selected.append((path, f"{root_name}/{name}"))
+            manifest_lines.append(f"{sha256_file(path)}  {name}")
+
+        manifest = temporary / "SHA256SUMS"
         manifest.write_text("\n".join(manifest_lines) + "\n", encoding="utf-8")
         selected.append((manifest, f"{root_name}/SHA256SUMS"))
         _zip_files(selected, archive)
@@ -534,7 +966,8 @@ def build_primary_media_bundle(staging: Path, case_id: str, version: str, output
 
 def validate_style_index(root: Path) -> list[str]:
     findings: list[str] = []
-    path = root.resolve() / "docs" / "demo" / "style-index.json"
+    demo_root = root.resolve() / "docs" / "demo"
+    path = demo_root / "style-index.json"
     try:
         index = read_json(path)
     except (OSError, ValueError, json.JSONDecodeError):
@@ -547,20 +980,82 @@ def validate_style_index(root: Path) -> list[str]:
     slugs = [item.get("slug") for item in styles if isinstance(item, dict)]
     if len(styles) != 24 or set(slugs) != pack_slugs or len(slugs) != len(set(slugs)):
         findings.append("style index does not cover 24 unique packs")
-    if sum(item.get("featured") is True for item in styles if isinstance(item, dict)) != 8:
-        findings.append("style index must define exactly eight featured styles")
-    if sum(item.get("full_case") in {"ready", "planned"} for item in styles if isinstance(item, dict)) != 3:
-        findings.append("style index must define exactly three full primary cases")
+    featured = {
+        item.get("slug")
+        for item in styles
+        if isinstance(item, dict) and item.get("featured") is True
+    }
+    if featured != FEATURED_STYLES:
+        findings.append("style index must define the approved eight featured styles")
+    full_cases = {
+        item.get("slug")
+        for item in styles
+        if isinstance(item, dict) and item.get("full_case") in {"ready", "planned"}
+    }
+    if full_cases != FULL_CASE_STYLES:
+        findings.append("style index must define the approved three full primary cases")
+
+    approved_images: dict[str, tuple[str, dict[str, object]]] = {}
+    primary_root = demo_root / "primary-cases"
+    if primary_root.is_dir():
+        for rights_path in primary_root.glob("*/rights.json"):
+            try:
+                rights = read_json(rights_path)
+            except (OSError, ValueError, json.JSONDecodeError):
+                continue
+            if (
+                rights.get("status") != "promoted"
+                or rights.get("role") != "primary"
+                or rights.get("style") not in SUPPORTED_STYLES
+            ):
+                continue
+            for asset in rights.get("assets", []):
+                if isinstance(asset, dict) and asset.get("role") == "generated-final":
+                    relative = f"primary-cases/{rights_path.parent.name}/{asset.get('path', '')}"
+                    approved_images[relative] = (str(rights["style"]), asset)
+
+    ready_images: list[str] = []
     for item in styles:
         if not isinstance(item, dict) or item.get("status") not in {"ready", "planned"}:
             findings.append("style index contains an invalid status")
             continue
+        if (
+            item.get("slug") not in SUPPORTED_STYLES
+            or not isinstance(item.get("display_name"), str)
+            or not str(item.get("display_name")).strip()
+            or not isinstance(item.get("source_family"), str)
+            or not str(item.get("source_family")).strip()
+            or not isinstance(item.get("beta_week"), int)
+            or not 0 <= item.get("beta_week") <= 4
+        ):
+            findings.append(f"{item.get('slug')}: style index metadata is incomplete")
         image = item.get("representative_image")
         if item["status"] == "ready":
-            if not isinstance(image, str) or not safe_child(path.parent, image).is_file():
+            try:
+                image_path = safe_child(demo_root, image)
+                data = image_path.read_bytes()
+                jpeg_dimensions(data)
+            except (OSError, TypeError, ValueError):
                 findings.append(f"{item.get('slug')}: ready style lacks a representative image")
+                continue
+            ready_images.append(str(image))
+            approval = approved_images.get(str(image))
+            if (
+                image_path.suffix.lower() != ".jpg"
+                or approval is None
+                or approval[0] != item.get("slug")
+                or approval[1].get("mime") != "image/jpeg"
+                or approval[1].get("public_sha256") != sha256_bytes(data)
+            ):
+                findings.append(f"{item.get('slug')}: representative is not bound to approved rights")
+            if item.get("full_case") == "ready" and approval is None:
+                findings.append(f"{item.get('slug')}: ready full case lacks approved evidence")
         elif image is not None:
             findings.append(f"{item.get('slug')}: planned style must not claim an image")
+        elif item.get("full_case") == "ready":
+            findings.append(f"{item.get('slug')}: ready full case cannot be planned")
+    if len(ready_images) != len(set(ready_images)):
+        findings.append("style index reuses a representative image")
     return findings
 
 

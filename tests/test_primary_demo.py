@@ -1,6 +1,7 @@
 import hashlib
 import importlib.util
 import json
+import shutil
 import struct
 import tempfile
 import unittest
@@ -191,6 +192,31 @@ class PrimaryDemoTests(unittest.TestCase):
             (staging / "finals" / "look-2.png").write_bytes(minimal_png(color=99))
             self.assertIn("ASSET_HASH_MISMATCH", module.validate_staged_primary_case(staging))
 
+    def test_staged_case_rejects_duplicate_sources_unknown_style_failed_qa_and_bad_timestamps(self):
+        module = load_module()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            staging = write_staging(Path(temp_dir))
+            rights_path = staging / "rights-declaration.json"
+            run_path = staging / "final-run.json"
+            rights = json.loads(rights_path.read_text())
+            rights["sources"][1] = dict(rights["sources"][0])
+            rights["declared_at"] = "not-a-time"
+            rights_path.write_text(json.dumps(rights))
+            run = json.loads(run_path.read_text())
+            run["style"] = "fabricated-style"
+            run["identity_anchor"] = "finals/look-2.png"
+            run["group_qa"]["identity_consistency"] = "fail"
+            run["group_qa"]["garment_hard_facts"] = "fail"
+            run["ai_content_label_notice"].pop("informed_at")
+            run_path.write_text(json.dumps(run))
+
+            findings = module.validate_staged_primary_case(staging)
+            self.assertIn("SOURCE_SET_DUPLICATED", findings)
+            self.assertIn("STYLE_UNREGISTERED", findings)
+            self.assertIn("IDENTITY_ANCHOR_INVALID", findings)
+            self.assertIn("GROUP_QA_INCOMPLETE", findings)
+            self.assertIn("EVIDENCE_TIMESTAMP_INVALID", findings)
+
     def test_promotion_writes_primary_rights_and_public_assets(self):
         module = load_module()
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -201,7 +227,8 @@ class PrimaryDemoTests(unittest.TestCase):
 
             def converter(_source, destination):
                 counter["value"] += 1
-                destination.write_bytes(minimal_jpeg(640, 960, counter["value"]))
+                dimensions = (640, 960) if counter["value"] <= 4 else (1024, 1536)
+                destination.write_bytes(minimal_jpeg(*dimensions, counter["value"]))
 
             def compositor(_sources, destination):
                 destination.write_bytes(minimal_jpeg(1280, 640, 77))
@@ -229,6 +256,55 @@ class PrimaryDemoTests(unittest.TestCase):
                 any("hash" in finding for finding in module.validate_public_primary_cases(root))
             )
 
+    def test_public_validator_rejects_rights_quality_and_chronology_tampering(self):
+        module = load_module()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / "docs" / "demo").mkdir(parents=True)
+            staging = write_staging(root)
+            counter = {"value": 0}
+
+            def converter(_source, destination):
+                counter["value"] += 1
+                dimensions = (640, 960) if counter["value"] <= 4 else (1024, 1536)
+                destination.write_bytes(minimal_jpeg(*dimensions, counter["value"]))
+
+            def compositor(_sources, destination):
+                destination.write_bytes(minimal_jpeg(1280, 640, 77))
+
+            module.promote_primary_case(
+                root,
+                staging,
+                "white-vest-korean-cold",
+                promoted_at="2026-09-12T18:00:00Z",
+                converter=converter,
+                compositor=compositor,
+            )
+            rights_path = (
+                root
+                / "docs"
+                / "demo"
+                / "primary-cases"
+                / "white-vest-korean-cold"
+                / "rights.json"
+            )
+            original = json.loads(rights_path.read_text())
+            mutations = (
+                lambda value: value.update(schema_version="999"),
+                lambda value: value.pop("source_rights"),
+                lambda value: value.update(route="B2"),
+                lambda value: value["quality"].update(state="image-draft"),
+                lambda value: value["quality"]["checks"].update(garment_hard_facts="fail"),
+                lambda value: value["human_review"].pop("confirmation"),
+                lambda value: value["ai_content_label"].pop("informed_at"),
+                lambda value: value.update(promoted_at="2026-09-12T00:00:00Z"),
+            )
+            for mutate in mutations:
+                tampered = json.loads(json.dumps(original))
+                mutate(tampered)
+                rights_path.write_text(json.dumps(tampered))
+                self.assertTrue(module.validate_public_primary_cases(root))
+
     def test_media_bundle_contains_exact_originals_and_no_preview(self):
         module = load_module()
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -236,7 +312,11 @@ class PrimaryDemoTests(unittest.TestCase):
             staging = write_staging(root)
             output = root / "dist"
             archive, checksum = module.build_primary_media_bundle(
-                staging, "white-vest-korean-cold", "1.0.0-beta.1", output
+                staging,
+                "white-vest-korean-cold",
+                "1.0.0-beta.1",
+                output,
+                sanitizer=lambda source, destination: shutil.copyfile(source, destination),
             )
             self.assertTrue(checksum.is_file())
             with zipfile.ZipFile(archive) as bundle:
@@ -245,6 +325,36 @@ class PrimaryDemoTests(unittest.TestCase):
             self.assertEqual(sum("/sources/" in name for name in names), 4)
             self.assertFalse(any("generated-tests" in name or "preview" in name for name in names))
             self.assertTrue(any(name.endswith("SHA256SUMS") for name in names))
+            self.assertFalse(any(name.endswith("final-prompts.md") for name in names))
+            self.assertTrue(any(name.endswith("README.md") for name in names))
+            self.assertTrue(any(name.endswith("rights.json") for name in names))
+            self.assertTrue(any(name.endswith("run-evidence.json") for name in names))
+
+    def test_media_sanitizer_strips_jpeg_exif_and_png_text(self):
+        module = load_module()
+        from PIL import Image, PngImagePlugin
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            jpeg = root / "input.jpg"
+            png = root / "input.png"
+            clean_jpeg = root / "clean.jpg"
+            clean_png = root / "clean.png"
+            image = Image.new("RGB", (32, 48), "white")
+            exif = Image.Exif()
+            exif[0x010E] = "/private/customer/source.jpg"
+            image.save(jpeg, exif=exif)
+            png_info = PngImagePlugin.PngInfo()
+            png_info.add_text("prompt", "private customer prompt")
+            image.save(png, pnginfo=png_info)
+
+            module.sanitize_release_image(jpeg, clean_jpeg)
+            module.sanitize_release_image(png, clean_png)
+            with Image.open(clean_jpeg) as opened:
+                self.assertEqual(len(opened.getexif()), 0)
+                self.assertNotIn("comment", opened.info)
+            with Image.open(clean_png) as opened:
+                self.assertNotIn("prompt", opened.info)
 
     def test_style_index_covers_every_pack_without_claiming_planned_images(self):
         module = load_module()
@@ -258,6 +368,37 @@ class PrimaryDemoTests(unittest.TestCase):
         for item in index["styles"]:
             if item["status"] == "planned":
                 self.assertIsNone(item["representative_image"])
+
+    def test_style_index_binds_ready_images_to_matching_rights_and_fixed_full_cases(self):
+        module = load_module()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            shutil.copytree(ROOT / "docs" / "demo", root / "docs" / "demo")
+            shutil.copytree(
+                ROOT / "skills" / "threadtruth-studio" / "references" / "styles",
+                root / "skills" / "threadtruth-studio" / "references" / "styles",
+            )
+            index_path = root / "docs" / "demo" / "style-index.json"
+            original = json.loads(index_path.read_text())
+
+            arbitrary = json.loads(json.dumps(original))
+            old_money = next(item for item in arbitrary["styles"] if item["slug"] == "old-money")
+            old_money["status"] = "ready"
+            old_money["representative_image"] = "README.md"
+            index_path.write_text(json.dumps(arbitrary))
+            module.render_style_pages(root)
+            self.assertTrue(module.validate_style_index(root))
+
+            drifted = json.loads(json.dumps(original))
+            next(item for item in drifted["styles"] if item["slug"] == "ecommerce-studio")[
+                "full_case"
+            ] = "none"
+            next(item for item in drifted["styles"] if item["slug"] == "old-money")[
+                "full_case"
+            ] = "planned"
+            index_path.write_text(json.dumps(drifted))
+            module.render_style_pages(root)
+            self.assertTrue(module.validate_style_index(root))
 
 
 if __name__ == "__main__":

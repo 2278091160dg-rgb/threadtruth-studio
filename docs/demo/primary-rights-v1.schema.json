@@ -3,19 +3,123 @@
   "$id": "https://github.com/2278091160dg-rgb/threadtruth-studio/raw/main/docs/demo/primary-rights-v1.schema.json",
   "title": "ThreadTruth Studio primary demo rights record v1",
   "type": "object",
+  "additionalProperties": false,
   "required": ["schema_version", "case_id", "work_id", "status", "role", "primary_demo_status", "style", "route", "source_rights", "media_license", "assets", "hero", "quality", "human_review", "ai_content_label", "promoted_at", "notices"],
   "properties": {
     "schema_version": {"const": "1.0"},
     "case_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"},
+    "work_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"},
     "status": {"const": "promoted"},
     "role": {"const": "primary"},
     "primary_demo_status": {"const": "ready"},
+    "style": {"type": "string"},
     "route": {"const": "B1"},
-    "media_license": {"type": "object", "required": ["id", "url"], "properties": {"id": {"const": "CC0-1.0"}, "url": {"const": "https://creativecommons.org/publicdomain/zero/1.0/"}}},
-    "assets": {"type": "array", "minItems": 10, "maxItems": 10, "items": {"type": "object", "required": ["role", "name", "path", "original_sha256", "public_sha256", "mime", "bytes", "width", "height"]}},
-    "quality": {"type": "object", "required": ["state", "expected_images", "actual_images", "preview_images_included", "generation_calls", "canvas_contract", "unique_original_output_hashes"], "properties": {"state": {"const": "image-ready"}, "expected_images": {"const": 6}, "actual_images": {"const": 6}, "preview_images_included": {"const": 0}, "generation_calls": {"const": 6}, "unique_original_output_hashes": {"const": 6}}},
-    "human_review": {"type": "object", "required": ["status", "reviewer", "reviewed_at", "confirmation"], "properties": {"status": {"const": "closed"}}},
-    "ai_content_label": {"type": "object", "required": ["status", "informed_at"], "properties": {"status": {"const": "required-and-disclosed"}}},
-    "notices": {"type": "array", "minItems": 3, "items": {"type": "string"}}
+    "source_rights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reviewer", "declared_at", "declaration", "public_use_authorized", "project_media_policy_accepted", "source_model_display_authorized"],
+      "properties": {
+        "reviewer": {"type": "string", "pattern": "^github:[A-Za-z0-9-]+$"},
+        "declared_at": {"type": "string", "format": "date-time"},
+        "declaration": {"type": "string", "minLength": 1},
+        "public_use_authorized": {"const": true},
+        "project_media_policy_accepted": {"const": true},
+        "source_model_display_authorized": {"const": true}
+      }
+    },
+    "media_license": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "url", "scope"],
+      "properties": {
+        "id": {"const": "CC0-1.0"},
+        "url": {"const": "https://creativecommons.org/publicdomain/zero/1.0/"},
+        "scope": {"type": "string", "minLength": 1}
+      }
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "name", "path", "original_sha256", "public_sha256", "mime", "bytes", "width", "height"],
+        "properties": {
+          "role": {"enum": ["source", "generated-final"]},
+          "name": {"type": "string", "minLength": 1},
+          "path": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*\\.jpg$"},
+          "original_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "public_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "mime": {"const": "image/jpeg"},
+          "bytes": {"type": "integer", "minimum": 1},
+          "width": {"type": "integer", "minimum": 1},
+          "height": {"type": "integer", "minimum": 1}
+        }
+      }
+    },
+    "hero": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "mime", "bytes", "width", "height"],
+      "properties": {
+        "path": {"const": "hero.jpg"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "mime": {"const": "image/jpeg"},
+        "bytes": {"type": "integer", "minimum": 1, "maximum": 1048575},
+        "width": {"const": 1280},
+        "height": {"const": 640}
+      }
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "generated_at", "expected_images", "actual_images", "preview_images_included", "generation_calls", "canvas_contract", "unique_original_output_hashes", "checks"],
+      "properties": {
+        "state": {"const": "image-ready"},
+        "generated_at": {"type": "string", "format": "date-time"},
+        "expected_images": {"const": 6},
+        "actual_images": {"const": 6},
+        "preview_images_included": {"const": 0},
+        "generation_calls": {"const": 6},
+        "unique_original_output_hashes": {"const": 6},
+        "canvas_contract": {
+          "type": "object",
+          "required": ["target_ratio", "target_orientation", "batch_canvas_baseline", "all_files_match"],
+          "properties": {
+            "target_ratio": {"const": "2:3"},
+            "target_orientation": {"const": "portrait"},
+            "batch_canvas_baseline": {"type": "string", "pattern": "^[1-9][0-9]*x[1-9][0-9]*$"},
+            "all_files_match": {"const": true}
+          }
+        },
+        "checks": {
+          "type": "object",
+          "required": ["file_count", "unique_hashes", "canvas_ratio", "pixel_consistency", "identity_consistency", "garment_hard_facts"]
+        }
+      }
+    },
+    "human_review": {
+      "type": "object",
+      "required": ["status", "reviewer", "reviewed_at", "confirmation", "closed_items"],
+      "properties": {
+        "status": {"const": "closed"},
+        "reviewer": {"type": "string", "pattern": "^github:[A-Za-z0-9-]+$"},
+        "reviewed_at": {"type": "string", "format": "date-time"},
+        "confirmation": {"type": "string", "minLength": 1},
+        "closed_items": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "ai_content_label": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "informed_at"],
+      "properties": {
+        "status": {"const": "required-and-disclosed"},
+        "informed_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "promoted_at": {"type": "string", "format": "date-time"},
+    "notices": {"type": "array", "minItems": 3, "items": {"type": "string", "minLength": 1}}
   }
 }

@@ -12,6 +12,7 @@
     "declared_at": "2026-09-12T17:01:47Z",
     "declaration": "我确认 6.jpg、7.jpg、8.jpg、14.jpg 为我方自有或已经获得充分授权，可以用于 ThreadTruth Studio 公开主案例并按项目媒体政策提供；14.jpg 中的模特展示也已获得公开使用授权。",
     "public_use_authorized": true,
+    "project_media_policy_accepted": true,
     "source_model_display_authorized": true
   },
   "media_license": {
@@ -141,6 +142,7 @@
   },
   "quality": {
     "state": "image-ready",
+    "generated_at": "2026-09-12T17:34:53Z",
     "expected_images": 6,
     "actual_images": 6,
     "preview_images_included": 0,
@@ -151,13 +153,26 @@
       "batch_canvas_baseline": "1024x1536",
       "all_files_match": true
     },
-    "unique_original_output_hashes": 6
+    "unique_original_output_hashes": 6,
+    "checks": {
+      "file_count": "pass",
+      "unique_hashes": "pass",
+      "canvas_ratio": "pass",
+      "pixel_consistency": "pass",
+      "identity_consistency": "no blocking visual drift observed",
+      "garment_hard_facts": "no blocking visual drift observed"
+    }
   },
   "human_review": {
     "status": "closed",
     "reviewer": "github:2278091160dg-rgb",
     "reviewed_at": "2026-09-12T17:38:24Z",
-    "confirmation": "我已对照源图检查 look-1 至 look-6，接受当前服饰细节、模特一致性和六张成片；同意将该组标记为 image-ready。"
+    "confirmation": "我已对照源图检查 look-1 至 look-6，接受当前服饰细节、模特一致性和六张成片；同意将该组标记为 image-ready。",
+    "closed_items": [
+      "garment detail fidelity",
+      "model identity consistency",
+      "six-image set acceptance"
+    ]
   },
   "ai_content_label": {
     "status": "required-and-disclosed",
