@@ -36,7 +36,24 @@ class PreviewTests(unittest.TestCase):
 
     def prepare(self):
         self.m = module()
-        return self.m.prepare(self.root, "test-run", "beige-blazer-denim-outfit")
+        run = self.m.prepare(self.root, "test-run", "beige-blazer-denim-outfit")
+        self.batch_for_style = {}
+        for batch_number, offset in enumerate(range(0, 24, 6), start=1):
+            styles = [preview["style"] for preview in run["previews"][offset:offset + 6]]
+            manifest = {
+                "schema_version": "1.0",
+                "batch_id": f"outfit-batch-{batch_number:02d}",
+                "run_id": "test-run",
+                "styles": styles,
+                "maximum_calls": 6,
+                "authorization_sha256": str(batch_number) * 64,
+                "authorized_at": f"2026-09-14T0{batch_number}:00:00Z",
+                "scope": "serial-native-generation;no-auto-retry",
+            }
+            run = self.m.register_batch(self.root, "test-run", manifest)
+            for style in styles:
+                self.batch_for_style[style] = manifest
+        return run
 
     def test_v5_outfit_plan_binds_one_source_and_every_outfit_fact(self):
         self.m = module()
@@ -99,12 +116,68 @@ class PreviewTests(unittest.TestCase):
                 mutate()
 
     def generation(self, preview, number, *, call_id=None):
+        manifest = self.batch_for_style[preview["style"]]
         return {
             "tool": "native-imagegen",
-            "call_id": call_id or f"test-call-{number}",
-            "generated_at": "2026-09-13T01:00:00Z",
+            "call_id": f"test-call-{number}" if call_id is None else call_id,
+            "generated_at": "2026-09-14T08:10:00Z",
             "prompt_sha256": preview["prompt_sha256"],
+            "batch_id": manifest["batch_id"],
+            "authorization_sha256": manifest["authorization_sha256"],
+            "model_docs_url": "https://learn.chatgpt.com/docs/image-generation",
+            "model_docs_verified_at": "2026-09-14",
+            "per_call_model": "unavailable",
         }
+
+    def test_four_batches_are_immutable_ordered_and_non_overlapping(self):
+        self.m = module()
+        run = self.m.prepare(self.root, "batch-run", "beige-blazer-denim-outfit")
+        styles = [preview["style"] for preview in run["previews"]]
+
+        def manifest(number, selected):
+            return {
+                "schema_version": "1.0",
+                "batch_id": f"outfit-batch-{number:02d}",
+                "run_id": "batch-run",
+                "styles": selected,
+                "maximum_calls": 6,
+                "authorization_sha256": str(number) * 64,
+                "authorized_at": f"2026-09-14T0{number}:00:00Z",
+                "scope": "serial-native-generation;no-auto-retry",
+            }
+
+        first = manifest(1, styles[:6])
+        registered = self.m.register_batch(self.root, "batch-run", first)
+        self.assertEqual(self.m.register_batch(self.root, "batch-run", first), registered)
+        changed = copy.deepcopy(first)
+        changed["styles"] = list(reversed(changed["styles"]))
+        with self.assertRaisesRegex(ValueError, "immutable"):
+            self.m.register_batch(self.root, "batch-run", changed)
+        with self.assertRaisesRegex(ValueError, "overlap"):
+            self.m.register_batch(self.root, "batch-run", manifest(2, styles[5:11]))
+        with self.assertRaisesRegex(ValueError, "one through six"):
+            self.m.register_batch(self.root, "batch-run", manifest(2, styles[6:13]))
+        for number, offset in ((2, 6), (3, 12), (4, 18)):
+            self.m.register_batch(self.root, "batch-run", manifest(number, styles[offset:offset + 6]))
+        with self.assertRaisesRegex(ValueError, "four batches"):
+            self.m.register_batch(self.root, "batch-run", manifest(5, [styles[0]]))
+
+    def test_generation_is_bound_to_registered_batch_authorization(self):
+        run = self.prepare()
+        preview = run["previews"][0]
+        generation = self.generation(preview, 1, call_id=None)
+        generation["call_id"] = None
+        record = self.m.ingest(self.root, "test-run", preview["style"], self.image(1), generation)
+        self.assertIsNone(record["previews"][0]["generation"]["call_id"])
+        second = run["previews"][1]
+        wrong_batch = self.generation(second, 2)
+        wrong_batch["batch_id"] = self.batch_for_style[run["previews"][6]["style"]]["batch_id"]
+        with self.assertRaisesRegex(ValueError, "outside registered batch"):
+            self.m.ingest(self.root, "test-run", second["style"], self.image(2), wrong_batch)
+        wrong_hash = self.generation(second, 2)
+        wrong_hash["authorization_sha256"] = "f" * 64
+        with self.assertRaisesRegex(ValueError, "authorization hash"):
+            self.m.ingest(self.root, "test-run", second["style"], self.image(2), wrong_hash)
 
     def image(self, number, size=(900, 900)):
         path = self.root / f"input-{number}.png"
@@ -128,7 +201,7 @@ class PreviewTests(unittest.TestCase):
         review = self.m.review_template(record, style)
         review.update(
             reviewer="github:test-human",
-            reviewed_at="2026-09-13T02:00:00Z",
+            reviewed_at="2026-09-14T09:00:00Z",
             confirmation=self.m.confirmation(style),
             public_use_approved=True,
         )
@@ -478,6 +551,7 @@ class PreviewTests(unittest.TestCase):
         correction_prompt = "1" * 64
         generation = self.generation(preview, 1)
         generation["prompt_sha256"] = correction_prompt
+        generation["authorization_sha256"] = "2" * 64
         correction = {
             "kind": "targeted-correction",
             "reason_code": "maintainer-requested-visual-fix",

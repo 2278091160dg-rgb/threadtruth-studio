@@ -5,7 +5,7 @@
   "description": "Schema 5 binds a selected controlled source, exact runtime rules, registered style packs, native generation evidence, deterministic display composition and human review. Python validation enforces hashes, paths, batch authorization and promotion state.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "run_id", "role", "status", "source", "identity_anchor", "rules", "ai_label", "previews"],
+  "required": ["schema_version", "run_id", "role", "status", "source", "identity_anchor", "rules", "ai_label", "batches", "previews"],
   "properties": {
     "schema_version": {"const": "5.0"},
     "run_id": {"$ref": "#/$defs/id"},
@@ -28,11 +28,43 @@
     "identity_anchor": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/sourceAsset"}]},
     "rules": {"type": "object"},
     "ai_label": {"type": "string"},
-    "previews": {"type": "array", "minItems": 24, "maxItems": 24, "uniqueItems": true, "items": {"type": "object"}}
+    "batches": {"type": "array", "minItems": 0, "maxItems": 4, "uniqueItems": true, "items": {"$ref": "#/$defs/batch"}},
+    "previews": {"type": "array", "minItems": 24, "maxItems": 24, "uniqueItems": true, "items": {"type": "object", "properties": {"generation": {"$ref": "#/$defs/generation"}}}}
   },
   "$defs": {
     "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"},
     "hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "batch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "batch_id", "run_id", "styles", "maximum_calls", "authorization_sha256", "authorized_at", "scope"],
+      "properties": {
+        "schema_version": {"const": "1.0"},
+        "batch_id": {"$ref": "#/$defs/id"},
+        "run_id": {"$ref": "#/$defs/id"},
+        "styles": {"type": "array", "minItems": 1, "maxItems": 6, "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+        "maximum_calls": {"type": "integer", "minimum": 1, "maximum": 6},
+        "authorization_sha256": {"$ref": "#/$defs/hash"},
+        "authorized_at": {"type": "string", "format": "date-time", "pattern": "Z$"},
+        "scope": {"const": "serial-native-generation;no-auto-retry"}
+      }
+    },
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool", "call_id", "generated_at", "prompt_sha256", "batch_id", "authorization_sha256", "model_docs_url", "model_docs_verified_at", "per_call_model"],
+      "properties": {
+        "tool": {"const": "native-imagegen"},
+        "call_id": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/id"}]},
+        "generated_at": {"type": "string", "format": "date-time", "pattern": "Z$"},
+        "prompt_sha256": {"$ref": "#/$defs/hash"},
+        "batch_id": {"$ref": "#/$defs/id"},
+        "authorization_sha256": {"$ref": "#/$defs/hash"},
+        "model_docs_url": {"const": "https://learn.chatgpt.com/docs/image-generation"},
+        "model_docs_verified_at": {"const": "2026-09-14"},
+        "per_call_model": {"const": "unavailable"}
+      }
+    },
     "sourceAsset": {
       "type": "object",
       "additionalProperties": false,

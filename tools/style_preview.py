@@ -42,6 +42,8 @@ RULE_PATHS = {
 }
 AI_LABEL = "AI-generated style preview — not six independent final images."
 PREVIEW_MARK = "AI生成 · 方向预览 · 非成片 / PREVIEW ONLY — NOT FINAL"
+MODEL_DOCS_URL = "https://learn.chatgpt.com/docs/image-generation"
+MODEL_DOCS_VERIFIED_AT = "2026-09-14"
 HISTORICAL_SCHEMAS = {"1.0", "2.0", "3.0"}
 LEGACY_SCHEMAS = HISTORICAL_SCHEMAS
 FROZEN_PUBLIC_SCHEMA = "4.0"
@@ -344,7 +346,8 @@ def _plan_v5(root, run_id, source_case):
         previews.append(preview)
     return {
         "schema_version": CURRENT_SCHEMA, "run_id": run_id, "role": "style-preview", "status": "prepared",
-        "source": source, "identity_anchor": anchor, "rules": rules, "ai_label": AI_LABEL, "previews": previews,
+        "source": source, "identity_anchor": anchor, "rules": rules, "ai_label": AI_LABEL,
+        "batches": [], "previews": previews,
     }
 
 
@@ -360,6 +363,85 @@ def _require_mutable_v5(record):
         raise ValueError(_legacy_error(schema))
     if schema != CURRENT_SCHEMA:
         raise ValueError("unsupported preview schema")
+
+
+def _validated_batch(record, manifest):
+    required = {
+        "schema_version", "batch_id", "run_id", "styles", "maximum_calls",
+        "authorization_sha256", "authorized_at", "scope",
+    }
+    if not isinstance(manifest, dict) or set(manifest) != required:
+        raise ValueError("batch manifest fields invalid")
+    if manifest["schema_version"] != "1.0" or not ID.fullmatch(str(manifest["batch_id"])):
+        raise ValueError("batch manifest fields invalid")
+    if manifest["run_id"] != record["run_id"]:
+        raise ValueError("batch run id mismatch")
+    styles = manifest["styles"]
+    if not isinstance(styles, list) or not 1 <= len(styles) <= 6 or len(styles) != len(set(styles)):
+        raise ValueError("batch requires one through six unique styles")
+    planned = [preview["style"] for preview in record["previews"]]
+    if any(style not in planned for style in styles) or styles != [style for style in planned if style in styles]:
+        raise ValueError("batch styles must preserve planned order")
+    if type(manifest["maximum_calls"]) is not int or manifest["maximum_calls"] != len(styles):
+        raise ValueError("batch maximum_calls must equal its one through six styles")
+    if not HASH.fullmatch(str(manifest["authorization_sha256"])):
+        raise ValueError("batch authorization hash missing")
+    _primary().parse_iso_z(manifest["authorized_at"])
+    if manifest["scope"] != "serial-native-generation;no-auto-retry":
+        raise ValueError("batch scope must require serial generation and no auto retry")
+    return copy.deepcopy(manifest)
+
+
+def _check_batches(record, directory=None, require_complete=False):
+    batches = record.get("batches")
+    if not isinstance(batches, list) or len(batches) > 4:
+        raise ValueError("at most four batches are allowed")
+    validated = [_validated_batch(record, batch) for batch in batches]
+    ids = [batch["batch_id"] for batch in validated]
+    styles = [style for batch in validated for style in batch["styles"]]
+    if len(ids) != len(set(ids)):
+        raise ValueError("duplicate batch id")
+    if len(styles) != len(set(styles)):
+        raise ValueError("batch style overlap")
+    if directory is not None:
+        batch_dir = directory / "batches"
+        actual = sorted(path.name for path in batch_dir.glob("*.json")) if batch_dir.is_dir() else []
+        expected = sorted(f"{batch_id}.json" for batch_id in ids)
+        if actual != expected:
+            raise ValueError("local batch manifest set mismatch")
+        for batch in validated:
+            if read_json(child(directory, f"batches/{batch['batch_id']}.json")) != batch:
+                raise ValueError("immutable batch manifest changed")
+    if require_complete:
+        planned = [preview["style"] for preview in record["previews"]]
+        if len(validated) != 4 or styles != planned:
+            raise ValueError("four batches must cover the ordered 24-style plan")
+    return {batch["batch_id"]: batch for batch in validated}
+
+
+def register_batch(root: Path, run_id: str, manifest: dict) -> dict:
+    directory = run_dir(root, run_id)
+    record = read_json(directory / "evidence.json")
+    _require_mutable_v5(record)
+    _check_plan(root, record, directory)
+    existing = next((batch for batch in record["batches"] if batch.get("batch_id") == manifest.get("batch_id")), None)
+    if existing is not None:
+        if existing != manifest:
+            raise ValueError("immutable batch manifest cannot be overwritten")
+        return record
+    if len(record["batches"]) >= 4:
+        raise ValueError("at most four batches are allowed")
+    validated = _validated_batch(record, manifest)
+    registered_styles = {style for batch in record["batches"] for style in batch["styles"]}
+    if registered_styles.intersection(validated["styles"]):
+        raise ValueError("batch style overlap")
+    record["batches"].append(validated)
+    path = child(directory, f"batches/{validated['batch_id']}.json")
+    if path.exists():
+        raise ValueError("immutable batch manifest collision")
+    _atomic_json(path, validated)
+    _atomic_json(directory / "evidence.json", record)
+    return record
 
 
 def prepare(root, run_id, source_case=None):
@@ -405,6 +487,7 @@ def _check_plan(root, record, directory=None):
         raise ValueError("24 previews required")
     if len({preview.get("style") for preview in actual_previews if isinstance(preview, dict)}) != 24:
         raise ValueError("24 unique preview styles required")
+    batches = _check_batches(record, directory)
     for preview, planned in zip(actual_previews, expected["previews"]):
         if not isinstance(preview, dict) or set(preview) - (set(planned) | GENERATED_FIELDS):
             raise ValueError("unexpected preview fields")
@@ -420,11 +503,19 @@ def _check_plan(root, record, directory=None):
             if digest(prompt.read_bytes()) != preview["prompt_sha256"]:
                 raise ValueError("prompt hash mismatch")
     generated = [preview for preview in actual_previews if "generation" in preview]
-    calls = [preview.get("generation", {}).get("call_id") for preview in generated]
+    calls = [preview.get("generation", {}).get("call_id") for preview in generated if preview.get("generation", {}).get("call_id") is not None]
     originals = [preview.get("original_sha256") for preview in generated]
     optimized = [preview.get("sha256") for preview in generated]
     if len(calls) != len(set(calls)) or len(originals) != len(set(originals)) or len(optimized) != len(set(optimized)):
         raise ValueError("duplicate native call or preview hash")
+    for batch_id, batch in batches.items():
+        consumed = sum(
+            1 + int("correction" in preview)
+            for preview in generated
+            if preview.get("generation", {}).get("batch_id") == batch_id
+        )
+        if consumed > batch["maximum_calls"]:
+            raise ValueError("batch maximum_calls consumed")
 
 
 def _image(path):
@@ -470,17 +561,43 @@ def _check_correction(correction, preview, generation):
         raise ValueError("generation prompt mismatch")
 
 
-def _generation(generation, preview):
-    if not isinstance(generation, dict) or set(generation) != {"tool", "call_id", "generated_at", "prompt_sha256"}:
+def _generation(generation, preview, record):
+    if record.get("schema_version") == FROZEN_PUBLIC_SCHEMA:
+        if not isinstance(generation, dict) or set(generation) != {"tool", "call_id", "generated_at", "prompt_sha256"}:
+            raise ValueError("generation record fields invalid")
+        if generation["tool"] != "native-imagegen" or not isinstance(generation["call_id"], str) or not ID.fullmatch(generation["call_id"]):
+            raise ValueError("native generation call required")
+        if generation["prompt_sha256"] != preview["prompt_sha256"]:
+            raise ValueError("generation prompt mismatch")
+        _primary().parse_iso_z(generation["generated_at"])
+        return
+    required = {
+        "tool", "call_id", "generated_at", "prompt_sha256", "batch_id",
+        "authorization_sha256", "model_docs_url", "model_docs_verified_at", "per_call_model",
+    }
+    if not isinstance(generation, dict) or set(generation) != required:
         raise ValueError("generation record fields invalid")
-    if generation["tool"] != "native-imagegen" or not isinstance(generation["call_id"], str) or not ID.fullmatch(generation["call_id"]):
+    call_id = generation["call_id"]
+    if generation["tool"] != "native-imagegen" or (call_id is not None and (not isinstance(call_id, str) or not ID.fullmatch(call_id))):
         raise ValueError("native generation call required")
+    batches = _check_batches(record)
+    batch = batches.get(generation["batch_id"])
+    if batch is None or preview["style"] not in batch["styles"]:
+        raise ValueError("style is outside registered batch")
     correction = preview.get("correction")
     if correction is not None:
         _check_correction(correction, preview, generation)
+        if generation["authorization_sha256"] != correction["generation_authorization_sha256"] or generation["authorization_sha256"] == batch["authorization_sha256"]:
+            raise ValueError("targeted correction requires a new authorization hash")
     elif generation["prompt_sha256"] != preview["prompt_sha256"]:
         raise ValueError("generation prompt mismatch")
-    _primary().parse_iso_z(generation["generated_at"])
+    elif generation["authorization_sha256"] != batch["authorization_sha256"]:
+        raise ValueError("generation authorization hash mismatch")
+    if generation["model_docs_url"] != MODEL_DOCS_URL or generation["model_docs_verified_at"] != MODEL_DOCS_VERIFIED_AT or generation["per_call_model"] != "unavailable":
+        raise ValueError("generation model disclosure invalid")
+    generated_at = _primary().parse_iso_z(generation["generated_at"])
+    if generated_at < _primary().parse_iso_z(batch["authorized_at"]):
+        raise ValueError("generation predates batch authorization")
 
 
 def _find_preview(record, style):
@@ -530,7 +647,7 @@ def ingest(root, run_id, style, image, generation, correction=None):
     if correction is not None:
         candidate["correction"] = copy.deepcopy(correction)
     candidate["generation"] = copy.deepcopy(generation)
-    _generation(generation, candidate)
+    _generation(generation, candidate, record)
     original = digest(image.read_bytes())
     if correction is not None and original == correction["replaces"]["original_sha256"]:
         raise ValueError("correction must replace a different native output")
@@ -541,7 +658,7 @@ def ingest(root, run_id, style, image, generation, correction=None):
             return record
         raise ValueError("refuse to overwrite registered preview")
     for other in record["previews"]:
-        if other.get("generation", {}).get("call_id") == generation["call_id"]:
+        if generation["call_id"] is not None and other.get("generation", {}).get("call_id") == generation["call_id"]:
             raise ValueError("duplicate native call")
         if other.get("original_sha256") == original:
             raise ValueError("duplicate native output")
@@ -841,7 +958,7 @@ def _validate_preview(record, preview, directory, require_approval, local, requi
         raise ValueError("preview hash or metadata mismatch")
     if not HASH.fullmatch(str(preview.get("original_sha256"))):
         raise ValueError("original preview hash missing")
-    _generation(preview.get("generation"), preview)
+    _generation(preview.get("generation"), preview, record)
     if local:
         receipt = read_json(child(directory, f"native-receipts/{style}.json"))
         if receipt.get("generation") != preview["generation"] or receipt.get("original_sha256") != preview["original_sha256"]:
@@ -1152,6 +1269,7 @@ def promote(root, run_id):
     record = read_json(directory / "evidence.json")
     _require_mutable_v5(record)
     _check_plan(root, record, directory)
+    _check_batches(record, directory, require_complete=True)
     unapproved = [preview["style"] for preview in record["previews"] if "human_review" not in preview]
     if unapproved:
         raise ValueError("unapproved styles: " + ", ".join(unapproved))
@@ -1191,11 +1309,13 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("prepare", "ingest", "compose", "audit", "gallery", "approve", "promote"):
+    for name in ("prepare", "register-batch", "ingest", "compose", "audit", "gallery", "approve", "promote"):
         command = commands.add_parser(name)
         command.add_argument("--run-id", required=True)
         if name == "prepare":
             command.add_argument("--source-case", required=True)
+        if name == "register-batch":
+            command.add_argument("--manifest", type=Path, required=True)
         if name in {"ingest", "compose", "audit", "gallery", "approve"}:
             command.add_argument("--style")
         if name == "ingest":
@@ -1214,7 +1334,9 @@ def main(argv=None):
     if args.command in {"ingest", "compose", "approve"} and not args.style:
         parser.error(f"{args.command} requires --style <registered-slug>")
     try:
-        if args.command == "ingest":
+        if args.command == "register-batch":
+            result = register_batch(args.root, args.run_id, read_json(args.manifest))
+        elif args.command == "ingest":
             correction = read_json(args.correction_record) if args.correction_record else None
             result = ingest(
                 args.root,
