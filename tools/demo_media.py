@@ -35,13 +35,14 @@ DEMO_ROOT_FILES = {
     "RIGHTS.md",
     "STYLES.md",
     "primary-rights-v1.schema.json",
+    "preview-source-v1.schema.json",
     "rights-v1.schema.json",
     "style-index.json",
     "style-preview-v1.schema.json",
     "style-preview-v2.schema.json",
     "style-preview-v4.schema.json",
 }
-DEMO_ROOT_DIRS = {"cases", "primary-cases", "styles", "style-previews"}
+DEMO_ROOT_DIRS = {"cases", "primary-cases", "preview-sources", "styles", "style-previews"}
 PUBLIC_CASE_FILES = {"README.md", "rights.json", "source-metadata.json", "source.jpg"}
 CC0_ID = "CC0-1.0"
 CC0_URL = "https://creativecommons.org/publicdomain/zero/1.0/"
@@ -60,6 +61,9 @@ ALLOWED_HOSTS = {
     "www.metmuseum.org",
 }
 IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
+PREVIEW_SOURCE_CASES = {"beige-blazer-denim-outfit"}
+PREVIEW_SOURCE_FILES = {"README.md", "rights.json", "source.jpg"}
+PREVIEW_SOURCE_LICENSE = "ThreadTruth-Demo-Only-1.0"
 
 REJECTION_CODES = {
     "METADATA_NOT_PUBLIC_DOMAIN",
@@ -937,6 +941,86 @@ def render_rights_index(root: Path) -> Path:
     return output
 
 
+def _preview_source_readme(rights: dict[str, object]) -> str:
+    return f"""# Controlled preview source — beige blazer and dark-denim outfit
+
+Status: `approved-for-preview`. This 3:4 image documents one real coordinated physical outfit for the ThreadTruth Studio 24-style public direction-preview collection.
+
+The source and its generated or derived preview media use `{PREVIEW_SOURCE_LICENSE}`: they may be displayed and distributed only as part of this repository and its releases. Standalone reuse, resale, relicensing and CC0 dedication are not granted. Rights remain with their respective holders, and trademark, privacy, personality and cultural rights are not waived. Apache-2.0 covers project code and documentation, not this media.
+
+See `rights.json` for the original PNG digest, optimized JPEG derivation, structured outfit truth and maintainer attestation.
+"""
+
+
+def validate_preview_sources(root: Path) -> list[str]:
+    findings: list[str] = []
+    demo_root = root.resolve() / "docs" / "demo"
+    base = demo_root / "preview-sources"
+    if not base.exists() and not (demo_root / "preview-source-v1.schema.json").exists():
+        return []
+    if not base.is_dir() or base.is_symlink():
+        return ["preview-sources: controlled source directory is missing or unsafe"]
+    entries = list(sorted(base.iterdir()))
+    if {entry.name for entry in entries} != PREVIEW_SOURCE_CASES:
+        findings.append("preview-sources: source allowlist mismatch")
+    for case in entries:
+        prefix = case.name
+        if case.is_symlink() or not case.is_dir() or case.name not in PREVIEW_SOURCE_CASES:
+            findings.append(f"{prefix}: unregistered or unsafe preview source")
+            continue
+        children = list(sorted(case.iterdir()))
+        if {entry.name for entry in children} != PREVIEW_SOURCE_FILES or any(entry.is_symlink() or not entry.is_file() for entry in children):
+            findings.append(f"{prefix}: unregistered or missing preview source artifact")
+            continue
+        try:
+            rights = read_json(case / "rights.json")
+            image_data = (case / "source.jpg").read_bytes()
+            readme = (case / "README.md").read_text(encoding="utf-8")
+        except (OSError, json.JSONDecodeError) as error:
+            findings.append(f"{prefix}: unreadable preview source: {error}")
+            continue
+        expected_keys = {"schema_version", "case_id", "status", "license", "attestation", "original", "public_asset", "outfit", "review_contract"}
+        if set(rights) != expected_keys or rights.get("schema_version") != "1.0" or rights.get("case_id") != case.name or rights.get("status") != "approved-for-preview":
+            findings.append(f"{prefix}: preview source record invalid")
+        license_record = rights.get("license")
+        if not isinstance(license_record, dict) or set(license_record) != {"id", "scope", "notice"} or license_record.get("id") != PREVIEW_SOURCE_LICENSE:
+            findings.append(f"{prefix}: preview source license invalid")
+        elif "no standalone reuse, resale, relicensing or CC0 dedication" not in str(license_record.get("scope")) or "Apache-2.0 covers project code and documentation, not this media" not in str(license_record.get("notice")):
+            findings.append(f"{prefix}: preview source license scope incomplete")
+        attestation = rights.get("attestation")
+        if attestation != {"physical_outfit": True, "repository_and_release_demo_rights": True}:
+            findings.append(f"{prefix}: maintainer attestation incomplete")
+        original = rights.get("original")
+        if original != {"sha256": "40163fcb0aeae44b1e9b690de9fec047bd517a0764260a4d3f1d014dbfc16d5a", "width": 1086, "height": 1448, "mime": "image/png"}:
+            findings.append(f"{prefix}: original source binding invalid")
+        asset = rights.get("public_asset")
+        if not isinstance(asset, dict) or asset.get("path") != "source.jpg" or asset.get("mime") != "image/jpeg" or asset.get("sha256") != sha256_bytes(image_data) or asset.get("bytes") != len(image_data):
+            findings.append(f"{prefix}: public source asset binding invalid")
+        else:
+            try:
+                dimensions = jpeg_dimensions(image_data)
+            except ValueError:
+                dimensions = None
+            if dimensions != (1086, 1448) or [asset.get("width"), asset.get("height")] != [1086, 1448] or asset.get("derivation") != "EXIF-transposed RGB JPEG transcode; metadata removed":
+                findings.append(f"{prefix}: public source JPEG metadata invalid")
+        outfit = rights.get("outfit")
+        expected_outfit = {
+            "name_en": "Beige blazer and dark-denim outfit",
+            "name_zh": "米色西装与深色牛仔套装",
+            "core_items": ["beige single-breasted notched-lapel blazer", "white crew-neck top", "dark indigo straight-leg jeans", "olive structured tote", "dark-brown loafers"],
+            "optional_when_visible": ["watch", "restrained gold jewelry"],
+            "forbidden": ["brand invention", "logo invention", "text invention", "replacement garment"],
+        }
+        if outfit != expected_outfit or rights.get("review_contract") != "coordinated-outfit-v1":
+            findings.append(f"{prefix}: structured outfit truth invalid")
+        serialized = json.dumps(rights, ensure_ascii=False)
+        if re.search(r"(?:/Users/|/home/|/tmp/|[A-Za-z]:\\\\)", serialized) or "@qq.com" in serialized.lower():
+            findings.append(f"{prefix}: unsafe preview source text")
+        if readme != _preview_source_readme(rights):
+            findings.append(f"{prefix}: preview source README is stale")
+    return findings
+
+
 def promote_candidate(
     root: Path,
     run_id: str,
@@ -1072,6 +1156,7 @@ def validate_public_cases(root: Path) -> list[str]:
     findings: list[str] = []
     demo_root = root.resolve() / "docs" / "demo"
     cases_root = public_case_root(root)
+    findings.extend(validate_preview_sources(root))
     if demo_root.exists():
         for entry in sorted(demo_root.iterdir()):
             if entry.is_symlink():

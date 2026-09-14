@@ -1,6 +1,7 @@
 import importlib.util
 import copy
 import json
+import shutil
 import tempfile
 import unittest
 from datetime import datetime, timezone
@@ -81,6 +82,42 @@ class FakeMetClient:
 
 
 class DemoMediaModuleTests(unittest.TestCase):
+    def test_outfit_preview_source_is_demo_only_and_hash_bound(self):
+        module = load_module()
+        rights = json.loads(
+            (ROOT / "docs/demo/preview-sources/beige-blazer-denim-outfit/rights.json").read_text()
+        )
+        self.assertEqual(rights["schema_version"], "1.0")
+        self.assertEqual(rights["case_id"], "beige-blazer-denim-outfit")
+        self.assertEqual(rights["license"]["id"], "ThreadTruth-Demo-Only-1.0")
+        self.assertEqual(
+            rights["original"]["sha256"],
+            "40163fcb0aeae44b1e9b690de9fec047bd517a0764260a4d3f1d014dbfc16d5a",
+        )
+        self.assertNotEqual(rights["license"]["id"], "CC0-1.0")
+        self.assertIn("no standalone reuse, resale, relicensing or CC0 dedication", rights["license"]["scope"])
+        self.assertEqual(module.validate_preview_sources(ROOT), [])
+
+    def test_preview_source_validator_rejects_tampering_and_unregistered_files(self):
+        module = load_module()
+        mutations = (
+            lambda root, rights: (root / rights["public_asset"]["path"]).write_bytes(b"changed"),
+            lambda root, rights: rights["license"].update(id="CC0-1.0"),
+            lambda root, rights: rights["public_asset"].update(path="/tmp/source.jpg"),
+            lambda root, rights: rights["outfit"]["core_items"].pop(),
+            lambda root, rights: (root / "unregistered.txt").write_text("orphan"),
+        )
+        for mutate in mutations:
+            with self.subTest(mutation=mutate):
+                with tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    shutil.copytree(ROOT / "docs/demo", root / "docs/demo")
+                    case = root / "docs/demo/preview-sources/beige-blazer-denim-outfit"
+                    rights_path = case / "rights.json"
+                    rights = json.loads(rights_path.read_text())
+                    mutate(case, rights)
+                    rights_path.write_text(json.dumps(rights))
+                    self.assertTrue(module.validate_preview_sources(root))
     def test_combined_public_case_validation_accepts_primary_and_auxiliary_cases(self):
         module = load_module()
         self.assertEqual(module.validate_public_cases(ROOT), [])
