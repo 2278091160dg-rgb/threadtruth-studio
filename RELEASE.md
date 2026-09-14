@@ -1,9 +1,9 @@
 # Release Readiness
 
-## Candidate
+## Released Beta
 
 - Version: `1.0.0-beta.3`
-- Status: local beta.3 candidate with the accepted 24-style preview gallery; a GitHub Release event is still required for publication. beta.1 and beta.2 remain available and immutable.
+- Status: [`v1.0.0-beta.3`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.3) published as a GitHub prerelease at `2026-09-14T05:57:34Z`. beta.1 and beta.2 remain available and immutable.
 - License: Apache-2.0
 - Distribution: Codex Plugin repository plus allowlist-built archive
 - Runtime telemetry: none

@@ -7,13 +7,13 @@ Priority: Codex for Open Source readiness, genuine adoption, then GitHub Stars. 
 - **Primary Cases:** three authorized source-to-six-image workflows. Korean Cold Editorial is ready; E-commerce Studio B1 and American Street C1 are planned, both 2:3 with six independent finals.
 - **Featured Styles:** eight existing high-signal styles remain the sharing priorities.
 - **Full Style Index:** 24 previews of the same authorized white vest, ONE style and SIX poses each. Schema4 preserves native originals and makes explicitly disclosed local-layout derivatives: square1200 boards, six360×480 cards, fit-with-padding, no stretch/upscale/subject crop. Exact3:4 means the card frame, not an unsupported native-geometry claim.
-- The beta.3 candidate has machine-layout coverage24/24 and maintainer acceptance24/24. All24repository preview entries are hash-bound; six corrected selections explicitly replace rejected first drafts. GitHub publication remains pending. Independent six-final style coverage stays1/24 and complete primary cases stay1/3.
+- The beta.3 prerelease has machine-layout coverage24/24, maintainer acceptance24/24 and GitHub publication24/24. All24repository preview entries are hash-bound; six corrected selections explicitly replace rejected first drafts. Independent six-final style coverage stays1/24 and complete primary cases stay1/3.
 
 The former extra23 independent-final representatives are optional, not additional required deliverables. Existing `source_family` and `beta_week` metadata describes that older representative-image plan, not the fixed same-white-vest preview series or an active weekly image quota.
 
 ## Execution and adoption
 
-1. Keep existing beta.1/beta.2 release assets immutable; publish the verified beta.3 candidate only after final push/Release authorization.
+1. Keep existing beta.1/beta.2 release assets immutable; beta.3 is now published from its separately authorized, verified candidate.
 2. Use the 24-style thumbnail gallery as the primary visual breadth proof while labeling every sheet as a direction preview, not finals.
 3. Preserve the accepted 24/24 collection and its six correction lineages; any future replacement requires new generation, review and publication authorization.
 4. After beta.3 publication, measure gallery-to-install and gallery-to-Star conversion without resetting the Sep13 Beta origin.

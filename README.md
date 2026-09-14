@@ -12,7 +12,7 @@ This is a real, rights-cleared source-to-six-result case: four photos of one whi
 
 ## Install and try recognition
 
-Download the Plugin ZIP and its separate checksum from the [Releases page](https://github.com/2278091160dg-rgb/threadtruth-studio/releases). `v1.0.0-beta.1` and beta.2 remain immutable; beta.3 is the 24-preview gallery candidate and is not public until its GitHub Release exists. New-host CLI activation remains a separately disclosed compatibility gap. Follow the complete matching [installation guide](docs/INSTALL.md).
+Download the Plugin ZIP and its separate checksum from the [`v1.0.0-beta.3` Release](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.3). beta.1 and beta.2 remain immutable. New-host CLI activation remains a separately disclosed compatibility gap. Follow the complete matching [installation guide](docs/INSTALL.md).
 
 After installation, start a **new Codex task**, upload a garment image first, then enter exactly:
 
@@ -27,7 +27,7 @@ Installed it? Share a sanitized result through the [installation feedback form](
 ## What is public today
 
 - Independent six-final coverage: `1/24`, the real case above.
-- Single-style preview coverage: **24/24 machine-layout checked, 24/24 maintainer accepted, and 24/24 staged in this repository candidate**. The series uses the same white vest, one style and six poses per sheet. Each native sheet is preserved as an optimized copy beside a labeled `1200×1200` layout derivative with six `360×480` (`3:4`) cards and a whole-board thumbnail. Six maintainer-requested corrections replace their rejected first drafts with explicit hash lineage. Historical schema 1–3 records remain read-only. These are AI-generated direction previews, not independent finals; GitHub publication remains 0/24 until the beta.3 commit and Release are pushed. Full counts and remaining gates: [work register](docs/WORK-STATUS.md).
+- Single-style preview coverage: **24/24 machine-layout checked, 24/24 maintainer accepted, and 24/24 published in beta.3**. The series uses the same white vest, one style and six poses per sheet. Each native sheet is preserved as an optimized copy beside a labeled `1200×1200` layout derivative with six `360×480` (`3:4`) cards and a whole-board thumbnail. Six maintainer-requested corrections replace their rejected first drafts with explicit hash lineage. Historical schema 1–3 records remain read-only. These are AI-generated direction previews, not independent finals. Full counts and remaining gates: [work register](docs/WORK-STATUS.md).
 - Gendered and culturally named styles translate atmosphere, styling language, lighting, and setting only. They never infer identity, ethnicity, nationality, body, or gender from the garment or wearer.
 
 [Browse the 24-style evidence index](docs/demo/STYLES.md). A six-tile board is a direction preview, not six independent finals and not a completed workflow.
@@ -55,7 +55,7 @@ There is no runtime telemetry, MCP server, external connector, API-key flow, or 
 
 ## Release and compatibility status
 
-The public Beta began with [`v1.0.0-beta.1`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.1). beta.2 added the release-owned personal-source installer; beta.3 adds the accepted 24-style preview gallery without changing runtime behavior. Until a beta.3 GitHub Release exists, beta.2 remains the newest public download. Audited host: macOS `26.6.2`, `codex-cli 0.144.1`. Codex desktop build: unavailable, not inferred. See [compatibility](docs/COMPATIBILITY.md) and the [30-day Beta register](docs/BETA.md).
+The public Beta began with [`v1.0.0-beta.1`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.1). [`v1.0.0-beta.3`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.3) is the newest public download; it adds the accepted 24-style preview gallery without changing runtime behavior. Audited host: macOS `26.6.2`, `codex-cli 0.144.1`. Codex desktop build: unavailable, not inferred. See [compatibility](docs/COMPATIBILITY.md) and the [30-day Beta register](docs/BETA.md).
 
 The project's own exit targets are at least 30 days, five non-maintainer installations, and three authorized complete cases; these are project targets, not OpenAI admission rules. Codex for Open Source application details live only in [docs/CODEX-FOR-OSS.md](docs/CODEX-FOR-OSS.md).
 

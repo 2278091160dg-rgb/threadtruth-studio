@@ -2,11 +2,11 @@
 
 All notable changes are documented here. Versions follow Semantic Versioning.
 
-## 2026-09-14 — 1.0.0-beta.3 candidate
+## 2026-09-14 — 1.0.0-beta.3
 
 ### Trigger
 
-- The maintainer accepted all24 displayed previews and authorized local gallery inclusion, rights-index updates and a beta.3 candidate, while keeping GitHub push and Release as a later gate.
+- The maintainer accepted all24 displayed previews, authorized gallery inclusion and rights-index updates, then separately authorized the GitHub push and beta.3 Release.
 
 ### Behavior before
 
@@ -17,7 +17,7 @@ All notable changes are documented here. Versions follow Semantic Versioning.
 - Added the same authorized white vest across all 24 registered styles, with one native six-pose sheet, one disclosed fixed-card display derivative and one whole-board thumbnail per style.
 - Bound 24 maintainer visual acceptances to exact display hashes. Six targeted corrections explicitly replace their rejected first drafts and retain the replaced call/image hashes plus actual correction call and prompt hash.
 - Updated the 24-style index, per-style pages, bilingual README gallery and generated rights index. Preview coverage is 24/24; independent six-final coverage remains 1/24 and complete primary cases remain 1/3.
-- Kept the runtime Skill unchanged. Existing beta.1/beta.2 assets, the global installation, GitHub repository and Releases remain untouched until separate push and Release authorization.
+- Kept the runtime Skill and global installation unchanged. Existing beta.1/beta.2 assets remain immutable; beta.3 was published from commit `ee7a92f` with a separate ZIP and checksum.
 - Added correction-lineage validation so the public builder cannot silently package an old rejected draft or mis-bind a corrected image to the initial prompt.
 
 ### Eval coverage
@@ -26,7 +26,7 @@ All notable changes are documented here. Versions follow Semantic Versioning.
 
 ### Verification
 
-- Full repository, Plugin, Skill, production, privacy, archive and browser results are recorded in the beta.3 candidate verification report. The candidate is not a published GitHub Release.
+- Full repository, Plugin, Skill, production, privacy, archive and browser results are recorded in the beta.3 candidate verification report. The published assets were downloaded again and their SHA-256/ZIP integrity verified after publication.
 
 ## 2026-09-14 — Fixed-card preview delivery
 
