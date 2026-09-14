@@ -29,7 +29,7 @@
     "rules": {"type": "object"},
     "ai_label": {"type": "string"},
     "batches": {"type": "array", "minItems": 0, "maxItems": 4, "uniqueItems": true, "items": {"$ref": "#/$defs/batch"}},
-    "previews": {"type": "array", "minItems": 24, "maxItems": 24, "uniqueItems": true, "items": {"type": "object", "properties": {"generation": {"$ref": "#/$defs/generation"}, "failed_retry": {"$ref": "#/$defs/failedRetry"}, "human_review": {"$ref": "#/$defs/outfitReview"}}}}
+    "previews": {"type": "array", "minItems": 24, "maxItems": 24, "uniqueItems": true, "items": {"type": "object", "properties": {"generation": {"$ref": "#/$defs/generation"}, "correction": {"$ref": "#/$defs/correction"}, "failed_retry": {"$ref": "#/$defs/failedRetry"}, "replacement_history": {"type": "array", "items": {"$ref": "#/$defs/replacementRevision"}}, "human_review": {"$ref": "#/$defs/outfitReview"}}}}
   },
   "$defs": {
     "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"},
@@ -79,6 +79,38 @@
         "authorized_at": {"type": "string", "format": "date-time", "pattern": "Z$"},
         "attempt_number": {"type": "integer", "minimum": 2},
         "scope": {"const": "single-target-retry;no-auto-retry"}
+      }
+    },
+    "correction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "reason_code", "generation_prompt_sha256", "generation_authorization_sha256", "visual_acceptance_sha256", "replaces"],
+      "properties": {
+        "kind": {"const": "targeted-correction"},
+        "reason_code": {"const": "maintainer-requested-visual-fix"},
+        "generation_prompt_sha256": {"$ref": "#/$defs/hash"},
+        "generation_authorization_sha256": {"$ref": "#/$defs/hash"},
+        "visual_acceptance_sha256": {"$ref": "#/$defs/hash"},
+        "replaces": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["call_id", "original_sha256", "native_sha256", "display_sha256"],
+          "properties": {
+            "call_id": {"$ref": "#/$defs/id"},
+            "original_sha256": {"$ref": "#/$defs/hash"},
+            "native_sha256": {"$ref": "#/$defs/hash"},
+            "display_sha256": {"$ref": "#/$defs/hash"}
+          }
+        }
+      }
+    },
+    "replacementRevision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "pattern": "^revisions/[a-z0-9-]+/[A-Za-z0-9._-]+/revision\\.json$"},
+        "sha256": {"$ref": "#/$defs/hash"}
       }
     },
     "outfitReview": {

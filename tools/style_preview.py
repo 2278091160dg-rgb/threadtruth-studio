@@ -63,7 +63,7 @@ HASH = re.compile(r"[a-f0-9]{64}")
 MAX_BYTES = 8 * 1024 * 1024
 GENERATED_FIELDS = {
     "path", "sha256", "width", "height", "bytes", "original_sha256",
-    "generation", "correction", "failed_retry", "human_review", "composition",
+    "generation", "correction", "failed_retry", "replacement_history", "human_review", "composition",
 }
 
 
@@ -503,6 +503,7 @@ def _check_plan(root, record, directory=None):
             prompt = child(directory, f"prompts/{preview['style']}.txt")
             if digest(prompt.read_bytes()) != preview["prompt_sha256"]:
                 raise ValueError("prompt hash mismatch")
+            _check_replacement_history(preview, directory)
     generated = [preview for preview in actual_previews if "generation" in preview]
     calls = [preview.get("generation", {}).get("call_id") for preview in generated if preview.get("generation", {}).get("call_id") is not None]
     originals = [preview.get("original_sha256") for preview in generated]
@@ -511,7 +512,7 @@ def _check_plan(root, record, directory=None):
         raise ValueError("duplicate native call or preview hash")
     for batch_id, batch in batches.items():
         consumed = sum(
-            1 + int("correction" in preview)
+            1
             for preview in generated
             if preview.get("generation", {}).get("batch_id") == batch_id
         )
@@ -560,6 +561,21 @@ def _check_correction(correction, preview, generation):
         raise ValueError("correction must bind a new native call")
     if generation["prompt_sha256"] != correction["generation_prompt_sha256"]:
         raise ValueError("generation prompt mismatch")
+
+
+def _check_replacement_history(preview, directory):
+    history = preview.get("replacement_history", [])
+    if not isinstance(history, list):
+        raise ValueError("replacement history invalid")
+    for item in history:
+        if not isinstance(item, dict) or set(item) != {"path", "sha256"}:
+            raise ValueError("replacement history invalid")
+        path = child(directory, item["path"])
+        if not path.is_file() or digest(path.read_bytes()) != item["sha256"]:
+            raise ValueError("replacement history hash mismatch")
+        revision = read_json(path)
+        if set(revision) != {"preview", "receipt"} or revision["preview"].get("style") != preview["style"]:
+            raise ValueError("replacement history invalid")
 
 
 def _check_failed_retry(failed_retry, preview, generation, record, batch, directory):
@@ -662,8 +678,6 @@ def _generation(generation, preview, record, directory=None):
         raise ValueError("style is outside registered batch")
     correction = preview.get("correction")
     failed_retry = preview.get("failed_retry")
-    if correction is not None and failed_retry is not None:
-        raise ValueError("correction and failed retry are mutually exclusive")
     if correction is not None:
         _check_correction(correction, preview, generation)
         if generation["authorization_sha256"] != correction["generation_authorization_sha256"] or generation["authorization_sha256"] == batch["authorization_sha256"]:
@@ -733,6 +747,7 @@ def ingest(root, run_id, style, image, generation, correction=None, failed_retry
     if correction is not None and failed_retry is not None:
         raise ValueError("correction and failed retry are mutually exclusive")
     if correction is not None:
+        candidate.pop("failed_retry", None)
         candidate["correction"] = copy.deepcopy(correction)
     if failed_retry is not None:
         candidate["failed_retry"] = copy.deepcopy(failed_retry)
@@ -741,7 +756,18 @@ def ingest(root, run_id, style, image, generation, correction=None, failed_retry
     original = digest(image.read_bytes())
     if correction is not None and original == correction["replaces"]["original_sha256"]:
         raise ValueError("correction must replace a different native output")
-    if "path" in preview:
+    replacing = "path" in preview and correction is not None
+    if replacing:
+        composition = preview.get("composition")
+        replaces = correction["replaces"]
+        if not isinstance(composition, dict) or (
+            replaces["call_id"] != preview["generation"]["call_id"]
+            or replaces["original_sha256"] != preview["original_sha256"]
+            or replaces["native_sha256"] != preview["sha256"]
+            or replaces["display_sha256"] != composition.get("display", {}).get("sha256")
+        ):
+            raise ValueError("correction replacement binding mismatch")
+    elif "path" in preview:
         expected = {key: preview[key] for key in ("sha256", "bytes", "width", "height")}
         if preview["original_sha256"] == original and preview["generation"] == generation and _image(child(directory, preview["path"])) == expected:
             _validate_preview(record, preview, directory, False, True, require_composition=False)
@@ -754,7 +780,7 @@ def ingest(root, run_id, style, image, generation, correction=None, failed_retry
             raise ValueError("duplicate native output")
     target = child(directory, f"{style}.jpg")
     receipt = child(directory, f"native-receipts/{style}.json")
-    if target.exists() or receipt.exists():
+    if not replacing and (target.exists() or receipt.exists()):
         raise ValueError("refuse to overwrite unregistered asset")
     from PIL import Image, ImageOps
     with tempfile.TemporaryDirectory(dir=directory) as temporary:
@@ -765,7 +791,7 @@ def ingest(root, run_id, style, image, generation, correction=None, failed_retry
                 raise ValueError("unsupported native image format")
             native_relative = f"native-outputs/{style}.{extension}"
             native = child(directory, native_relative)
-            if native.exists():
+            if native.exists() and not replacing:
                 raise ValueError("refuse to overwrite native output")
             oriented = ImageOps.exif_transpose(opened)
             native_dimensions = [oriented.width, oriented.height]
@@ -773,6 +799,37 @@ def ingest(root, run_id, style, image, generation, correction=None, failed_retry
         metadata = _image(output)
         if any(other.get("sha256") == metadata["sha256"] for other in record["previews"]):
             raise ValueError("duplicate optimized preview")
+        if replacing:
+            old_receipt = read_json(receipt)
+            call_id = preview["generation"]["call_id"]
+            revision_dir = child(directory, f"revisions/{style}/{call_id}")
+            revision_path = revision_dir / "revision.json"
+            if revision_path.exists():
+                raise ValueError("refuse to overwrite replacement history")
+            revision_dir.mkdir(parents=True)
+            archived_paths = [preview["path"], old_receipt["retained_path"], f"native-receipts/{style}.json"]
+            composition = preview["composition"]
+            archived_paths.extend([
+                composition["layout_path"], composition["display"]["path"], composition["thumbnail"]["path"],
+            ])
+            review_path = f"review-template-{style}.json"
+            if child(directory, review_path).is_file():
+                archived_paths.append(review_path)
+            for relative in archived_paths:
+                archived = revision_dir / relative
+                archived.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(child(directory, relative), archived)
+            write_json(revision_path, {"preview": preview, "receipt": old_receipt})
+            history = copy.deepcopy(preview.get("replacement_history", []))
+            history.append({
+                "path": revision_path.relative_to(directory).as_posix(),
+                "sha256": digest(revision_path.read_bytes()),
+            })
+            for relative in (composition["layout_path"], composition["display"]["path"], composition["thumbnail"]["path"]):
+                child(directory, relative).unlink()
+            planned = _find_preview(_plan_v5(root, record["run_id"], record["source"]["case_id"]), style)
+            preview.clear()
+            preview.update(copy.deepcopy(planned), replacement_history=history)
         shutil.copyfile(output, target)
     native.parent.mkdir(exist_ok=True)
     shutil.copyfile(image, native)
@@ -784,6 +841,7 @@ def ingest(root, run_id, style, image, generation, correction=None, failed_retry
     })
     if correction is not None:
         preview["correction"] = copy.deepcopy(correction)
+        preview.pop("failed_retry", None)
     if failed_retry is not None:
         preview["failed_retry"] = copy.deepcopy(failed_retry)
     preview.update(metadata, path=target.name, original_sha256=original, generation=generation)

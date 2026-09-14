@@ -711,6 +711,92 @@ class PreviewTests(unittest.TestCase):
                 correction=bad,
             )
 
+    def test_targeted_correction_replaces_completed_preview_and_retains_revision(self):
+        run = self.prepare()
+        preview = run["previews"][0]
+        original_generation = self.generation(preview, 1)
+        self.m.ingest(self.root, "test-run", preview["style"], self.image(1), original_generation)
+        self.compose(self.m.read_json(self.m.run_dir(self.root, "test-run") / "evidence.json"), preview["style"])
+        before = self.m.read_json(self.m.run_dir(self.root, "test-run") / "evidence.json")
+        old = before["previews"][0]
+        correction_prompt = "8" * 64
+        correction = {
+            "kind": "targeted-correction",
+            "reason_code": "maintainer-requested-visual-fix",
+            "generation_prompt_sha256": correction_prompt,
+            "generation_authorization_sha256": "9" * 64,
+            "visual_acceptance_sha256": "a" * 64,
+            "replaces": {
+                "call_id": old["generation"]["call_id"],
+                "original_sha256": old["original_sha256"],
+                "native_sha256": old["sha256"],
+                "display_sha256": old["composition"]["display"]["sha256"],
+            },
+        }
+        generation = dict(
+            self.generation(preview, 2, call_id="correction-call-2"),
+            prompt_sha256=correction_prompt,
+            authorization_sha256="9" * 64,
+        )
+        corrected = self.m.ingest(
+            self.root, "test-run", preview["style"], self.image(2), generation,
+            correction=correction,
+        )
+        stored = corrected["previews"][0]
+        self.assertEqual(stored["generation"], generation)
+        self.assertEqual(stored["correction"], correction)
+        self.assertNotIn("composition", stored)
+        self.assertEqual(len(stored["replacement_history"]), 1)
+        revision = self.m.run_dir(self.root, "test-run") / stored["replacement_history"][0]["path"]
+        self.assertEqual(self.m.digest(revision.read_bytes()), stored["replacement_history"][0]["sha256"])
+        archived = self.m.read_json(revision)
+        self.assertEqual(archived["preview"], old)
+        self.assertTrue((revision.parent / old["path"]).is_file())
+        self.assertTrue((revision.parent / old["composition"]["display"]["path"]).is_file())
+        self.compose(corrected, preview["style"])
+        self.assertEqual(self.m.audit(self.root, "test-run", style=preview["style"]), [])
+
+    def test_targeted_correction_preserves_failed_retry_in_revision_and_not_batch_budget(self):
+        run = self.prepare()
+        preview = run["previews"][0]
+        failed_retry = self.failure_retry(run, preview)
+        original_generation = self.generation(preview, 1)
+        original_generation["authorization_sha256"] = failed_retry["generation_authorization_sha256"]
+        self.m.ingest(
+            self.root, "test-run", preview["style"], self.image(1), original_generation,
+            failed_retry=failed_retry,
+        )
+        self.compose(self.m.read_json(self.m.run_dir(self.root, "test-run") / "evidence.json"), preview["style"])
+        current = self.m.read_json(self.m.run_dir(self.root, "test-run") / "evidence.json")
+        old = current["previews"][0]
+        correction = {
+            "kind": "targeted-correction", "reason_code": "maintainer-requested-visual-fix",
+            "generation_prompt_sha256": "8" * 64, "generation_authorization_sha256": "9" * 64,
+            "visual_acceptance_sha256": "a" * 64,
+            "replaces": {
+                "call_id": old["generation"]["call_id"], "original_sha256": old["original_sha256"],
+                "native_sha256": old["sha256"], "display_sha256": old["composition"]["display"]["sha256"],
+            },
+        }
+        generation = dict(self.generation(preview, 2, call_id="correction-call-2"),
+                          prompt_sha256="8" * 64, authorization_sha256="9" * 64)
+        corrected = self.m.ingest(
+            self.root, "test-run", preview["style"], self.image(2), generation,
+            correction=correction,
+        )
+        stored = corrected["previews"][0]
+        self.assertNotIn("failed_retry", stored)
+        revision = self.m.read_json(
+            self.m.run_dir(self.root, "test-run") / stored["replacement_history"][0]["path"]
+        )
+        self.assertEqual(revision["preview"]["failed_retry"], failed_retry)
+        for number, remaining in enumerate(run["previews"][1:6], start=3):
+            corrected = self.m.ingest(
+                self.root, "test-run", remaining["style"], self.image(number),
+                self.generation(remaining, number),
+            )
+        self.m._check_plan(self.root, corrected, self.m.run_dir(self.root, "test-run"))
+
     def test_rejects_mixed_style_pose_missing_or_duplicate_pose_ids_and_rule_drift(self):
         run = self.prepare()
         path = self.m.run_dir(self.root, "test-run") / "evidence.json"
