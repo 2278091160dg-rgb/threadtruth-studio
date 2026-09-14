@@ -43,6 +43,21 @@ Use `pass`, `fail` or `not-tested` for each step, with a brief sanitized observa
 
 For Issue #1, a separately authorized recognition-only discovery check should compare fresh tasks with (a) a minimal implicit request, (b) the same wording with explicit `$threadtruth-studio`, and (c) a substantive implicit apparel request. Retain the exact sanitized request, first response, actual host/build and observable Skill-load trace; record unavailable trace as unavailable. These checks make zero image-generation calls. Current static style routing tests cannot prove host discovery; the issue remains `open / needs-reproduction` until actual evidence identifies the boundary.
 
+Copyable checks / 可直接复制的检查指令：A is the original public [Issue #1](https://github.com/2278091160dg-rgb/threadtruth-studio/issues/1) reproduction, recovered on 2026-09-14; B and C are proposed controls, not newly observed passes. Run each in a separate fresh task with the same installed version and no attachment. Do not continue to generation.
+
+```text
+A — 原始隐式请求
+帮我把一件外套做成电商模特图。目前还没有上传图片，也没有授权生图。请简短回应。
+
+B — 仅增加显式调用
+$threadtruth-studio 帮我把一件外套做成电商模特图。目前还没有上传图片，也没有授权生图。请简短回应。
+
+C — 具体任务的隐式对照
+我想用一件真实外套制作服饰模特图，之后查看全部24种风格并选择一种做六姿势预览。目前还没有上传图片，也没有授权生图；这次只说明需要我提供什么，不要生成图片。
+```
+
+For all three, observe the missing-source and authorization gates, whether the Skill actually loads, and any conditional production promise. Do not expect a garment recognition card without a source image. If a trace is unavailable, report that separately from the visible response; the original Issue's summarized observation is not a retained raw load trace. / 三项都记录缺图与授权门、实际加载证据及是否出现条件式生图承诺；无源图时不要求输出识别卡。没有加载记录就如实写 unavailable，不凭首答推断已经加载。
+
 Each participant separately decides:
 
 - Whether to test. / 是否参与测试。
