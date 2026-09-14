@@ -39,6 +39,7 @@ DEMO_ROOT_FILES = {
     "style-index.json",
     "style-preview-v1.schema.json",
     "style-preview-v2.schema.json",
+    "style-preview-v4.schema.json",
 }
 DEMO_ROOT_DIRS = {"cases", "primary-cases", "styles", "style-previews"}
 PUBLIC_CASE_FILES = {"README.md", "rights.json", "source-metadata.json", "source.jpg"}
@@ -1225,8 +1226,13 @@ def validate_public_cases(root: Path) -> list[str]:
     except OSError:
         findings.append("public rights index is missing")
     else:
-        if current_index != rights_index_content(root):
-            findings.append("public rights index is stale")
+        try:
+            expected_index = rights_index_content(root)
+        except (OSError, ValueError, KeyError, TypeError):
+            findings.append("public rights index cannot be derived from invalid records")
+        else:
+            if current_index != expected_index:
+                findings.append("public rights index is stale")
     return findings
 
 

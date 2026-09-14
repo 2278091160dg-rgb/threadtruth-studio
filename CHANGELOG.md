@@ -2,6 +2,27 @@
 
 All notable changes are documented here. Versions follow Semantic Versioning.
 
+## 2026-09-14 — Unreleased fixed-card preview delivery
+
+### Behavior before
+
+- Trigger: three native single-style attempts did not establish exact equal 3:4 panels. The maintainer explicitly selected disclosed local card layout instead of further prompt-only retries.
+
+### Behavior after
+
+- New development-only schema4 separates retained native content from fixed1200×1200 display boards, six360×480 cards and whole-board thumbnails. Explicit compose uses observed source rectangles, uniform downscaling/padding, local bilingual labels and an AI/layout/non-final footer; no generative repair, stretch, upscale or subject cropping.
+- Source originals, actual prompts/calls, historical geometry failures and pending human review are retained. New display records bind extraction/fit/font/derivative hashes; old approvals do not transfer. Reusing a real original does not create a native call.
+- Rights index, style pages, README thumbnail slots and promotion allowlists distinguish native/display/thumbnail assets. All24human approvals still gate public promotion; previews never enter six-final records. Extra independent-final representatives are now explicitly optional.
+- Primary-case validation adds consistent C1/C support alongside B1/B; keeps2:3, six distinct finals, source rights and human acceptance. Issue1 remains open/needs-reproduction because retained summaries cannot attribute the host-load boundary.
+### Eval coverage
+
+- Regression work covers compose success/idempotence, malformed or overlapping source rectangles, tampered evidence/assets, missing composition/approval, original preservation, public projection and C1/mode/action mismatch. CI explicitly requires a development-only CJK font so rendering tests cannot silently skip on its Linux runner; no font is redistributed.
+
+### Verification
+
+- Final120/120 repository tests and source/runtime/Plugin checks pass; the reused Korean C layout passes machine checks but awaits human review. See [the delivery verification report](docs/verification/2026-09-14-card-preview-delivery.md). Local development is not a beta.3 release.
+- Runtime, existing beta.1/beta.2 assets, global installation and external systems are unchanged. No new native generation or automatic retry is authorized by this software change.
+
 ## 2026-09-13 — Unreleased preview layout and label contract
 
 ### Trigger

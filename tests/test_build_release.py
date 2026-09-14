@@ -43,6 +43,7 @@ class ReleaseBuildTests(unittest.TestCase):
             self.assertIn(prefix + "docs/demo/STYLES.md", names)
             self.assertIn(prefix + "docs/demo/style-preview-v1.schema.json", names)
             self.assertIn(prefix + "docs/demo/style-preview-v2.schema.json", names)
+            self.assertIn(prefix + "docs/demo/style-preview-v4.schema.json", names)
             self.assertFalse(any("/evals/" in name for name in names))
             self.assertFalse(any("/tests/" in name for name in names))
             self.assertFalse(any("/tools/" in name for name in names))

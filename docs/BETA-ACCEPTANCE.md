@@ -41,6 +41,8 @@ Use `pass`, `fail` or `not-tested` for each step, with a brief sanitized observa
 
 ## 2. Consent and a public-safe receipt / 同意与脱敏记录（T14–T16）
 
+For Issue #1, a separately authorized recognition-only discovery check should compare fresh tasks with (a) a minimal implicit request, (b) the same wording with explicit `$threadtruth-studio`, and (c) a substantive implicit apparel request. Retain the exact sanitized request, first response, actual host/build and observable Skill-load trace; record unavailable trace as unavailable. These checks make zero image-generation calls. Current static style routing tests cannot prove host discovery; the issue remains `open / needs-reproduction` until actual evidence identifies the boundary.
+
 Each participant separately decides:
 
 - Whether to test. / 是否参与测试。
@@ -75,7 +77,7 @@ Record capture date, operator's consented identity, actual host/build, what was 
 
 ## 4. Two new source garments / 另外两件服饰素材（T17）
 
-Target cases: **E-commerce Studio / 电商棚拍** and **American Street / 美式街头**. These are two new full workflows; neither the white-vest previews nor the Met auxiliary case substitutes for them.
+Target cases: **E-commerce Studio B1 / 电商棚拍** and **American Street C1 / 美式街头场景版**, both portrait `2:3` with six independent finals. These are two new full workflows; neither the white-vest previews nor the Met auxiliary case substitutes for them.
 
 For each product, prepare four distinct clear JPEG views for the current developer primary-case validator: front, back, construction/closure detail, and hood/collar/material detail as appropriate. All four must show the same selected product/color, with no mixed SKU. Four views is this evidence tool's current requirement, not the runtime Skill's general minimum input rule. Do not invent a collar/hood if the product lacks one.
 

@@ -13,7 +13,7 @@
     "role": {"const": "primary"},
     "primary_demo_status": {"const": "ready"},
     "style": {"enum": ["american-street", "ecommerce-studio", "korean-cold-editorial"]},
-    "route": {"const": "B1"},
+    "route": {"enum": ["B1", "C1"]},
     "source_rights": {
       "type": "object",
       "additionalProperties": false,

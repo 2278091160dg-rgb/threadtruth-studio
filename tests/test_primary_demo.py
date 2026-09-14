@@ -6,6 +6,8 @@ import shutil
 import struct
 import tempfile
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 import zipfile
 import zlib
 from pathlib import Path
@@ -162,6 +164,133 @@ def write_staging(root, *, state="image-ready", ai_notice="informed"):
 
 
 class PrimaryDemoTests(unittest.TestCase):
+    def test_legacy_preview_projection_returns_findings_instead_of_crashing(self):
+        module = load_module()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = root / 'docs/demo/style-index.json'
+            path.parent.mkdir(parents=True)
+            index = json.loads((ROOT / 'docs/demo/style-index.json').read_text())
+            legacy = {'style': index['styles'][0]['slug'], 'path': 'legacy.jpg',
+                      'sha256': 'a' * 64, 'run_id': 'legacy'}
+            for projection in (legacy, {**legacy, 'native': None, 'thumbnail': None}):
+                with self.subTest(projection=projection):
+                    index['styles'][0]['preview'] = projection
+                    path.write_text(json.dumps(index))
+                    self.assertIn('style pages cannot be derived', module.validate_style_pages(root))
+
+    def test_preview_rights_index_enumerates_native_display_and_thumbnail_assets(self):
+        module = load_module()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            directory = root / "docs/demo/style-previews/run"
+            directory.mkdir(parents=True)
+            (directory / "evidence.json").write_text(json.dumps({"run_id": "run", "previews": []}))
+            assets = [
+                {"style": "korean-cold-editorial", "role": role, "path": name, "sha256": digest}
+                for role, name, digest in (
+                    ("native-preview", "korean.jpg", "a" * 64),
+                    ("display-preview", "korean-display.jpg", "b" * 64),
+                    ("preview-thumbnail", "korean-thumb.jpg", "c" * 64),
+                )
+            ]
+            with patch.object(module, "_preview_module", return_value=SimpleNamespace(public_assets=lambda _record: assets)):
+                result = module.primary_rights_index_content(root)
+            for asset in assets:
+                self.assertIn(asset["role"], result)
+                self.assertIn("style-previews/run/" + asset["path"], result)
+                self.assertIn(asset["sha256"][:12], result)
+
+    def test_readme_projection_uses_whole_thumbnail_and_preserves_other_content(self):
+        module = load_module()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / "docs/demo").mkdir(parents=True)
+            (root / "docs/demo/style-index.json").write_text(json.dumps({"styles": [
+                {"slug": "korean-cold-editorial", "display_name": "Korean Cold Editorial"},
+            ]}))
+            readme = root / "README.md"
+            readme.write_text("before\n<!-- STYLE_PREVIEWS:START -->\nstale\n<!-- STYLE_PREVIEWS:END -->\nafter\n")
+            links = {"korean-cold-editorial": {
+                "path": "style-previews/run/korean-display.jpg",
+                "thumbnail": {"path": "style-previews/run/korean-thumb.jpg"},
+            }}
+            with patch.object(module, "_preview_module", return_value=SimpleNamespace(preview_links=lambda _root: links)):
+                module.render_readme_previews(root)
+            result = readme.read_text()
+            self.assertTrue(result.startswith("before\n<!-- STYLE_PREVIEWS:START -->"))
+            self.assertTrue(result.endswith("<!-- STYLE_PREVIEWS:END -->\nafter\n"))
+            self.assertIn('src="docs/demo/style-previews/run/korean-thumb.jpg"', result)
+            self.assertIn('href="docs/demo/style-previews/run/korean-display.jpg"', result)
+            self.assertIn("Korean Cold Editorial", result)
+            self.assertNotIn("stale", result)
+            with patch.object(module, "_preview_module", return_value=SimpleNamespace(preview_links=lambda _root: {})):
+                module.render_readme_previews(root)
+            self.assertNotIn("<img", readme.read_text())
+
+    def test_final_routes_accept_b1_and_c1_but_reject_mismatched_actions(self):
+        module = load_module()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            staging = write_staging(Path(temp_dir))
+            run_path = staging / "final-run.json"
+            original = json.loads(run_path.read_text())
+            for mode, route in (("B", "B1"), ("C", "C1")):
+                with self.subTest(mode=mode, route=route):
+                    run = copy.deepcopy(original)
+                    run.update(style="american-street", mode=mode, route=route)
+                    run_path.write_text(json.dumps(run))
+                    self.assertEqual(module.validate_staged_primary_case(staging), [])
+            for mode, route in (("B", "C1"), ("C", "B1"), ("C", "C0"), ("C", "C2"), ("D", "D1")):
+                with self.subTest(mode=mode, route=route):
+                    run = copy.deepcopy(original)
+                    run.update(mode=mode, route=route)
+                    run_path.write_text(json.dumps(run))
+                    self.assertIn("ROUTE_INVALID", module.validate_staged_primary_case(staging))
+            for field, value, code in (
+                ("action", "single-test-image", "ROUTE_INVALID"),
+                ("preview_images_included", 1, "PREVIEW_INCLUDED"),
+                ("actual_images", 5, "FINAL_SET_INCOMPLETE"),
+            ):
+                run = copy.deepcopy(original)
+                run.update(style="american-street", mode="C", route="C1")
+                run[field] = value
+                run_path.write_text(json.dumps(run))
+                self.assertIn(code, module.validate_staged_primary_case(staging))
+
+    def test_c1_primary_promotion_retains_scene_route_and_canvas_checks(self):
+        module = load_module()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            (root / "docs" / "demo").mkdir(parents=True)
+            staging = write_staging(root)
+            run_path = staging / "final-run.json"
+            run = json.loads(run_path.read_text())
+            run.update(style="american-street", mode="C", route="C1")
+            run_path.write_text(json.dumps(run))
+            counter = {"value": 0}
+
+            def converter(_source, destination):
+                counter["value"] += 1
+                destination.write_bytes(minimal_jpeg(1024, 1536, counter["value"]))
+
+            def compositor(_sources, destination):
+                destination.write_bytes(minimal_jpeg(1280, 640, 77))
+
+            rights = module.promote_primary_case(
+                root, staging, "american-street-scene", promoted_at="2026-09-12T18:00:00Z",
+                converter=converter, compositor=compositor,
+            )
+            self.assertEqual(rights["route"], "C1")
+            route_schema = json.loads((ROOT / "docs/demo/primary-rights-v1.schema.json").read_text())["properties"]["route"]
+            declared_routes = route_schema.get("enum", [route_schema.get("const")])
+            self.assertEqual(set(declared_routes), set(module.FINAL_ROUTES))
+            self.assertIn(rights["route"], declared_routes)
+            self.assertEqual(module.validate_public_primary_cases(root), [])
+            rights_path = root / "docs/demo/primary-cases/american-street-scene/rights.json"
+            rights["quality"]["canvas_contract"]["target_ratio"] = "1:1"
+            rights_path.write_text(json.dumps(rights))
+            self.assertTrue(module.validate_public_primary_cases(root))
+
     def test_default_image_backend_converts_and_composites_without_ffmpeg(self):
         module = load_module()
         with tempfile.TemporaryDirectory() as temp_dir:

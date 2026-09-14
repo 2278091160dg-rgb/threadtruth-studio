@@ -24,6 +24,7 @@ SHA256 = re.compile(r"^[0-9a-f]{64}$")
 GITHUB_REVIEWER = re.compile(r"^github:[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$")
 JPEG_MAX_BYTES = 8 * 1024 * 1024
 PRIMARY_ROOT_FILES = {"README.md", "rights.json", "hero.jpg"}
+FINAL_ROUTES = ("B1", "C1")
 SUPPORTED_STYLES = {
     "american-street",
     "athleisure",
@@ -311,9 +312,13 @@ def validate_staged_primary_case(staging: Path) -> list[str]:
 
     if run.get("state") != "image-ready":
         _add(findings, "PRIMARY_NOT_IMAGE_READY")
-    if run.get("action") != "six-independent-final-images" or run.get("route") != "B1":
+    if (
+        run.get("action") != "six-independent-final-images"
+        or run.get("route") not in FINAL_ROUTES
+        or run.get("route") != f"{run.get('mode')}1"
+    ):
         _add(findings, "ROUTE_INVALID")
-    if run.get("mode") != "B" or run.get("style") not in SUPPORTED_STYLES:
+    if run.get("mode") not in ("B", "C") or run.get("style") not in SUPPORTED_STYLES:
         _add(findings, "STYLE_UNREGISTERED")
     if run.get("identity_anchor") != "finals/look-1.png":
         _add(findings, "IDENTITY_ANCHOR_INVALID")
@@ -510,9 +515,14 @@ def primary_rights_index_content(root: Path) -> str:
     preview_root = root.resolve() / "docs/demo/style-previews"
     for path in sorted(preview_root.glob("*/evidence.json")):
         evidence = read_json(path)
-        previews = evidence.get("previews", [])
-        digest = previews[0].get("sha256", "") if previews else ""
-        rows.append(f"| `{evidence.get('run_id', '')}` | style-preview | authorized primary garment | CC0-1.0 | `{str(digest)[:12]}` | 24 human-approved single-style sheets; not finals |")
+        for asset in _preview_module().public_assets(evidence):
+            link = f"style-previews/{evidence['run_id']}/{asset['path']}"
+            record_link = f"style-previews/{evidence['run_id']}/evidence.json"
+            rows.append(
+                f"| [{asset['style']}]({link}) | {asset['role']} | authorized primary garment | "
+                f"CC0-1.0 | `{asset['sha256'][:12]}` | human-approved preview; "
+                f"[derivation and full hashes]({record_link}); not finals |"
+            )
     table = (
         "| Case | Role | Source | License | SHA-256 prefix | Status |\n"
         "|---|---|---|---|---|---|\n" + "\n".join(rows)
@@ -735,7 +745,7 @@ def validate_public_primary_cases(root: Path) -> list[str]:
             or not CASE_ID.fullmatch(str(rights.get("work_id")))
         ):
             findings.append(f"{case_dir.name}: case identifier mismatch")
-        if rights.get("style") not in FULL_CASE_STYLES or rights.get("route") != "B1":
+        if rights.get("style") not in FULL_CASE_STYLES or rights.get("route") not in FINAL_ROUTES:
             findings.append(f"{case_dir.name}: style or route is invalid")
         elif isinstance(rights.get("style"), str):
             case_styles.append(str(rights["style"]))
@@ -1304,7 +1314,14 @@ def style_page_content(item: dict[str, object]) -> str:
     if "preview" in item:
         preview = item["preview"]
         if preview:
-            preview_note = f"\nStyle preview: [whole six-pose sheet](../{preview['path']}) for `{preview['style']}`. The linked image is the complete action-0 sheet, with no crop or upscale. AI-generated style preview; not an independent final.\n"
+            preview_note = (
+                f"\nStyle preview: [whole six-pose layout derivative](../{preview['path']}) for `{preview['style']}`. "
+                f"[Native whole-sheet copy](../{preview['native']['path']}) · "
+                f"[Whole-board thumbnail](../{preview['thumbnail']['path']}). "
+                "Exact 3:4 describes the display card frames; complete source panels fit with padding, "
+                "without stretching, upscaling or subject cropping. Local labels/layout are developer presentation, "
+                "not native grid-precision claims. AI生成 · 排版衍生预览 · 非成片.\n"
+            )
         else:
             preview_note = "\nStyle preview: `planned`. No approved single-style six-pose sheet yet.\n"
     return f"""# {item['display_name']}
@@ -1331,7 +1348,7 @@ def style_overview_content(index: dict[str, object]) -> str:
     preview_coverage = ""
     if any("preview" in item for item in index["styles"]):
         count = sum(bool(item.get("preview")) for item in index["styles"])
-        preview_coverage = f"\nSingle-style preview-sheet coverage: **{count}/24**. Final representative coverage: **{ready}/24**. Each preview is one whole action-0 sheet with six canonical poses; preview sheets never satisfy final-image or six-image case requirements.\n"
+        preview_coverage = f"\nSingle-style preview-sheet coverage: **{count}/24**. Final representative coverage: **{ready}/24**. Each preview is an explicitly disclosed local-layout derivative of one native action-0 sheet with six canonical poses. Exact 3:4 applies to card frames, not native geometry; preview sheets never satisfy final-image or six-image case requirements.\n"
     return f"""# 24-style public evidence index
 
 Visual evidence progress: **{ready}/24 ready**. The runtime contains 24 routed packs; this page separately tracks rights-cleared public image evidence and never treats a planned card as a completed generation.
@@ -1341,8 +1358,44 @@ Visual evidence progress: **{ready}/24 ready**. The runtime contains 24 routed p
 |---|---|---|---|---|
 {"\n".join(rows)}
 
-Three styles are designated for complete six-image primary cases: Korean Cold Editorial, E-commerce Studio, and American Street. The remaining styles need one approved representative image each. New generation remains subject to explicit per-style authorization.
+Three styles are designated for complete six-image primary cases: Korean Cold Editorial, E-commerce Studio, and American Street. Other independent-final representatives are optional; the required preview series uses the same white vest across all24styles. Source families and beta_week metadata retain the older optional representative-image plan, not a current preview quota. New generation remains subject to explicit per-style authorization.
 """
+
+
+def render_readme_previews(root: Path) -> None:
+    """Update only the approved-preview slots; absent root guides are allowed in fixtures."""
+    from html import escape
+
+    links = _preview_module().preview_links(root)
+    index = read_json(root / "docs/demo/style-index.json")
+    start, end = "<!-- STYLE_PREVIEWS:START -->", "<!-- STYLE_PREVIEWS:END -->"
+    cells = []
+    for item in index["styles"]:
+        preview = links.get(item["slug"])
+        if preview is None:
+            continue
+        name = escape(item["display_name"])
+        image = escape("docs/demo/" + preview["thumbnail"]["path"], quote=True)
+        target = escape("docs/demo/" + preview["path"], quote=True)
+        cells.append(f'<a href="{target}"><img src="{image}" alt="{name} — six-pose layout preview, not finals" width="180"></a><br>{name}')
+    if cells:
+        rows = ["| | | | |", "|---|---|---|---|"]
+        for offset in range(0, len(cells), 4):
+            row = cells[offset:offset + 4]
+            rows.append("| " + " | ".join(row + [""] * (4 - len(row))) + " |")
+        content = "\n".join(rows)
+    else:
+        content = "No human-approved preview gallery yet. / 暂无已获人工批准的预览图库。"
+    for filename in ("README.md", "README.zh-CN.md"):
+        path = root / filename
+        if not path.exists():
+            continue
+        original = path.read_text(encoding="utf-8")
+        if original.count(start) != 1 or original.count(end) != 1 or original.index(start) > original.index(end):
+            raise ValueError("README preview markers missing or duplicated")
+        before, remainder = original.split(start)
+        _, after = remainder.split(end)
+        path.write_text(before + start + "\n\n" + content + "\n\n" + end + after, encoding="utf-8")
 
 
 def expected_style_pages(root: Path) -> dict[Path, str]:
@@ -1366,7 +1419,7 @@ def validate_style_pages(root: Path) -> list[str]:
     findings: list[str] = []
     try:
         outputs = expected_style_pages(root)
-    except (OSError, ValueError, json.JSONDecodeError):
+    except (OSError, ValueError, KeyError, TypeError):
         return ["style pages cannot be derived"]
     for path, expected in outputs.items():
         try:

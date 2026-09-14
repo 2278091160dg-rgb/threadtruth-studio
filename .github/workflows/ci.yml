@@ -20,6 +20,11 @@ jobs:
           python-version: "3.12"
       - name: Install development image dependency
         run: python3 -m pip install --requirement requirements-dev.txt
+      - name: Require development-only CJK test font
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y fonts-noto-cjk
+          test -f /usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc
       - name: Repository contracts
         run: python3 -m unittest discover -s tests -v
       - name: Style-pack lint

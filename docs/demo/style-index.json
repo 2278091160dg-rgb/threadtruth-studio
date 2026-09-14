@@ -1,6 +1,7 @@
 {
   "schema_version": "1.0",
-  "strategy": "24 representative images plus three six-image primary cases",
+  "strategy": "24 same-white-vest single-style six-pose layout previews plus three six-image primary cases; other independent-final representatives are optional",
+  "legacy_representative_metadata": "source_family and beta_week retain the old optional independent-final plan, not a current preview schedule",
   "styles": [
     {"slug":"american-street","display_name":"American Street","featured":true,"status":"planned","preview":null,"representative_image":null,"full_case":"planned","source_family":"denim or workwear outerwear","beta_week":1},
     {"slug":"athleisure","display_name":"Athleisure","featured":false,"status":"planned","preview":null,"representative_image":null,"full_case":"none","source_family":"white puffer vest","beta_week":3},

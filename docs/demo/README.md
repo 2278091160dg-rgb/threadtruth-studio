@@ -19,76 +19,57 @@ The [24-style evidence index](STYLES.md) distinguishes ready visual evidence fro
 
 The optional The Met pipeline can create reproducible CC0 auxiliary cases, but it cannot replace a primary case or count toward Beta adoption. Candidate files stay in ignored local quarantine and need a complete human review before promotion. See [MEDIA-POLICY.md](MEDIA-POLICY.md).
 
-## Single-style preview operator workflow (schema 3.0)
+## Single-style preview operator workflow (schema 4.0)
 
-This development-only collector is separate from `demo-media.py`. It does not call native image generation, repair an image, infer visual acceptance, or fill a human review. Current schema `3.0` is enforced by `tools/style_preview.py`; the retained v1/v2 JSON Schema documents describe historical evidence only, and there is no separate v3 JSON Schema file.
+This development-only collector preserves native content and creates disclosed fixed-card presentation. It never calls image generation or fills human approval. The runtime Skill's action0 and six-independent-final behavior remain unchanged.
 
-For every style, the native image must be one square `1:1` board. The top title, subtitle, six-cell picture area, and footer all fit inside that square; the picture area is not itself the whole board. The six equal portrait cells are each `3:4`, ordered poses 1–3 on the top row and 4–6 on the bottom row. Poses 1, 2, 4 and 6 must be full-body; poses 3 and 5 may be half-body. The image, prompt and receipt are preserved. Do not crop, stretch, pad, enlarge, or use a script to replace or repair native text.
+Exact `3:4` describes the display **card frame**, not the source photograph. Display boards are `1200×1200`, with six `360×480` cards at x=44/420/796 and y=140/636. Complete pose images fit inside each card using uniform downscaling and padding; no stretch, upscale, generative fill or crop of the model/garment. Only original gutters and text regions are excluded when extracting the observed six panels. If a native pose is already cropped or distorted, layout cannot repair it.
 
-The native generator must render these labels, with the registered bilingual style name substituted exactly:
+The registered complete bilingual style name and mode subtitle are rendered in separate header bands. The footer is:
 
 ```text
-<registered Chinese / English style name>
-同款白马甲 · <mode> <Chinese mode name> · 六姿势预览
-AI生成 · 方向预览 · 非成片 / PREVIEW ONLY — NOT FINAL
+AI生成 · 排版衍生预览 · 非成片 / PREVIEW ONLY — NOT FINAL
 ```
 
-For example, Korean Cold Editorial uses `韩系冷感杂志风 / Korean Cold Editorial`, then `同款白马甲 · C 场景版 · 六姿势预览`, then the exact footer above. All three text bands must be distinct, readable, inside the square, and clear of the model, garment, face, shoes, bag, and poses.
+Use a readable local Chinese font with `--font`. Its basename/hash is evidence; the font binary and absolute local path are not public assets. Missing fonts or text that cannot fit cause failure, not silent truncation.
 
-Start a fresh run ID for current evidence; never reuse or upgrade a schema `1.0` or `2.0` run:
+### Prepare, ingest and compose
+
+Start a new run. Schema1–3 runs remain read-only with their original findings and cannot be upgraded in place or inherit current approval. The unchanged native prompt binding allows reuse of a registered schema3 original and its real call record in a fresh run; it does not create a new generation call.
 
 ```bash
-python3 tools/style-preview.py prepare --run-id white-vest-layout-v3
-python3 tools/style-preview.py ingest --run-id white-vest-layout-v3 --style korean-cold-editorial --image /path/to/native-output.png --generation-record /path/to/native-generation.json
-python3 tools/style-preview.py audit --run-id white-vest-layout-v3 --style korean-cold-editorial
-python3 tools/style-preview.py gallery --run-id white-vest-layout-v3 --style korean-cold-editorial
+python3 tools/style-preview.py prepare --run-id white-vest-cards-v4
+python3 tools/style-preview.py ingest --run-id white-vest-cards-v4 --style korean-cold-editorial --image /path/to/original.png --generation-record /path/to/actual-generation.json
+python3 tools/style-preview.py compose --run-id white-vest-cards-v4 --style korean-cold-editorial --layout-json /path/to/observed-layout.json --font /path/to/local-cjk-font.ttc
+python3 tools/style-preview.py audit --run-id white-vest-cards-v4 --style korean-cold-editorial
+python3 tools/style-preview.py gallery --run-id white-vest-cards-v4 --style korean-cold-editorial
 ```
 
-The generation record must come from the actual authorized native call and bind that style's prepared prompt hash; do not invent a call ID, timestamp, or hash. A scoped `audit --style` checks the retained file, receipt, hashes, native/optimized dimensions, and current plan binding. With no human review it does not claim layout, label, pose, or approval success. An unscoped `audit` is the full collection gate and correctly fails until all 24 sheets exist and are approved.
+The generation record contains the real authorized call ID, observed generation time and exact prepared prompt hash. Never rewrite an old prompt hash to match a new plan.
 
-Ingest writes `review-template-<style>.json` with null rectangles, `pending` checks, and `public_use_approved: false`. A human reviewer must inspect the retained image and enter observed pixel rectangles as `[x, y, width, height]`; the tool never derives them from a nominal grid. Integers must be in bounds, non-overlapping and correctly ordered. Cell widths/heights may differ by at most one pixel, and each cell must satisfy `abs(4*width - 3*height) <= 4`, the one-pixel raster-rounding allowance.
+`layout-json` has `original_sha256` and `cells`: exactly six row-major `[x,y,width,height]` rectangles observed in the retained native image. Bind the actual original hash; do not infer boundaries from the square board. Rectangles must be integer, positive, in bounds, non-overlapping and in the six-pose order. Different native panel ratios are allowed. Framing remains full-body for poses1/2/4/6, half-body permitted for3/5.
 
-The following is a deliberately synthetic fragment for a disposable `900x900` test board. It is not a coordinate template for a real image and is not an approvable review:
+Compose keeps the native whole-sheet JPEG and creates a display JPEG plus whole-display thumbnail. Evidence records source authorization, native original and optimized hashes, actual call/prompt/pack/rule bindings, extraction rectangles, fit transforms, fixed-card geometry, font identity and derivative hashes. Identical repeated composition is idempotent; changed content is not a silent overwrite.
 
-```json
-{
-  "public_use_approved": false,
-  "geometry": {
-    "cells": [
-      [90, 120, 210, 280], [345, 120, 210, 280], [600, 120, 210, 280],
-      [90, 420, 210, 280], [345, 420, 210, 280], [600, 420, 210, 280]
-    ],
-    "title": [60, 20, 780, 35],
-    "subtitle": [60, 70, 780, 30],
-    "footer": [90, 750, 720, 50]
-  },
-  "checks": {
-    "observed_boundaries": "pending",
-    "full_bilingual_title": "pending",
-    "correct_subtitle": "pending",
-    "readable_ai_footer": "pending",
-    "text_subject_non_overlap": "pending"
-  }
-}
-```
+### Human review and publication
 
-The real review also has six ordered pose entries; each requires explicit `pass` for `product`, `pose_layout`, `identity_style`, `ai_disclosure`, and `framing`, plus a real reviewer identity, review time, exact confirmation, current preview/evidence hashes, and an explicit public-use decision. Null, missing, `pending`, or `fail` values are not consent. There is intentionally no command that auto-fills an all-pass review.
+Machine layout checks prove fixed cards and artifact integrity only. They cannot prove visual fidelity, correctly observed boundaries, readable Chinese glyphs or human consent.
 
-Only after the human has completed the actual review may the operator approve that style:
+The review template remains pending. A real reviewer must compare the source and display: six complete poses, same garment/model, style, full-body framing where required, no content loss through extraction, padding, correct bilingual labels and AI disclosure. Review binds current source/display/evidence hashes. Missing, null, pending or failed checks are not approval.
 
 ```bash
-python3 tools/style-preview.py approve --run-id white-vest-layout-v3 --style korean-cold-editorial --review /path/to/completed-human-review.json
+python3 tools/style-preview.py approve --run-id white-vest-cards-v4 --style korean-cold-editorial --review /path/to/completed-human-review.json
 ```
 
-Repeat ingest, observed review, and approval separately for every registered style. Only then run the full collection gates:
+After the Korean pilot is accepted, obtain each remaining style's explicit generation instruction and repeat ingest/compose/review. No automatic retry or batch authorization is implied. Only after all24real reviews:
 
 ```bash
-python3 tools/style-preview.py audit --run-id white-vest-layout-v3
-python3 tools/style-preview.py gallery --run-id white-vest-layout-v3
-python3 tools/style-preview.py promote --run-id white-vest-layout-v3
+python3 tools/style-preview.py audit --run-id white-vest-cards-v4
+python3 tools/style-preview.py gallery --run-id white-vest-cards-v4
+python3 tools/style-preview.py promote --run-id white-vest-cards-v4
 ```
 
-`promote` remains blocked until all 24 current-schema previews pass machine validation and their own human approval. Schema v1/v2 runs remain inspectable as legacy galleries but cannot be prepared, ingested, approved, or promoted under the current standard.
+Public promotion includes only registered native whole-sheet JPEGs, layout derivatives, thumbnails and generated evidence/pages. It updates rights, style pages and the README thumbnail slots transactionally. Raw originals, local receipts, font files and review drafts remain private. A failed/unapproved preview cannot enter public artifacts; no preview counts as an independent final, complete workflow or `image-ready` set.
 
 ## The Met auxiliary-media operator workflow
 
