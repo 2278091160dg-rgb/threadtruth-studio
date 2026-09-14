@@ -2,6 +2,11 @@
 
 All notable changes are documented here. Versions follow Semantic Versioning.
 
+## Unreleased
+
+- Added hash-bound, single-target retry evidence for recorded prompt-binding failures and native timeouts with no output. The retry must use a new post-failure authorization, the exact planned prompt, and the next attempt number; it does not consume a successful-style slot in the original immutable batch.
+- Added regression coverage for retry receipt bindings, full six-style batch completion after one authorized failed-call retry, and rejection of missing or mismatched retry authorization.
+
 ## 2026-09-14 — 1.0.0-beta.3
 
 ### Trigger

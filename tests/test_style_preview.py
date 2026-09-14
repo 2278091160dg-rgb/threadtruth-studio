@@ -179,6 +179,84 @@ class PreviewTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "authorization hash"):
             self.m.ingest(self.root, "test-run", second["style"], self.image(2), wrong_hash)
 
+    def failure_retry(self, run, preview, *, status="native-generation-timeout-no-output"):
+        manifest = self.batch_for_style[preview["style"]]
+        directory = self.m.run_dir(self.root, "test-run")
+        failure_relative = f"failed-calls/{preview['style']}/failure.json"
+        failure_path = directory / failure_relative
+        failure_path.parent.mkdir(parents=True, exist_ok=True)
+        failure = {
+            "schema_version": "failure-record-v1",
+            "run_id": "test-run",
+            "batch_id": manifest["batch_id"],
+            "style": preview["style"],
+            "status": status,
+            "attempt_number": 1,
+            "batch_halted": True,
+            "automatic_retry_performed": False,
+            "call_id": None,
+            "terminated_at": "2026-09-14T07:00:00Z",
+            "authorization_sha256": manifest["authorization_sha256"],
+            "prompt_path": f"prompts/{preview['style']}.txt",
+            "prompt_sha256": preview["prompt_sha256"],
+            "native_output_path": None,
+            "native_output_sha256": None,
+            "next_action": f"No retry without a new targeted authorization for {preview['style']}.",
+        }
+        self.m.write_json(failure_path, failure)
+        retry_authorization = "f" * 64
+        return {
+            "kind": "failed-call-retry",
+            "reason_code": status,
+            "failure_record_path": failure_relative,
+            "failure_record_sha256": self.m.digest(failure_path.read_bytes()),
+            "generation_prompt_sha256": preview["prompt_sha256"],
+            "generation_authorization_sha256": retry_authorization,
+            "authorized_at": "2026-09-14T08:00:00Z",
+            "attempt_number": 2,
+            "scope": "single-target-retry;no-auto-retry",
+        }
+
+    def test_failed_call_retry_binds_new_authorization_and_does_not_consume_batch_slot(self):
+        run = self.prepare()
+        preview = run["previews"][0]
+        failed_retry = self.failure_retry(run, preview)
+        generation = self.generation(preview, 1)
+        generation["authorization_sha256"] = failed_retry["generation_authorization_sha256"]
+        record = self.m.ingest(
+            self.root, "test-run", preview["style"], self.image(1), generation,
+            failed_retry=failed_retry,
+        )
+        stored = record["previews"][0]
+        self.assertEqual(stored["failed_retry"], failed_retry)
+        receipt = self.m.read_json(
+            self.m.run_dir(self.root, "test-run") / "native-receipts" / f"{preview['style']}.json"
+        )
+        self.assertEqual(receipt["bindings"]["failed_retry_sha256"], self.m.object_hash(failed_retry))
+        self.assertEqual(receipt["bindings"]["generation_prompt_sha256"], preview["prompt_sha256"])
+        for number, remaining in enumerate(run["previews"][1:6], start=2):
+            record = self.m.ingest(
+                self.root, "test-run", remaining["style"], self.image(number),
+                self.generation(remaining, number),
+            )
+        self.m._check_plan(self.root, record, self.m.run_dir(self.root, "test-run"))
+
+    def test_failed_call_retry_rejects_unbound_or_mismatched_authorization(self):
+        run = self.prepare()
+        preview = run["previews"][0]
+        failed_retry = self.failure_retry(run, preview)
+        generation = self.generation(preview, 1)
+        generation["authorization_sha256"] = failed_retry["generation_authorization_sha256"]
+        with self.assertRaisesRegex(ValueError, "authorization hash"):
+            self.m.ingest(self.root, "test-run", preview["style"], self.image(1), generation)
+        bad = copy.deepcopy(failed_retry)
+        bad["failure_record_sha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "failure record hash"):
+            self.m.ingest(
+                self.root, "test-run", preview["style"], self.image(1), generation,
+                failed_retry=bad,
+            )
+
     def image(self, number, size=(900, 900)):
         path = self.root / f"input-{number}.png"
         image = Image.new("RGB", size, ((number * 31) % 256, 100, 150))

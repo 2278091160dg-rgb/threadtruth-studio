@@ -63,7 +63,7 @@ HASH = re.compile(r"[a-f0-9]{64}")
 MAX_BYTES = 8 * 1024 * 1024
 GENERATED_FIELDS = {
     "path", "sha256", "width", "height", "bytes", "original_sha256",
-    "generation", "correction", "human_review", "composition",
+    "generation", "correction", "failed_retry", "human_review", "composition",
 }
 
 
@@ -562,7 +562,80 @@ def _check_correction(correction, preview, generation):
         raise ValueError("generation prompt mismatch")
 
 
-def _generation(generation, preview, record):
+def _check_failed_retry(failed_retry, preview, generation, record, batch, directory):
+    required = {
+        "kind", "reason_code", "failure_record_path", "failure_record_sha256",
+        "generation_prompt_sha256", "generation_authorization_sha256",
+        "authorized_at", "attempt_number", "scope",
+    }
+    if not isinstance(failed_retry, dict) or set(failed_retry) != required:
+        raise ValueError("failed retry record fields invalid")
+    if (failed_retry["kind"] != "failed-call-retry"
+            or failed_retry["scope"] != "single-target-retry;no-auto-retry"):
+        raise ValueError("failed retry record fields invalid")
+    if failed_retry["reason_code"] not in {
+        "prompt-binding-failed", "native-generation-timeout-no-output",
+    }:
+        raise ValueError("failed retry reason invalid")
+    if any(not HASH.fullmatch(str(failed_retry[key])) for key in (
+        "failure_record_sha256", "generation_prompt_sha256",
+        "generation_authorization_sha256",
+    )):
+        raise ValueError("failed retry record fields invalid")
+    expected_path = f"failed-calls/{preview['style']}/failure.json"
+    if failed_retry["failure_record_path"] != expected_path or directory is None:
+        raise ValueError("failed retry failure record path invalid")
+    failure_path = child(directory, expected_path)
+    if not failure_path.is_file() or digest(failure_path.read_bytes()) != failed_retry["failure_record_sha256"]:
+        raise ValueError("failed retry failure record hash mismatch")
+    failure = read_json(failure_path)
+    failure_required = {
+        "schema_version", "run_id", "batch_id", "style", "status",
+        "attempt_number", "batch_halted", "automatic_retry_performed",
+        "authorization_sha256", "native_output_path", "native_output_sha256",
+    }
+    if not failure_required.issubset(failure):
+        raise ValueError("failed retry source record invalid")
+    if (failure["schema_version"] != "failure-record-v1"
+            or failure["run_id"] != record["run_id"]
+            or failure["batch_id"] != batch["batch_id"]
+            or failure["style"] != preview["style"]
+            or failure["status"] != failed_retry["reason_code"]
+            or failure["batch_halted"] is not True
+            or failure["automatic_retry_performed"] is not False
+            or failure["authorization_sha256"] != batch["authorization_sha256"]):
+        raise ValueError("failed retry source record invalid")
+    if type(failure["attempt_number"]) is not int or failure["attempt_number"] < 1:
+        raise ValueError("failed retry source record invalid")
+    if (type(failed_retry["attempt_number"]) is not int
+            or failed_retry["attempt_number"] != failure["attempt_number"] + 1):
+        raise ValueError("failed retry attempt number invalid")
+    failure_prompt_hash = (
+        failure.get("planned_prompt_sha256")
+        if failure["status"] == "prompt-binding-failed"
+        else failure.get("prompt_sha256")
+    )
+    if failure_prompt_hash != preview["prompt_sha256"]:
+        raise ValueError("failed retry source prompt mismatch")
+    if failure["status"] == "native-generation-timeout-no-output" and (
+        failure["native_output_path"] is not None or failure["native_output_sha256"] is not None
+    ):
+        raise ValueError("failed retry timeout record contains output")
+    if (failed_retry["generation_prompt_sha256"] != preview["prompt_sha256"]
+            or generation["prompt_sha256"] != failed_retry["generation_prompt_sha256"]):
+        raise ValueError("generation prompt mismatch")
+    if (failed_retry["generation_authorization_sha256"] == batch["authorization_sha256"]
+            or generation["authorization_sha256"] != failed_retry["generation_authorization_sha256"]):
+        raise ValueError("failed retry requires a new authorization hash")
+    authorized_at = _primary().parse_iso_z(failed_retry["authorized_at"])
+    failed_at_value = failure.get("terminated_at") or failure.get("generated_at")
+    if not failed_at_value or authorized_at <= _primary().parse_iso_z(failed_at_value):
+        raise ValueError("failed retry authorization must postdate failure")
+    if _primary().parse_iso_z(generation["generated_at"]) < authorized_at:
+        raise ValueError("generation predates failed retry authorization")
+
+
+def _generation(generation, preview, record, directory=None):
     if record.get("schema_version") == FROZEN_PUBLIC_SCHEMA:
         if not isinstance(generation, dict) or set(generation) != {"tool", "call_id", "generated_at", "prompt_sha256"}:
             raise ValueError("generation record fields invalid")
@@ -588,10 +661,15 @@ def _generation(generation, preview, record):
     if batch is None or preview["style"] not in batch["styles"]:
         raise ValueError("style is outside registered batch")
     correction = preview.get("correction")
+    failed_retry = preview.get("failed_retry")
+    if correction is not None and failed_retry is not None:
+        raise ValueError("correction and failed retry are mutually exclusive")
     if correction is not None:
         _check_correction(correction, preview, generation)
         if generation["authorization_sha256"] != correction["generation_authorization_sha256"] or generation["authorization_sha256"] == batch["authorization_sha256"]:
             raise ValueError("targeted correction requires a new authorization hash")
+    elif failed_retry is not None:
+        _check_failed_retry(failed_retry, preview, generation, record, batch, directory)
     elif generation["prompt_sha256"] != preview["prompt_sha256"]:
         raise ValueError("generation prompt mismatch")
     elif generation["authorization_sha256"] != batch["authorization_sha256"]:
@@ -625,6 +703,11 @@ def _receipt_bindings(record, preview):
             correction_sha256=object_hash(preview["correction"]),
             generation_prompt_sha256=preview["generation"]["prompt_sha256"],
         )
+    if "failed_retry" in preview:
+        bindings.update(
+            failed_retry_sha256=object_hash(preview["failed_retry"]),
+            generation_prompt_sha256=preview["generation"]["prompt_sha256"],
+        )
     return bindings
 
 
@@ -638,7 +721,7 @@ def _native_dimensions(path):
         return [oriented.width, oriented.height]
 
 
-def ingest(root, run_id, style, image, generation, correction=None):
+def ingest(root, run_id, style, image, generation, correction=None, failed_retry=None):
     directory = run_dir(root, run_id)
     record = read_json(directory / "evidence.json")
     _require_mutable_v5(record)
@@ -647,10 +730,14 @@ def ingest(root, run_id, style, image, generation, correction=None):
     if record["status"] not in {"prepared", "awaiting-human-review"}:
         raise ValueError("invalid ingest state")
     candidate = copy.deepcopy(preview)
+    if correction is not None and failed_retry is not None:
+        raise ValueError("correction and failed retry are mutually exclusive")
     if correction is not None:
         candidate["correction"] = copy.deepcopy(correction)
+    if failed_retry is not None:
+        candidate["failed_retry"] = copy.deepcopy(failed_retry)
     candidate["generation"] = copy.deepcopy(generation)
-    _generation(generation, candidate, record)
+    _generation(generation, candidate, record, directory)
     original = digest(image.read_bytes())
     if correction is not None and original == correction["replaces"]["original_sha256"]:
         raise ValueError("correction must replace a different native output")
@@ -697,6 +784,8 @@ def ingest(root, run_id, style, image, generation, correction=None):
     })
     if correction is not None:
         preview["correction"] = copy.deepcopy(correction)
+    if failed_retry is not None:
+        preview["failed_retry"] = copy.deepcopy(failed_retry)
     preview.update(metadata, path=target.name, original_sha256=original, generation=generation)
     record["status"] = "awaiting-human-review"
     write_json(directory / "evidence.json", record)
@@ -1082,7 +1171,7 @@ def _validate_preview(record, preview, directory, require_approval, local, requi
         raise ValueError("preview hash or metadata mismatch")
     if not HASH.fullmatch(str(preview.get("original_sha256"))):
         raise ValueError("original preview hash missing")
-    _generation(preview.get("generation"), preview, record)
+    _generation(preview.get("generation"), preview, record, directory)
     if local:
         receipt = read_json(child(directory, f"native-receipts/{style}.json"))
         if receipt.get("generation") != preview["generation"] or receipt.get("original_sha256") != preview["original_sha256"]:
@@ -1507,6 +1596,7 @@ def main(argv=None):
             command.add_argument("--image", type=Path, required=True)
             command.add_argument("--generation-record", type=Path, required=True)
             command.add_argument("--correction-record", type=Path)
+            command.add_argument("--failed-retry-record", type=Path)
         if name == "approve":
             command.add_argument("--review", type=Path, required=True, help="Completed human review JSON; agents must never fill real QA.")
         if name == 'compose':
@@ -1522,6 +1612,7 @@ def main(argv=None):
             result = register_batch(args.root, args.run_id, read_json(args.manifest))
         elif args.command == "ingest":
             correction = read_json(args.correction_record) if args.correction_record else None
+            failed_retry = read_json(args.failed_retry_record) if args.failed_retry_record else None
             result = ingest(
                 args.root,
                 args.run_id,
@@ -1529,6 +1620,7 @@ def main(argv=None):
                 args.image,
                 read_json(args.generation_record),
                 correction=correction,
+                failed_retry=failed_retry,
             )
         elif args.command == 'compose':
             result = compose(args.root, args.run_id, args.style, read_json(args.layout_json), args.font)
