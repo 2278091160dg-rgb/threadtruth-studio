@@ -2,8 +2,8 @@
 
 ## Candidate
 
-- Version: `1.0.0-beta.2`
-- Status: statically verified beta.2 prerelease package; GitHub Release event records publication. beta.1 remains available and immutable.
+- Version: `1.0.0-beta.3`
+- Status: local beta.3 candidate with the accepted 24-style preview gallery; a GitHub Release event is still required for publication. beta.1 and beta.2 remain available and immutable.
 - License: Apache-2.0
 - Distribution: Codex Plugin repository plus allowlist-built archive
 - Runtime telemetry: none
@@ -19,7 +19,7 @@
 - A non-maintainer clean environment repeats installation and discovery before the Beta exits.
 - The maintainer reviews the final artifact names, checksums, and release notes before publication.
 
-For beta.2, runtime bytes are unchanged from beta.1. New registration-helper behavior is tested in disposable local fixtures; fresh-host CLI activation and external lifecycle evidence remain pending and must not be claimed from those tests. They remain Beta exit work. See the [version-specific verification record](docs/verification/2026-09-13-beta.2.md).
+For beta.3, runtime bytes remain unchanged from beta.1/beta.2. The gallery contains 24 hash-bound, human-accepted direction previews and six explicit correction lineages; it does not raise independent-final coverage above 1/24 or complete-case coverage above 1/3. Registration-helper behavior is still supported by disposable-fixture tests, while fresh-host CLI activation and external lifecycle evidence remain pending. See the beta.2 [installer verification](docs/verification/2026-09-13-beta.2.md) and the [beta.3 candidate verification](docs/verification/2026-09-14-beta.3-candidate.md).
 
 ## Known limitations
 
@@ -45,4 +45,4 @@ python3 tools/primary-demo.py build-media \
 
 Both commands create a versioned ZIP and a separate SHA-256 sidecar under `dist/`. The Plugin ZIP excludes development tools and full-resolution PNGs; the media ZIP contains four metadata-stripped authorized sources, six metadata-stripped full-resolution PNG results, allowlisted rights/run evidence, a README, and an internal checksum manifest. Raw prompts, private logs, previews, and staging records are excluded.
 
-The beta.1 media archive remains the authoritative unchanged original six-image package; beta.2 need not duplicate its download. Public human-approved single-style six-pose sheets, when available in a future release, use a distinct preview evidence role and whole-sheet links. Raw native preview outputs, receipts and unapproved candidates never enter the Plugin envelope. The historical mixed-style v1 schema is retained for read-only interpretation only; release validation rejects v1 promotion.
+The beta.1 media archive remains the authoritative unchanged original six-image package; beta.2/beta.3 do not duplicate it. beta.3 carries optimized public copies of the 24 accepted native preview sheets, their layout derivatives, thumbnails and sanitized evidence. Raw native PNGs, local receipts, rejected drafts and unapproved candidates never enter the Plugin envelope. The historical mixed-style v1 schema is retained for read-only interpretation only; release validation rejects v1 promotion.

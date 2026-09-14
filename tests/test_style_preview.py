@@ -31,6 +31,7 @@ class PreviewTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         for name in ("docs/demo", "skills/threadtruth-studio/references"):
             shutil.copytree(ROOT / name, self.root / name)
+        shutil.rmtree(self.root / "docs/demo/style-previews", ignore_errors=True)
 
     def prepare(self):
         self.m = module()
@@ -408,6 +409,60 @@ class PreviewTests(unittest.TestCase):
         bad = dict(generation, prompt_sha256="0" * 64)
         with self.assertRaisesRegex(ValueError, "generation prompt mismatch"):
             self.m.ingest(self.root, "test-run", run["previews"][1]["style"], self.image(2), bad)
+
+    def test_correction_ingest_binds_replaced_asset_and_actual_prompt(self):
+        run = self.prepare()
+        preview = run["previews"][0]
+        correction_prompt = "1" * 64
+        generation = self.generation(preview, 1)
+        generation["prompt_sha256"] = correction_prompt
+        correction = {
+            "kind": "targeted-correction",
+            "reason_code": "maintainer-requested-visual-fix",
+            "generation_prompt_sha256": correction_prompt,
+            "generation_authorization_sha256": "2" * 64,
+            "visual_acceptance_sha256": "3" * 64,
+            "replaces": {
+                "call_id": "replaced-call-1",
+                "original_sha256": "4" * 64,
+                "native_sha256": "5" * 64,
+                "display_sha256": "6" * 64,
+            },
+        }
+        record = self.m.ingest(
+            self.root,
+            "test-run",
+            preview["style"],
+            self.image(1),
+            generation,
+            correction=correction,
+        )
+        stored = record["previews"][0]
+        self.assertEqual(stored["correction"], correction)
+        self.assertEqual(stored["generation"], generation)
+        receipt = self.m.read_json(
+            self.m.run_dir(self.root, "test-run") / "native-receipts" / f"{preview['style']}.json"
+        )
+        self.assertEqual(receipt["bindings"]["correction_sha256"], self.m.object_hash(correction))
+        self.assertEqual(receipt["bindings"]["generation_prompt_sha256"], correction_prompt)
+        record = self.compose(record, preview["style"])
+        current = self.m.read_json(self.m.run_dir(self.root, "test-run") / "evidence.json")
+        review = self.completed_review(current, preview["style"])
+        self.m.approve(self.root, "test-run", preview["style"], review)
+        self.assertEqual(self.m.audit(self.root, "test-run", style=preview["style"], require_approval=True), [])
+
+        second = run["previews"][1]
+        bad = copy.deepcopy(correction)
+        bad["generation_prompt_sha256"] = "7" * 64
+        with self.assertRaisesRegex(ValueError, "generation prompt mismatch"):
+            self.m.ingest(
+                self.root,
+                "test-run",
+                second["style"],
+                self.image(2),
+                dict(generation, call_id="test-call-2"),
+                correction=bad,
+            )
 
     def test_rejects_mixed_style_pose_missing_or_duplicate_pose_ids_and_rule_drift(self):
         run = self.prepare()

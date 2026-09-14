@@ -44,6 +44,14 @@ class ReleaseBuildTests(unittest.TestCase):
             self.assertIn(prefix + "docs/demo/style-preview-v1.schema.json", names)
             self.assertIn(prefix + "docs/demo/style-preview-v2.schema.json", names)
             self.assertIn(prefix + "docs/demo/style-preview-v4.schema.json", names)
+            preview_prefix = prefix + "docs/demo/style-previews/white-vest-24-v1/"
+            self.assertIn(preview_prefix + "evidence.json", names)
+            self.assertIn(preview_prefix + "index.html", names)
+            self.assertIn(preview_prefix + "coquette-ladylike-display.jpg", names)
+            self.assertEqual(
+                len([name for name in names if name.startswith(preview_prefix) and name.endswith(".jpg")]),
+                72,
+            )
             self.assertFalse(any("/evals/" in name for name in names))
             self.assertFalse(any("/tests/" in name for name in names))
             self.assertFalse(any("/tools/" in name for name in names))

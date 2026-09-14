@@ -2,7 +2,7 @@
 
 Visual evidence progress: **1/24 ready**. The runtime contains 24 routed packs; this page separately tracks rights-cleared public image evidence and never treats a planned card as a completed generation.
 
-Single-style preview-sheet coverage: **0/24**. Final representative coverage: **1/24**. Each preview is an explicitly disclosed local-layout derivative of one native action-0 sheet with six canonical poses. Exact 3:4 applies to card frames, not native geometry; preview sheets never satisfy final-image or six-image case requirements.
+Single-style preview-sheet coverage: **24/24**. Final representative coverage: **1/24**. Each preview is an explicitly disclosed local-layout derivative of one native action-0 sheet with six canonical poses. Exact 3:4 applies to card frames, not native geometry; preview sheets never satisfy final-image or six-image case requirements.
 
 
 | Style | Tier | Representative | Six-image case | Source family |

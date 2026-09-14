@@ -15,7 +15,7 @@ A complete demo must contain:
 7. user confirmation closing every `qa-user-review` item;
 8. completed rights record in `RIGHTS.md`, including the AI-generated-media label where applicable.
 
-The [24-style evidence index](STYLES.md) distinguishes ready visual evidence from planned cards. A style receives a representative image only after its source rights and generation approval have been recorded; one approval never authorizes unattended generation across the index.
+The [24-style evidence index](STYLES.md) now links all24 accepted direction previews in the beta.3 repository candidate. Every entry has one optimized native sheet, one labeled fixed-card derivative and one thumbnail. Six maintainer-requested corrections retain explicit replacement lineage. These previews do not change the separate 1/24 independent-final coverage or 1/3 complete-primary-case count, and they are not public on GitHub until the candidate is pushed and released.
 
 The optional The Met pipeline can create reproducible CC0 auxiliary cases, but it cannot replace a primary case or count toward Beta adoption. Candidate files stay in ignored local quarantine and need a complete human review before promotion. See [MEDIA-POLICY.md](MEDIA-POLICY.md).
 
@@ -45,7 +45,9 @@ python3 tools/style-preview.py audit --run-id white-vest-cards-v4 --style korean
 python3 tools/style-preview.py gallery --run-id white-vest-cards-v4 --style korean-cold-editorial
 ```
 
-The generation record contains the real authorized call ID, observed generation time and exact prepared prompt hash. Never rewrite an old prompt hash to match a new plan.
+If a maintainer-authorized correction replaces a rejected native sheet, pass a sanitized `--correction-record` during ingest. It must bind the actual correction prompt and authorization/acceptance hashes plus the replaced call, original, optimized-native and display hashes. A correction cannot silently reuse the replaced call or output.
+
+The generation record contains the real authorized call ID, observed generation time and exact executed prompt hash. Normal ingest must match the prepared prompt; a targeted correction preserves that plan hash while separately binding its actual correction prompt and replaced asset. Never rewrite an old prompt hash to match a new call.
 
 `layout-json` has `original_sha256` and `cells`: exactly six row-major `[x,y,width,height]` rectangles observed in the retained native image. Bind the actual original hash; do not infer boundaries from the square board. Rectangles must be integer, positive, in bounds, non-overlapping and in the six-pose order. Different native panel ratios are allowed. Framing remains full-body for poses1/2/4/6, half-body permitted for3/5.
 
@@ -61,7 +63,7 @@ The review template remains pending. A real reviewer must compare the source and
 python3 tools/style-preview.py approve --run-id white-vest-cards-v4 --style korean-cold-editorial --review /path/to/completed-human-review.json
 ```
 
-After the Korean pilot is accepted, obtain each remaining style's explicit generation instruction and repeat ingest/compose/review. No automatic retry or batch authorization is implied. Only after all24real reviews:
+For a future collection, obtain each style's explicit generation instruction and repeat ingest/compose/review. No automatic retry or batch authorization is implied. Only after all24real reviews:
 
 ```bash
 python3 tools/style-preview.py audit --run-id white-vest-cards-v4

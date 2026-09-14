@@ -49,7 +49,10 @@ LAYOUT_CONTRACT = {
 ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,79}")
 HASH = re.compile(r"[a-f0-9]{64}")
 MAX_BYTES = 8 * 1024 * 1024
-GENERATED_FIELDS = {"path", "sha256", "width", "height", "bytes", "original_sha256", "generation", "human_review", "composition"}
+GENERATED_FIELDS = {
+    "path", "sha256", "width", "height", "bytes", "original_sha256",
+    "generation", "correction", "human_review", "composition",
+}
 
 
 def _cards():
@@ -385,12 +388,44 @@ def _image(path):
         return {"sha256": digest(data), "bytes": len(data), "width": image.width, "height": image.height}
 
 
+def _check_correction(correction, preview, generation):
+    if not isinstance(correction, dict) or set(correction) != {
+        "kind", "reason_code", "generation_prompt_sha256",
+        "generation_authorization_sha256", "visual_acceptance_sha256", "replaces",
+    }:
+        raise ValueError("correction record fields invalid")
+    if correction["kind"] != "targeted-correction" or correction["reason_code"] != "maintainer-requested-visual-fix":
+        raise ValueError("correction record fields invalid")
+    if any(not HASH.fullmatch(str(correction[key])) for key in (
+        "generation_prompt_sha256", "generation_authorization_sha256", "visual_acceptance_sha256",
+    )):
+        raise ValueError("correction record fields invalid")
+    replaces = correction["replaces"]
+    if not isinstance(replaces, dict) or set(replaces) != {
+        "call_id", "original_sha256", "native_sha256", "display_sha256",
+    }:
+        raise ValueError("correction record fields invalid")
+    if not isinstance(replaces["call_id"], str) or not ID.fullmatch(replaces["call_id"]):
+        raise ValueError("correction record fields invalid")
+    if any(not HASH.fullmatch(str(replaces[key])) for key in (
+        "original_sha256", "native_sha256", "display_sha256",
+    )):
+        raise ValueError("correction record fields invalid")
+    if generation["call_id"] == replaces["call_id"]:
+        raise ValueError("correction must bind a new native call")
+    if generation["prompt_sha256"] != correction["generation_prompt_sha256"]:
+        raise ValueError("generation prompt mismatch")
+
+
 def _generation(generation, preview):
     if not isinstance(generation, dict) or set(generation) != {"tool", "call_id", "generated_at", "prompt_sha256"}:
         raise ValueError("generation record fields invalid")
     if generation["tool"] != "native-imagegen" or not isinstance(generation["call_id"], str) or not ID.fullmatch(generation["call_id"]):
         raise ValueError("native generation call required")
-    if generation["prompt_sha256"] != preview["prompt_sha256"]:
+    correction = preview.get("correction")
+    if correction is not None:
+        _check_correction(correction, preview, generation)
+    elif generation["prompt_sha256"] != preview["prompt_sha256"]:
         raise ValueError("generation prompt mismatch")
     _primary().parse_iso_z(generation["generated_at"])
 
@@ -405,13 +440,19 @@ def _find_preview(record, style):
 
 
 def _receipt_bindings(record, preview):
-    return {
+    bindings = {
         "style": preview["style"], "source_sha256": object_hash(record["source"]),
         "rules_sha256": object_hash(record["rules"]), "pack_sha256": preview["pack"]["sha256"],
         "prompt_sha256": preview["prompt_sha256"],
         "layout_contract_sha256": object_hash(preview["layout_contract"]),
         "label_contract_sha256": object_hash(preview["label_contract"]),
     }
+    if "correction" in preview:
+        bindings.update(
+            correction_sha256=object_hash(preview["correction"]),
+            generation_prompt_sha256=preview["generation"]["prompt_sha256"],
+        )
+    return bindings
 
 
 def _native_dimensions(path):
@@ -424,15 +465,21 @@ def _native_dimensions(path):
         return [oriented.width, oriented.height]
 
 
-def ingest(root, run_id, style, image, generation):
+def ingest(root, run_id, style, image, generation, correction=None):
     directory = run_dir(root, run_id)
     record = read_json(directory / "evidence.json")
     _check_plan(root, record, directory)
     preview = _find_preview(record, style)
     if record["status"] not in {"prepared", "awaiting-human-review"}:
         raise ValueError("invalid ingest state")
-    _generation(generation, preview)
+    candidate = copy.deepcopy(preview)
+    if correction is not None:
+        candidate["correction"] = copy.deepcopy(correction)
+    candidate["generation"] = copy.deepcopy(generation)
+    _generation(generation, candidate)
     original = digest(image.read_bytes())
+    if correction is not None and original == correction["replaces"]["original_sha256"]:
+        raise ValueError("correction must replace a different native output")
     if "path" in preview:
         expected = {key: preview[key] for key in ("sha256", "bytes", "width", "height")}
         if preview["original_sha256"] == original and preview["generation"] == generation and _image(child(directory, preview["path"])) == expected:
@@ -472,8 +519,10 @@ def ingest(root, run_id, style, image, generation):
     write_json(receipt, {
         "native_output_path": str(image.resolve()), "retained_path": native_relative,
         "native_dimensions": native_dimensions, "original_sha256": original,
-        "generation": generation, "bindings": _receipt_bindings(record, preview),
+        "generation": generation, "bindings": _receipt_bindings(record, candidate),
     })
+    if correction is not None:
+        preview["correction"] = copy.deepcopy(correction)
     preview.update(metadata, path=target.name, original_sha256=original, generation=generation)
     record["status"] = "awaiting-human-review"
     write_json(directory / "evidence.json", record)
@@ -911,7 +960,7 @@ def _readme(record):
 
 Source authorization: [primary rights](../../primary-cases/{CASE}/rights.json). Four real garment sources remain authoritative; look-1 is identity-only.
 
-[evidence.json](evidence.json) binds source rights, runtime rule hashes, actual pack versions/hashes, exact prompts, 24 native calls, observed JPEG metadata and per-sheet six-pose human review. Machine verification does not judge subjective visual quality, infer a six-pose layout from dimensions, or authenticate reviewer identity.
+[evidence.json](evidence.json) binds source rights, runtime rule hashes, actual pack versions/hashes, prompt hashes, 24 native calls, observed JPEG metadata and per-sheet six-pose human review. Targeted corrections also retain the replaced call/image hashes and the actual correction prompt hash. Machine verification does not judge subjective visual quality, infer a six-pose layout from dimensions, or authenticate reviewer identity.
 
 CC0 applies only to the extent the project can grant rights; Apache-2.0 does not cover media. AI-generated content requires applicable labeling. These previews never count as independent finals or runtime maturity evidence.
 """
@@ -1069,6 +1118,7 @@ def main(argv=None):
             command.add_argument("--board", help=argparse.SUPPRESS)
             command.add_argument("--image", type=Path, required=True)
             command.add_argument("--generation-record", type=Path, required=True)
+            command.add_argument("--correction-record", type=Path)
         if name == "approve":
             command.add_argument("--review", type=Path, required=True, help="Completed human review JSON; agents must never fill real QA.")
         if name == 'compose':
@@ -1081,7 +1131,15 @@ def main(argv=None):
         parser.error(f"{args.command} requires --style <registered-slug>")
     try:
         if args.command == "ingest":
-            result = ingest(args.root, args.run_id, args.style, args.image, read_json(args.generation_record))
+            correction = read_json(args.correction_record) if args.correction_record else None
+            result = ingest(
+                args.root,
+                args.run_id,
+                args.style,
+                args.image,
+                read_json(args.generation_record),
+                correction=correction,
+            )
         elif args.command == 'compose':
             result = compose(args.root, args.run_id, args.style, read_json(args.layout_json), args.font)
         elif args.command == "approve":
