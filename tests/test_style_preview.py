@@ -678,32 +678,37 @@ class PreviewTests(unittest.TestCase):
 
     def test_approved_24_sheet_promotion_is_publicly_verifiable_and_idempotent(self):
         self.approve_all()
+        preview_root = self.root / "docs/demo/style-previews"
+        preview_root.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(
+            ROOT / "docs/demo/style-previews/white-vest-24-v1",
+            preview_root / "white-vest-24-v1",
+        )
+        fixture_root = self.root / "tests/fixtures"
+        fixture_root.mkdir(parents=True)
+        shutil.copyfile(
+            ROOT / "tests/fixtures/white-vest-24-v1-beta3.sha256.json",
+            fixture_root / "white-vest-24-v1-beta3.sha256.json",
+        )
         readme = self.root / 'README.md'
         chinese_readme = self.root / 'README.zh-CN.md'
-        initial_readme = '# Fixture\n<!-- STYLE_PREVIEWS:START -->\nPending\n<!-- STYLE_PREVIEWS:END -->\n'
+        initial_readme = '# Fixture without projection markers\n'
         readme.write_text(initial_readme)
-        chinese_readme.write_text('Missing markers')
+        chinese_readme.write_text(initial_readme)
         index_path = self.root / "docs/demo/style-index.json"
         original_index = index_path.read_bytes()
-        with self.assertRaisesRegex(ValueError, 'README preview markers'):
-            self.m.promote(self.root, 'test-run')
-        self.assertEqual(readme.read_text(), initial_readme)
-        self.assertEqual(index_path.read_bytes(), original_index)
-        self.assertFalse((self.root / 'docs/demo/style-previews/test-run').exists())
-        chinese_readme.write_text(initial_readme)
-        broken_index = json.loads(original_index)
-        broken_index["styles"].pop()
-        index_path.write_text(json.dumps(broken_index))
-        with self.assertRaisesRegex(ValueError, "style index and approved previews differ"):
-            self.m.promote(self.root, "test-run")
-        self.assertFalse((self.root / "docs/demo/style-previews/test-run").exists())
-        index_path.write_bytes(original_index)
+        original_pages = {
+            path: path.read_bytes()
+            for path in [self.root / "docs/demo/STYLES.md", *(self.root / "docs/demo/styles").glob("*.md")]
+        }
         public = self.m.promote(self.root, "test-run")
         self.assertEqual(self.m.validate_public_previews(self.root), [])
         self.assertEqual(self.m.promote(self.root, "test-run"), public)
         self.assertEqual(len(list(public.glob("*.jpg"))), 72)
-        self.assertEqual(readme.read_text().count('-thumb.jpg'), 24)
-        self.assertEqual(chinese_readme.read_text().count('-display.jpg'), 24)
+        self.assertEqual(readme.read_text(), initial_readme)
+        self.assertEqual(chinese_readme.read_text(), initial_readme)
+        self.assertEqual(index_path.read_bytes(), original_index)
+        self.assertTrue(all(path.read_bytes() == before for path, before in original_pages.items()))
         evidence = json.loads((public / "evidence.json").read_text())
         self.assertEqual(evidence["schema_version"], "5.0")
         rights = (self.root / 'docs/demo/RIGHTS.md').read_text()
@@ -712,17 +717,15 @@ class PreviewTests(unittest.TestCase):
             self.assertIn(asset['path'], rights)
             self.assertIn(asset['sha256'][:12], rights)
         self.assertNotIn(str(self.root), (public / "evidence.json").read_text())
-        index = json.loads((self.root / "docs/demo/style-index.json").read_text())
-        self.assertEqual(sum(bool(style.get("preview")) for style in index["styles"]), 24)
-        index["styles"][0]["preview"] = None
-        (self.root / "docs/demo/style-index.json").write_text(json.dumps(index))
-        self.assertTrue(self.m._primary().validate_style_index(self.root))
-        self.assertEqual(self.m.promote(self.root, "test-run"), public)
+        collections = self.m.all_preview_collections(self.root)
+        self.assertEqual(set(collections), {"white-vest-24-v1", "test-run"})
+        links = self.m.representative_preview_links(self.root)
+        self.assertEqual({link["run_id"] for link in links.values()}, {"white-vest-24-v1"})
         self.assertEqual(self.m._primary().validate_style_index(self.root), [])
-        self.assertEqual(sum(style["status"] == "ready" for style in index["styles"]), 1)
         style_page = (self.root / "docs/demo/styles/old-money.md").read_text()
         for suffix in ('', '-display', '-thumb'):
-            self.assertIn(f'(../style-previews/test-run/old-money{suffix}.jpg)', style_page)
+            self.assertIn(f'(../style-previews/white-vest-24-v1/old-money{suffix}.jpg)', style_page)
+            self.assertNotIn(f'(../style-previews/test-run/old-money{suffix}.jpg)', style_page)
         import demo_media
         self.assertEqual(demo_media.validate_public_cases(self.root), [])
         shutil.rmtree(self.root / ".threadtruth")

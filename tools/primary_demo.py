@@ -1250,7 +1250,7 @@ def validate_style_index(root: Path) -> list[str]:
                     approved_images[relative] = (str(rights["style"]), asset)
 
     try:
-        approved_previews = _preview_module().preview_links(root)
+        approved_previews = _preview_module().representative_preview_links(root)
     except (OSError, ValueError, TypeError):
         approved_previews = {}
         findings.append("style preview evidence is invalid")
@@ -1366,7 +1366,7 @@ def render_readme_previews(root: Path) -> None:
     """Update only the approved-preview slots; absent root guides are allowed in fixtures."""
     from html import escape
 
-    links = _preview_module().preview_links(root)
+    links = _preview_module().representative_preview_links(root)
     index = read_json(root / "docs/demo/style-index.json")
     start, end = "<!-- STYLE_PREVIEWS:START -->", "<!-- STYLE_PREVIEWS:END -->"
     cells = []

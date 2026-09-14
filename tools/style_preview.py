@@ -44,6 +44,7 @@ AI_LABEL = "AI-generated style preview — not six independent final images."
 PREVIEW_MARK = "AI生成 · 方向预览 · 非成片 / PREVIEW ONLY — NOT FINAL"
 MODEL_DOCS_URL = "https://learn.chatgpt.com/docs/image-generation"
 MODEL_DOCS_VERIFIED_AT = "2026-09-14"
+REPRESENTATIVE_COLLECTION_ID = "white-vest-24-v1"
 HISTORICAL_SCHEMAS = {"1.0", "2.0", "3.0"}
 LEGACY_SCHEMAS = HISTORICAL_SCHEMAS
 FROZEN_PUBLIC_SCHEMA = "4.0"
@@ -567,7 +568,9 @@ def _generation(generation, preview, record):
             raise ValueError("generation record fields invalid")
         if generation["tool"] != "native-imagegen" or not isinstance(generation["call_id"], str) or not ID.fullmatch(generation["call_id"]):
             raise ValueError("native generation call required")
-        if generation["prompt_sha256"] != preview["prompt_sha256"]:
+        if preview.get("correction") is not None:
+            _check_correction(preview["correction"], preview, generation)
+        elif generation["prompt_sha256"] != preview["prompt_sha256"]:
             raise ValueError("generation prompt mismatch")
         _primary().parse_iso_z(generation["generated_at"])
         return
@@ -1337,18 +1340,33 @@ def _links_from_record(record):
     }
 
 
-def preview_links(root):
+def all_preview_collections(root: Path) -> dict[str, dict]:
     findings = validate_public_previews(root)
     if findings:
         raise ValueError("; ".join(findings))
-    links = {}
+    collections = {}
     for path in sorted(child(root, "docs/demo/style-previews").glob("*/evidence.json")):
         record = read_json(path)
-        for style, link in _links_from_record(record).items():
-            if style in links:
-                raise ValueError("multiple approved previews for one style")
-            links[style] = link
-    return links
+        run_id = record["run_id"]
+        if run_id in collections:
+            raise ValueError("duplicate preview collection id")
+        collections[run_id] = record
+    return collections
+
+
+def representative_preview_links(root: Path) -> dict[str, dict]:
+    collections = all_preview_collections(root)
+    if not collections:
+        return {}
+    representative = collections.get(REPRESENTATIVE_COLLECTION_ID)
+    if representative is None:
+        raise ValueError("representative preview collection is missing")
+    return _links_from_record(representative)
+
+
+def preview_links(root):
+    """Compatibility alias; new callers must choose the representative projection explicitly."""
+    return representative_preview_links(root)
 
 
 def _project_preview(root, record):
@@ -1403,7 +1421,7 @@ def promote(root, run_id):
     if target.exists():
         if read_json(target / "evidence.json") != record or validate_public_previews(root):
             raise ValueError("refuse to overwrite different or invalid public evidence")
-        _project_preview(root, record)
+        _primary().render_rights_index(root)
         return target
     target.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=directory) as temporary:
@@ -1415,13 +1433,23 @@ def promote(root, run_id):
         (stage / "README.md").write_text(_readme(record), encoding="utf-8")
         (stage / "index.html").write_text(_html(record, directory=stage), encoding="utf-8")
         created_target = False
+        rights_path = child(root, "docs/demo/RIGHTS.md")
+        rights_before = rights_path.read_bytes() if rights_path.exists() else None
         try:
             stage.rename(target)
             created_target = True
-            _project_preview(root, record)
+            findings = validate_public_previews(root)
+            if findings:
+                raise ValueError("public preview validation failed: " + "; ".join(findings))
+            _primary().render_rights_index(root)
         except Exception:
             if created_target:
                 shutil.rmtree(target)
+            if rights_before is None:
+                if rights_path.exists():
+                    rights_path.unlink()
+            else:
+                rights_path.write_bytes(rights_before)
             raise
     return target
 

@@ -215,7 +215,7 @@ class PrimaryDemoTests(unittest.TestCase):
                 "path": "style-previews/run/korean-display.jpg",
                 "thumbnail": {"path": "style-previews/run/korean-thumb.jpg"},
             }}
-            with patch.object(module, "_preview_module", return_value=SimpleNamespace(preview_links=lambda _root: links)):
+            with patch.object(module, "_preview_module", return_value=SimpleNamespace(representative_preview_links=lambda _root: links)):
                 module.render_readme_previews(root)
             result = readme.read_text()
             self.assertTrue(result.startswith("before\n<!-- STYLE_PREVIEWS:START -->"))
@@ -224,7 +224,7 @@ class PrimaryDemoTests(unittest.TestCase):
             self.assertIn('href="docs/demo/style-previews/run/korean-display.jpg"', result)
             self.assertIn("Korean Cold Editorial", result)
             self.assertNotIn("stale", result)
-            with patch.object(module, "_preview_module", return_value=SimpleNamespace(preview_links=lambda _root: {})):
+            with patch.object(module, "_preview_module", return_value=SimpleNamespace(representative_preview_links=lambda _root: {})):
                 module.render_readme_previews(root)
             self.assertNotIn("<img", readme.read_text())
 
