@@ -1,5 +1,6 @@
 """Behavior gates for development-only preview evidence (synthetic test pixels)."""
 import copy
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -36,6 +37,37 @@ class PreviewTests(unittest.TestCase):
     def prepare(self):
         self.m = module()
         return self.m.prepare(self.root, "test-run")
+
+    def test_released_v4_collection_matches_golden_manifest(self):
+        manifest = json.loads((ROOT / "tests/fixtures/white-vest-24-v1-beta3.sha256.json").read_text())
+        public = ROOT / "docs/demo/style-previews/white-vest-24-v1"
+        self.assertEqual(
+            sorted(path.relative_to(public).as_posix() for path in public.rglob("*") if path.is_file()),
+            sorted(manifest),
+        )
+        for relative, expected in manifest.items():
+            data = (public / relative).read_bytes()
+            self.assertEqual(hashlib.sha256(data).hexdigest(), expected["sha256"])
+            self.assertEqual(len(data), expected["bytes"])
+
+    def test_schema_v4_is_public_read_only_and_all_mutations_refuse_it(self):
+        self.m = module()
+        public = ROOT / "docs/demo/style-previews/white-vest-24-v1"
+        local = self.m.run_dir(self.root, "white-vest-24-v1")
+        local.mkdir(parents=True)
+        shutil.copyfile(public / "evidence.json", local / "evidence.json")
+        record = json.loads((local / "evidence.json").read_text())
+        self.assertEqual(record["schema_version"], "4.0")
+        style = record["previews"][0]["style"]
+        for mutate in (
+            lambda: self.m.prepare(self.root, "white-vest-24-v1"),
+            lambda: self.m.ingest(self.root, "white-vest-24-v1", style, self.image(1), {}),
+            lambda: self.m.compose(self.root, "white-vest-24-v1", style, {}, Path("missing-font")),
+            lambda: self.m.approve(self.root, "white-vest-24-v1", style, {}),
+            lambda: self.m.promote(self.root, "white-vest-24-v1"),
+        ):
+            with self.assertRaisesRegex(ValueError, "schema 4.0 is frozen"):
+                mutate()
 
     def generation(self, preview, number, *, call_id=None):
         return {
@@ -133,7 +165,7 @@ class PreviewTests(unittest.TestCase):
 
     def test_prepare_builds_24_single_style_six_pose_previews(self):
         run = self.prepare()
-        self.assertEqual(run["schema_version"], "4.0")
+        self.assertEqual(run["schema_version"], "5.0")
         self.assertEqual(len(run["previews"]), 24)
         self.assertEqual(len({p["style"] for p in run["previews"]}), 24)
         for preview in run["previews"]:
@@ -536,7 +568,7 @@ class PreviewTests(unittest.TestCase):
         self.assertEqual(readme.read_text().count('-thumb.jpg'), 24)
         self.assertEqual(chinese_readme.read_text().count('-display.jpg'), 24)
         evidence = json.loads((public / "evidence.json").read_text())
-        self.assertEqual(evidence["schema_version"], "4.0")
+        self.assertEqual(evidence["schema_version"], "5.0")
         rights = (self.root / 'docs/demo/RIGHTS.md').read_text()
         for asset in self.m.public_assets(evidence):
             self.assertIn(asset['role'], rights)

@@ -35,8 +35,10 @@ RULE_PATHS = {
 }
 AI_LABEL = "AI-generated style preview — not six independent final images."
 PREVIEW_MARK = "AI生成 · 方向预览 · 非成片 / PREVIEW ONLY — NOT FINAL"
-CURRENT_SCHEMA = "4.0"
-LEGACY_SCHEMAS = {"1.0", "2.0", "3.0"}
+HISTORICAL_SCHEMAS = {"1.0", "2.0", "3.0"}
+LEGACY_SCHEMAS = HISTORICAL_SCHEMAS
+FROZEN_PUBLIC_SCHEMA = "4.0"
+CURRENT_SCHEMA = "5.0"
 MODE_NAMES = {"B": "棚拍版", "C": "场景版", "D": "混合版"}
 LAYOUT_CONTRACT = {
     "board_aspect_ratio": "1:1",
@@ -312,12 +314,21 @@ def _legacy_error(schema):
     return f"preview schema {schema} is superseded historical evidence, not approved for current standard; it is read-only and cannot be prepared, ingested, approved or promoted"
 
 
+def _require_mutable_v5(record):
+    schema = record.get("schema_version")
+    if schema == FROZEN_PUBLIC_SCHEMA:
+        raise ValueError("preview schema 4.0 is frozen public evidence; mutation is forbidden")
+    if schema in HISTORICAL_SCHEMAS:
+        raise ValueError(_legacy_error(schema))
+    if schema != CURRENT_SCHEMA:
+        raise ValueError("unsupported preview schema")
+
+
 def prepare(root, run_id):
     directory = run_dir(root, run_id)
     if directory.exists():
         existing = read_json(directory / "evidence.json")
-        if existing.get("schema_version") in LEGACY_SCHEMAS:
-            raise ValueError(_legacy_error(existing.get("schema_version")))
+        _require_mutable_v5(existing)
         _check_plan(root, existing, directory)
         return existing
     plan = _plan(root, run_id)
@@ -468,6 +479,7 @@ def _native_dimensions(path):
 def ingest(root, run_id, style, image, generation, correction=None):
     directory = run_dir(root, run_id)
     record = read_json(directory / "evidence.json")
+    _require_mutable_v5(record)
     _check_plan(root, record, directory)
     preview = _find_preview(record, style)
     if record["status"] not in {"prepared", "awaiting-human-review"}:
@@ -554,6 +566,7 @@ def public_assets(record):
 def compose(root, run_id, style, layout, font):
     directory = run_dir(root, run_id)
     record = read_json(directory / 'evidence.json')
+    _require_mutable_v5(record)
     _check_plan(root, record, directory)
     preview = _find_preview(record, style)
     _validate_preview(record, preview, directory, False, True, require_composition=False)
@@ -830,6 +843,7 @@ def audit(root, run_id, style=None, require_approval=False):
 def approve(root, run_id, style, review):
     directory = run_dir(root, run_id)
     record = read_json(directory / "evidence.json")
+    _require_mutable_v5(record)
     _check_plan(root, record, directory)
     preview = _find_preview(record, style)
     _validate_preview(record, preview, directory, False, True)
@@ -976,6 +990,29 @@ def _public_record_valid(root, record, directory):
         raise ValueError("sensitive public text")
 
 
+def validate_frozen_v4(root: Path, directory: Path, record: dict) -> None:
+    if directory.name != "white-vest-24-v1" or record.get("run_id") != directory.name:
+        raise ValueError("schema 4.0 is reserved for the frozen white-vest collection")
+    manifest_path = child(root, "tests/fixtures/white-vest-24-v1-beta3.sha256.json")
+    manifest = read_json(manifest_path)
+    actual_paths = sorted(path.relative_to(directory).as_posix() for path in directory.rglob("*") if path.is_file())
+    if actual_paths != sorted(manifest):
+        raise ValueError("frozen schema 4.0 file set mismatch")
+    for relative, expected in manifest.items():
+        data = child(directory, relative).read_bytes()
+        if expected != {"sha256": digest(data), "bytes": len(data)}:
+            raise ValueError(f"frozen schema 4.0 asset mismatch: {relative}")
+    if record.get("schema_version") != FROZEN_PUBLIC_SCHEMA or record.get("status") != "approved":
+        raise ValueError("frozen schema 4.0 record invalid")
+    previews = record.get("previews")
+    if not isinstance(previews, list) or len(previews) != 24 or len({item.get("style") for item in previews}) != 24:
+        raise ValueError("frozen schema 4.0 requires 24 unique previews")
+    for preview in previews:
+        _validate_preview(record, preview, directory, True, False)
+    if _primary().has_sensitive_public_text(record):
+        raise ValueError("sensitive public text")
+
+
 def validate_public_previews(root):
     base = child(root, "docs/demo/style-previews")
     if not base.exists():
@@ -990,6 +1027,9 @@ def validate_public_previews(root):
                 raise ValueError("historical preview evidence cannot be public under current display standard")
             if record["run_id"] != directory.name:
                 raise ValueError("run id mismatch")
+            if record.get("schema_version") == FROZEN_PUBLIC_SCHEMA:
+                validate_frozen_v4(root, directory, record)
+                continue
             _public_record_valid(root, record, directory)
             expected = {"evidence.json", "README.md", "index.html", *[asset['path'] for asset in public_assets(record)]}
             if {path.name for path in directory.iterdir()} != expected or any(path.is_symlink() or not path.is_file() for path in directory.iterdir()):
@@ -1067,8 +1107,7 @@ def _project_preview(root, record):
 def promote(root, run_id):
     directory = run_dir(root, run_id)
     record = read_json(directory / "evidence.json")
-    if record.get("schema_version") in LEGACY_SCHEMAS:
-        raise ValueError(_legacy_error(record.get("schema_version")))
+    _require_mutable_v5(record)
     _check_plan(root, record, directory)
     unapproved = [preview["style"] for preview in record["previews"] if "human_review" not in preview]
     if unapproved:
