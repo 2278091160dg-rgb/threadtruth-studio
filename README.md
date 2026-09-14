@@ -32,6 +32,15 @@ Installed it? Share a sanitized result through the [installation feedback form](
 
 [Browse the 24-style evidence index](docs/demo/STYLES.md). A six-tile board is a direction preview, not six independent finals and not a completed workflow.
 
+Two bounded demonstrations are maintained separately:
+
+- **single garment · 24 styles** — the published white-vest beta.3 collection remains the sole representative source for the style index and gallery below;
+- **coordinated outfit · 24 styles** — an authorized beige-blazer, white-top, dark-denim, olive-tote and brown-loafer source is registered under `ThreadTruth-Demo-Only-1.0`; its v5 collection remains generation-, human-approval- and publication-gated until 24/24 sheets pass.
+
+These two examples demonstrate the governed workflows; they do not prove universal garment or outfit coverage and do not count as non-maintainer adoption or additional complete primary cases.
+
+In ChatGPT, use the Plugin picker or `@threadtruth-studio`. On supported Codex surfaces, use the skill picker or `$threadtruth-studio`; in Codex CLI, inspect `/skills`. This project is not claiming an official marketplace listing.
+
 <!-- STYLE_PREVIEWS:START -->
 
 | | | | |

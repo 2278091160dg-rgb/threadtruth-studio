@@ -2,6 +2,10 @@
 
 Primary status: one `image-ready` public case. Auxiliary status: one `auxiliary-demo-ready` case.
 
+Preview demonstrations are separate from primary-case evidence: **single garment · 24 styles** is the frozen published white-vest schema-v4 collection; **coordinated outfit · 24 styles** is a source-selected schema-v5 workflow whose beige-blazer outfit source is registered but whose 24 sheets remain generation-, review- and publication-gated. Neither collection is six independent finals, external adoption or another complete primary case.
+
+Host invocation is surface-specific. In ChatGPT, use the Plugin picker or `@threadtruth-studio`. On supported Codex surfaces, use the skill picker or `$threadtruth-studio`; Codex CLI can inspect `/skills`. The project is not claiming an official marketplace listing.
+
 The first primary case is the [white hooded puffer vest in Korean Cold Editorial B1](primary-cases/white-hooded-puffer-vest-korean-cold/README.md). It includes four authorized source photographs, six independent accepted results, file hashes, canvas evidence, a closed human QA review, and an AI-generated-media disclosure. Original PNG results are distributed separately as a checksummed GitHub Release asset; the repository carries optimized display JPEGs.
 
 A complete demo must contain:
@@ -19,9 +23,9 @@ The [24-style evidence index](STYLES.md) now links all24 accepted direction prev
 
 The optional The Met pipeline can create reproducible CC0 auxiliary cases, but it cannot replace a primary case or count toward Beta adoption. Candidate files stay in ignored local quarantine and need a complete human review before promotion. See [MEDIA-POLICY.md](MEDIA-POLICY.md).
 
-## Single-style preview operator workflow (schema 4.0)
+## Single-style preview operator workflow (frozen schema 4.0; mutable schema 5.0)
 
-This development-only collector preserves native content and creates disclosed fixed-card presentation. It never calls image generation or fills human approval. The runtime Skill's action0 and six-independent-final behavior remain unchanged.
+The published white-vest schema-v4 collection is frozen byte-for-byte and every mutation command rejects it. New development runs use schema v5 with an explicit controlled source case and immutable authorization batches. The collector preserves native content and creates disclosed fixed-card presentation; it never calls image generation or fills human approval. The runtime Skill's action0 and six-independent-final behavior remain unchanged.
 
 Exact `3:4` describes the display **card frame**, not the source photograph. Display boards are `1200×1200`, with six `360×480` cards at x=44/420/796 and y=140/636. Complete pose images fit inside each card using uniform downscaling and padding; no stretch, upscale, generative fill or crop of the model/garment. Only original gutters and text regions are excluded when extracting the observed six panels. If a native pose is already cropped or distorted, layout cannot repair it.
 
@@ -38,11 +42,12 @@ Use a readable local Chinese font with `--font`. Its basename/hash is evidence; 
 Start a new run. Schema1–3 runs remain read-only with their original findings and cannot be upgraded in place or inherit current approval. The unchanged native prompt binding allows reuse of a registered schema3 original and its real call record in a fresh run; it does not create a new generation call.
 
 ```bash
-python3 tools/style-preview.py prepare --run-id white-vest-cards-v4
-python3 tools/style-preview.py ingest --run-id white-vest-cards-v4 --style korean-cold-editorial --image /path/to/original.png --generation-record /path/to/actual-generation.json
-python3 tools/style-preview.py compose --run-id white-vest-cards-v4 --style korean-cold-editorial --layout-json /path/to/observed-layout.json --font /path/to/local-cjk-font.ttc
-python3 tools/style-preview.py audit --run-id white-vest-cards-v4 --style korean-cold-editorial
-python3 tools/style-preview.py gallery --run-id white-vest-cards-v4 --style korean-cold-editorial
+python3 tools/style-preview.py prepare --run-id beige-blazer-denim-outfit-24-v1 --source-case beige-blazer-denim-outfit
+python3 tools/style-preview.py register-batch --run-id beige-blazer-denim-outfit-24-v1 --manifest /path/to/authorized-batch.json
+python3 tools/style-preview.py ingest --run-id beige-blazer-denim-outfit-24-v1 --style korean-cold-editorial --image /path/to/original.png --generation-record /path/to/actual-generation.json
+python3 tools/style-preview.py compose --run-id beige-blazer-denim-outfit-24-v1 --style korean-cold-editorial --layout-json /path/to/observed-layout.json --font /path/to/local-cjk-font.ttc
+python3 tools/style-preview.py audit --run-id beige-blazer-denim-outfit-24-v1 --style korean-cold-editorial
+python3 tools/style-preview.py gallery --run-id beige-blazer-denim-outfit-24-v1 --style korean-cold-editorial
 ```
 
 If a maintainer-authorized correction replaces a rejected native sheet, pass a sanitized `--correction-record` during ingest. It must bind the actual correction prompt and authorization/acceptance hashes plus the replaced call, original, optimized-native and display hashes. A correction cannot silently reuse the replaced call or output.
@@ -60,18 +65,18 @@ Machine layout checks prove fixed cards and artifact integrity only. They cannot
 The review template remains pending. A real reviewer must compare the source and display: six complete poses, same garment/model, style, full-body framing where required, no content loss through extraction, padding, correct bilingual labels and AI disclosure. Review binds current source/display/evidence hashes. Missing, null, pending or failed checks are not approval.
 
 ```bash
-python3 tools/style-preview.py approve --run-id white-vest-cards-v4 --style korean-cold-editorial --review /path/to/completed-human-review.json
+python3 tools/style-preview.py approve --run-id beige-blazer-denim-outfit-24-v1 --style korean-cold-editorial --review /path/to/completed-human-review.json
 ```
 
 For a future collection, obtain each style's explicit generation instruction and repeat ingest/compose/review. No automatic retry or batch authorization is implied. Only after all24real reviews:
 
 ```bash
-python3 tools/style-preview.py audit --run-id white-vest-cards-v4
-python3 tools/style-preview.py gallery --run-id white-vest-cards-v4
-python3 tools/style-preview.py promote --run-id white-vest-cards-v4
+python3 tools/style-preview.py audit --run-id beige-blazer-denim-outfit-24-v1
+python3 tools/style-preview.py gallery --run-id beige-blazer-denim-outfit-24-v1
+python3 tools/style-preview.py promote --run-id beige-blazer-denim-outfit-24-v1
 ```
 
-Public promotion includes only registered native whole-sheet JPEGs, layout derivatives, thumbnails and generated evidence/pages. It updates rights, style pages and the README thumbnail slots transactionally. Raw originals, local receipts, font files and review drafts remain private. A failed/unapproved preview cannot enter public artifacts; no preview counts as an independent final, complete workflow or `image-ready` set.
+Schema-v5 public promotion includes only registered native whole-sheet JPEGs, layout derivatives, thumbnails and generated collection evidence/pages. It updates the collection and rights index transactionally without replacing white-vest representative links, style pages or README thumbnail slots. Raw originals, local receipts, batch files, font files and review drafts remain private. A failed/unapproved preview cannot enter public artifacts; no preview counts as an independent final, complete workflow or `image-ready` set.
 
 ## The Met auxiliary-media operator workflow
 

@@ -32,6 +32,15 @@ ThreadTruth Studio 是独立维护的社区 Codex Plugin。它从真实服饰图
 
 [查看 24 风格证据索引](docs/demo/STYLES.md)。六格看板只是方向预览，不等于六张独立成片，也不计为完整案例。
 
+两个边界清晰的演示分别维护：
+
+- **单件服饰 · 24种风格** — 已公开的白马甲 beta.3 集合仍是下方图库与风格索引的唯一代表来源；
+- **完整套装 · 24种风格** — 米色西装、白色上衣、深色牛仔裤、橄榄色托特包与棕色乐福鞋的授权源图已按 `ThreadTruth-Demo-Only-1.0` 登记；v5 集合在 24/24 通过前仍受生图、人工验收和公开提升三重门禁。
+
+这两个示例只展示受治理的流程，不证明所有服饰或套装均已覆盖，也不计为非维护者采用或新增完整主案例。
+
+在 ChatGPT 中可用 Plugin 选择器或 `@threadtruth-studio`；受支持的 Codex 界面可用 skill 选择器或 `$threadtruth-studio`，Codex CLI 可查看 `/skills`。本项目不声称已获官方 marketplace 上架。
+
 <!-- STYLE_PREVIEWS:START -->
 
 | | | | |

@@ -1221,6 +1221,20 @@ def _html(record, style=None, directory=None, local=False):
             f"<section><h2>{html.escape(preview['display_name'])}</h2><p><code>{html.escape(preview['style'])}</code></p>"
             f"{visual}<p>{review}</p><ol>{poses}</ol></section>"
         )
+    if record.get("source", {}).get("review_contract") == "coordinated-outfit-v1" and not local:
+        case_id = html.escape(record["source"]["case_id"])
+        introduction = (
+            f'<figure><img src="../../preview-sources/{case_id}/source.jpg" width="543" height="724" '
+            'alt="Authorized coordinated outfit source"><figcaption>Authorized real physical outfit source / 已授权真实实物套装源图</figcaption></figure>'
+            '<p><strong>AI-generated · locally composed direction preview · not final imagery</strong><br>'
+            '<strong>AI生成 · 排版衍生方向预览 · 非成片</strong></p>'
+            f'<p>Generation documentation: <a href="{MODEL_DOCS_URL}">{MODEL_DOCS_URL}</a>; verified {MODEL_DOCS_VERIFIED_AT}. '
+            'The host did not expose a per-call model identifier (<code>per_call_model: unavailable</code>).</p>'
+            '<p>Media license: <code>ThreadTruth-Demo-Only-1.0</code>. Repository/release display only; no standalone reuse, resale, relicensing or CC0 dedication.</p>'
+            '<h2>Limitations / 局限</h2><p>These 24 whole-sheet direction previews are not 144 independent finals, do not prove universal garment or outfit coverage, and do not count as external adoption or complete primary cases.</p>'
+        )
+    else:
+        introduction = ""
     return (
         '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width">'
         '<title>Style preview review</title><style>body{max-width:1200px;margin:2rem auto;font-family:system-ui}'
@@ -1229,7 +1243,7 @@ def _html(record, style=None, directory=None, local=False):
         'ol{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding-left:1.5rem}'
         'li{min-width:0;overflow-wrap:anywhere;word-break:break-word}'
         '@media(max-width:480px){ol{grid-template-columns:1fr}}</style><body>'
-        f'<h1>{AI_LABEL}</h1><p>24 single-style, six-pose sheets. Every thumbnail is the complete sheet; click it for the original display image. '
+        f'<h1>{AI_LABEL}</h1>{introduction}<p>24 single-style, six-pose sheets. Every thumbnail is the complete sheet; click it for the original display image. '
         'Ungenerated entries are text only. Machine checks cannot prove pose layout or visual content.</p><main>'
         + "".join(sections) + "</main></body></html>\n"
     )
@@ -1249,7 +1263,7 @@ def gallery(root, run_id, style=None):
     return path
 
 
-def _readme(record):
+def _readme_v4(record):
     return f"""# Style preview collection: {record['run_id']}
 
 {AI_LABEL}
@@ -1262,6 +1276,27 @@ Source authorization: [primary rights](../../primary-cases/{CASE}/rights.json). 
 
 CC0 applies only to the extent the project can grant rights; Apache-2.0 does not cover media. AI-generated content requires applicable labeling. These previews never count as independent finals or runtime maturity evidence.
 """
+
+
+def _readme_v5(record):
+    case_id = record["source"]["case_id"]
+    return f"""# Coordinated outfit preview collection: {record['run_id']}
+
+AI-generated · locally composed direction preview · not final imagery<br>
+AI生成 · 排版衍生方向预览 · 非成片
+
+[Review all 24 whole sheets](index.html). Each entry applies one registered style to the same complete authorized outfit and shows the six canonical action-0 poses. [Source and rights](../../preview-sources/{case_id}/rights.json).
+
+Generation documentation: {MODEL_DOCS_URL} (verified {MODEL_DOCS_VERIFIED_AT}). The host evidence records `per_call_model: unavailable`; it does not infer a per-call model ID.
+
+The source and every native/display/thumbnail asset use `ThreadTruth-Demo-Only-1.0`: repository and release display only, with no standalone reuse, resale, relicensing or CC0 dedication. Apache-2.0 covers code and documentation, not this media.
+
+These 24 direction previews are not 144 independent finals, do not prove universal apparel coverage, and do not count as external adoption, a complete primary case, or runtime maturity evidence.
+"""
+
+
+def _readme(record):
+    return _readme_v5(record) if record.get("schema_version") == CURRENT_SCHEMA else _readme_v4(record)
 
 
 def _public_record_valid(root, record, directory):

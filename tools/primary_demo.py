@@ -512,15 +512,26 @@ def primary_rights_index_content(root: Path) -> str:
                 f"| `{rights.get('case_id', '')}` | auxiliary | The Met `{source.get('object_id', '')}` | "
                 f"CC0-1.0 | `{str(asset.get('sha256', ''))[:12]}` | {rights.get('status', '')} |"
             )
+    preview_source_root = root.resolve() / "docs" / "demo" / "preview-sources"
+    if preview_source_root.is_dir():
+        for path in sorted(preview_source_root.glob("*/rights.json")):
+            rights = read_json(path)
+            asset = rights.get("public_asset", {})
+            rows.append(
+                f"| [`{rights.get('case_id', '')}`](preview-sources/{path.parent.name}/{asset.get('path', '')}) | preview source | maintainer-authorized physical outfit | "
+                f"{rights.get('license', {}).get('id', '')} | `{str(asset.get('sha256', ''))[:12]}` | {rights.get('status', '')}; [rights](preview-sources/{path.parent.name}/rights.json) |"
+            )
     preview_root = root.resolve() / "docs/demo/style-previews"
     for path in sorted(preview_root.glob("*/evidence.json")):
         evidence = read_json(path)
+        license_id = "ThreadTruth-Demo-Only-1.0" if evidence.get("schema_version") == "5.0" else "CC0-1.0"
+        source_label = "authorized coordinated outfit" if evidence.get("schema_version") == "5.0" else "authorized primary garment"
         for asset in _preview_module().public_assets(evidence):
             link = f"style-previews/{evidence['run_id']}/{asset['path']}"
             record_link = f"style-previews/{evidence['run_id']}/evidence.json"
             rows.append(
-                f"| [{asset['style']}]({link}) | {asset['role']} | authorized primary garment | "
-                f"CC0-1.0 | `{asset['sha256'][:12]}` | human-approved preview; "
+                f"| [{asset['style']}]({link}) | {asset['role']} | {source_label} | "
+                f"{license_id} | `{asset['sha256'][:12]}` | human-approved preview; "
                 f"[derivation and full hashes]({record_link}); not finals |"
             )
     table = (
@@ -543,7 +554,7 @@ Approved primary and auxiliary media is listed below.
 
 {table}
 
-Apache-2.0 does not cover case media. Public source derivatives and project-generated demo media are offered under CC0 only to the extent the project can grant rights. CC0 does not imply endorsement or remove possible trademark, privacy, personality, moral, or cultural rights.
+Apache-2.0 does not cover case media. CC0 applies only to rows marked CC0-1.0 and only to the extent the project can grant rights. Coordinated-outfit source and preview rows use `ThreadTruth-Demo-Only-1.0` and do not permit standalone reuse, resale, relicensing or CC0 dedication. Neither license implies endorsement or removes possible trademark, privacy, personality, moral, or cultural rights.
 """
 
 

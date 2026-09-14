@@ -8,6 +8,7 @@ A maintainer-owned primary demo is rights-cleared and image-ready. Auxiliary CC0
 |---|---|---|---|---|---|
 | `white-hooded-puffer-vest-korean-cold` | primary | maintainer-authorized real garment | CC0-1.0 | `843daf8b554d` | promoted |
 | `met-159228-old-money` | auxiliary | The Met `159228` | CC0-1.0 | `7ad8a7d4f93c` | promoted |
+| [`beige-blazer-denim-outfit`](preview-sources/beige-blazer-denim-outfit/source.jpg) | preview source | maintainer-authorized physical outfit | ThreadTruth-Demo-Only-1.0 | `f749e5b021f9` | approved-for-preview; [rights](preview-sources/beige-blazer-denim-outfit/rights.json) |
 | [american-street](style-previews/white-vest-24-v1/american-street.jpg) | native-preview | authorized primary garment | CC0-1.0 | `47738c7708bb` | human-approved preview; [derivation and full hashes](style-previews/white-vest-24-v1/evidence.json); not finals |
 | [american-street](style-previews/white-vest-24-v1/american-street-display.jpg) | display-preview | authorized primary garment | CC0-1.0 | `539435a100a5` | human-approved preview; [derivation and full hashes](style-previews/white-vest-24-v1/evidence.json); not finals |
 | [american-street](style-previews/white-vest-24-v1/american-street-thumb.jpg) | preview-thumbnail | authorized primary garment | CC0-1.0 | `c9c537a117be` | human-approved preview; [derivation and full hashes](style-previews/white-vest-24-v1/evidence.json); not finals |
@@ -81,4 +82,4 @@ A maintainer-owned primary demo is rights-cleared and image-ready. Auxiliary CC0
 | [y2k-millennium](style-previews/white-vest-24-v1/y2k-millennium-display.jpg) | display-preview | authorized primary garment | CC0-1.0 | `01ff301d92b0` | human-approved preview; [derivation and full hashes](style-previews/white-vest-24-v1/evidence.json); not finals |
 | [y2k-millennium](style-previews/white-vest-24-v1/y2k-millennium-thumb.jpg) | preview-thumbnail | authorized primary garment | CC0-1.0 | `74bd2dde0026` | human-approved preview; [derivation and full hashes](style-previews/white-vest-24-v1/evidence.json); not finals |
 
-Apache-2.0 does not cover case media. Public source derivatives and project-generated demo media are offered under CC0 only to the extent the project can grant rights. CC0 does not imply endorsement or remove possible trademark, privacy, personality, moral, or cultural rights.
+Apache-2.0 does not cover case media. CC0 applies only to rows marked CC0-1.0 and only to the extent the project can grant rights. Coordinated-outfit source and preview rows use `ThreadTruth-Demo-Only-1.0` and do not permit standalone reuse, resale, relicensing or CC0 dedication. Neither license implies endorsement or removes possible trademark, privacy, personality, moral, or cultural rights.
