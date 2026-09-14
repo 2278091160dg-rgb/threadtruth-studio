@@ -824,7 +824,7 @@ def _review_hash(record, preview):
     })
 
 
-def review_template(record, style):
+def _v4_review_template(record, style):
     preview = _find_preview(record, style)
     comp = preview.get('composition', {})
     return {
@@ -857,6 +857,74 @@ def review_template(record, style):
             for ordinal in range(1, 7)
         ],
     }
+
+
+def _outfit_item_keys(record):
+    outfit = record["source"]["outfit"]
+    core_tokens = {
+        "blazer": "blazer", "top": "top", "jeans": "jeans", "tote": "tote", "loafers": "loafers",
+    }
+    optional_tokens = {"watch": "watch", "jewelry": "jewelry"}
+    core = {
+        key for key, token in core_tokens.items()
+        if any(token in fact.lower() for fact in outfit["core_items"])
+    }
+    optional = {
+        key for key, token in optional_tokens.items()
+        if any(token in fact.lower() for fact in outfit["optional_when_visible"])
+    }
+    if core != set(core_tokens) or optional != set(optional_tokens):
+        raise ValueError("outfit review item mapping invalid")
+    return list(core_tokens), list(optional_tokens)
+
+
+def outfit_review_template(record: dict, style: str) -> dict:
+    preview = _find_preview(record, style)
+    comp = preview.get("composition", {})
+    core, optional = _outfit_item_keys(record)
+    return {
+        "reviewer": "", "reviewed_at": "", "confirmation": "",
+        "preview_sha256": comp.get("display", {}).get("sha256", ""),
+        "original_sha256": preview.get("original_sha256", ""),
+        "native_sha256": preview.get("sha256", ""),
+        "composition_sha256": object_hash(comp) if comp else "",
+        "evidence_sha256": _review_hash(record, preview), "public_use_approved": False,
+        "geometry": {
+            "cells": [None, None, None, None, None, None],
+            "title": None, "subtitle": None, "footer": None,
+        },
+        "checks": {
+            "observed_boundaries": "pending",
+            "full_bilingual_title": "pending",
+            "correct_subtitle": "pending",
+            "readable_ai_footer": "pending",
+            "text_subject_non_overlap": "pending",
+            "complete_panel_extraction": "pending",
+            "padding_no_subject_loss": "pending",
+            "derivative_disclosure": "pending",
+        },
+        "cells": [
+            {
+                "ordinal": ordinal,
+                "core_items": {key: "pending" for key in core},
+                "optional_items": {key: "pending" for key in optional},
+                "complete_outfit_visible": "pending",
+                "adult_identity": "pending",
+                "anatomy": "pending",
+                "pose_layout": "pending",
+                "registered_style_distinct": "pending",
+                "ai_disclosure": "pending",
+                "framing": "pending",
+            }
+            for ordinal in range(1, 7)
+        ],
+    }
+
+
+def review_template(record, style):
+    if record.get("source", {}).get("review_contract") == "coordinated-outfit-v1":
+        return outfit_review_template(record, style)
+    return _v4_review_template(record, style)
 
 
 def _rect(value, width, height):
@@ -915,9 +983,9 @@ def _check_geometry(geometry, width, height):
         raise ValueError("observed geometry invalid")
 
 
-def _check_review(record, preview):
+def _check_v4_review(record, preview):
     review = preview.get("human_review")
-    template = review_template(record, preview["style"])
+    template = _v4_review_template(record, preview["style"])
     if not isinstance(review, dict) or set(review) != set(template):
         raise ValueError("human review incomplete")
     if not _primary().GITHUB_REVIEWER.fullmatch(str(review["reviewer"])) or review["confirmation"] != confirmation(preview["style"]):
@@ -947,6 +1015,59 @@ def _check_review(record, preview):
             raise ValueError('observed geometry invalid')
     if _primary().parse_iso_z(review["reviewed_at"]) < _primary().parse_iso_z(preview["generation"]["generated_at"]):
         raise ValueError("review predates generation")
+
+
+def _check_outfit_review(record, preview):
+    review = preview.get("human_review")
+    template = outfit_review_template(record, preview["style"])
+    if not isinstance(review, dict) or set(review) != set(template):
+        raise ValueError("human review incomplete")
+    if not _primary().GITHUB_REVIEWER.fullmatch(str(review["reviewer"])) or review["confirmation"] != confirmation(preview["style"]):
+        raise ValueError("human review incomplete")
+    if review["public_use_approved"] is not True or any(
+        review[key] != template[key]
+        for key in ("preview_sha256", "original_sha256", "native_sha256", "composition_sha256", "evidence_sha256")
+    ):
+        raise ValueError("human review incomplete")
+    if review["checks"] != {key: "pass" for key in template["checks"]}:
+        raise ValueError("human review incomplete")
+    if not isinstance(review["cells"], list) or len(review["cells"]) != 6:
+        raise ValueError("human review incomplete")
+    core, optional = _outfit_item_keys(record)
+    required_pass = {
+        "complete_outfit_visible", "adult_identity", "anatomy", "pose_layout",
+        "registered_style_distinct", "ai_disclosure", "framing",
+    }
+    for ordinal, cell in enumerate(review["cells"], start=1):
+        if not isinstance(cell, dict) or set(cell) != {"ordinal", "core_items", "optional_items", *required_pass}:
+            raise ValueError("human review incomplete")
+        if cell["ordinal"] != ordinal or cell["core_items"] != {key: "pass" for key in core}:
+            raise ValueError("human review incomplete")
+        if set(cell["optional_items"]) != set(optional) or any(
+            value not in {"pass", "not-visible-no-contradiction"}
+            for value in cell["optional_items"].values()
+        ):
+            raise ValueError("human review incomplete")
+        if any(cell[key] != "pass" for key in required_pass):
+            raise ValueError("human review incomplete")
+    _check_geometry(review["geometry"], 1200, 1200)
+    contract = preview["display_contract"]
+    if review["geometry"]["cells"] != contract["cells"]:
+        raise ValueError("observed geometry invalid")
+    for name in ("title", "subtitle", "footer"):
+        x, y, width, height = review["geometry"][name]
+        box_x, box_y, box_width, box_height = contract[name]
+        if x < box_x or y < box_y or x + width > box_x + box_width or y + height > box_y + box_height:
+            raise ValueError("observed geometry invalid")
+    if _primary().parse_iso_z(review["reviewed_at"]) < _primary().parse_iso_z(preview["generation"]["generated_at"]):
+        raise ValueError("review predates generation")
+
+
+def _check_review(record, preview):
+    if record.get("source", {}).get("review_contract") == "coordinated-outfit-v1":
+        _check_outfit_review(record, preview)
+    else:
+        _check_v4_review(record, preview)
 
 
 def _validate_preview(record, preview, directory, require_approval, local, require_composition=True):

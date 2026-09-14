@@ -29,7 +29,7 @@
     "rules": {"type": "object"},
     "ai_label": {"type": "string"},
     "batches": {"type": "array", "minItems": 0, "maxItems": 4, "uniqueItems": true, "items": {"$ref": "#/$defs/batch"}},
-    "previews": {"type": "array", "minItems": 24, "maxItems": 24, "uniqueItems": true, "items": {"type": "object", "properties": {"generation": {"$ref": "#/$defs/generation"}}}}
+    "previews": {"type": "array", "minItems": 24, "maxItems": 24, "uniqueItems": true, "items": {"type": "object", "properties": {"generation": {"$ref": "#/$defs/generation"}, "human_review": {"$ref": "#/$defs/outfitReview"}}}}
   },
   "$defs": {
     "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"},
@@ -63,6 +63,41 @@
         "model_docs_url": {"const": "https://learn.chatgpt.com/docs/image-generation"},
         "model_docs_verified_at": {"const": "2026-09-14"},
         "per_call_model": {"const": "unavailable"}
+      }
+    },
+    "outfitReview": {
+      "type": "object",
+      "required": ["reviewer", "reviewed_at", "confirmation", "preview_sha256", "original_sha256", "native_sha256", "composition_sha256", "evidence_sha256", "public_use_approved", "geometry", "checks", "cells"],
+      "properties": {
+        "public_use_approved": {"const": true},
+        "cells": {"type": "array", "minItems": 6, "maxItems": 6, "items": {"$ref": "#/$defs/reviewCell"}}
+      }
+    },
+    "reviewCell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ordinal", "core_items", "optional_items", "complete_outfit_visible", "adult_identity", "anatomy", "pose_layout", "registered_style_distinct", "ai_disclosure", "framing"],
+      "properties": {
+        "ordinal": {"type": "integer", "minimum": 1, "maximum": 6},
+        "core_items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["blazer", "top", "jeans", "tote", "loafers"],
+          "properties": {"blazer": {"const": "pass"}, "top": {"const": "pass"}, "jeans": {"const": "pass"}, "tote": {"const": "pass"}, "loafers": {"const": "pass"}}
+        },
+        "optional_items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["watch", "jewelry"],
+          "properties": {"watch": {"enum": ["pass", "not-visible-no-contradiction"]}, "jewelry": {"enum": ["pass", "not-visible-no-contradiction"]}}
+        },
+        "complete_outfit_visible": {"const": "pass"},
+        "adult_identity": {"const": "pass"},
+        "anatomy": {"const": "pass"},
+        "pose_layout": {"const": "pass"},
+        "registered_style_distinct": {"const": "pass"},
+        "ai_disclosure": {"const": "pass"},
+        "framing": {"const": "pass"}
       }
     },
     "sourceAsset": {

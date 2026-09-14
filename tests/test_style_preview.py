@@ -224,11 +224,16 @@ class PreviewTests(unittest.TestCase):
             "padding_no_subject_loss": "pass",
             "derivative_disclosure": "pass",
         }
-        for pose in review["poses"]:
-            pose.update(
-                product="pass", pose_layout="pass", identity_style="pass",
-                ai_disclosure="pass", framing="pass",
-            )
+        for cell in review["cells"]:
+            cell["core_items"] = {key: "pass" for key in cell["core_items"]}
+            cell["optional_items"] = {
+                key: "not-visible-no-contradiction" for key in cell["optional_items"]
+            }
+            for key in (
+                "complete_outfit_visible", "adult_identity", "anatomy", "pose_layout",
+                "registered_style_distinct", "ai_disclosure", "framing",
+            ):
+                cell[key] = "pass"
         return review
 
     def ingest_all(self):
@@ -449,9 +454,37 @@ class PreviewTests(unittest.TestCase):
             {"cells": [None, None, None, None, None, None], "title": None, "subtitle": None, "footer": None},
         )
         self.assertTrue(all(value == "pending" for value in review["checks"].values()))
-        self.assertTrue(all(pose["framing"] == "pending" for pose in review["poses"]))
+        self.assertTrue(all(cell["framing"] == "pending" for cell in review["cells"]))
         with self.assertRaisesRegex(ValueError, "human review incomplete"):
             self.m.approve(self.root, "test-run", style, review)
+
+    def test_outfit_review_requires_every_core_item_in_all_six_cells(self):
+        run = self.prepare()
+        preview = run["previews"][0]
+        ingested = self.m.ingest(
+            self.root, "test-run", preview["style"], self.image(1), self.generation(preview, 1)
+        )
+        self.compose(ingested, preview["style"])
+        current = self.m.read_json(self.m.run_dir(self.root, "test-run") / "evidence.json")
+        template = self.m.outfit_review_template(current, preview["style"])
+        self.assertEqual(len(template["cells"]), 6)
+        self.assertEqual(
+            set(template["cells"][0]["core_items"]),
+            {"blazer", "top", "jeans", "tote", "loafers"},
+        )
+        self.assertEqual(set(template["cells"][0]["optional_items"]), {"watch", "jewelry"})
+        for replacement in (None, "pending", "fail", "not-visible-no-contradiction"):
+            review = self.completed_review(current, preview["style"])
+            if replacement is None:
+                review["cells"][0]["core_items"].pop("blazer")
+            else:
+                review["cells"][0]["core_items"]["blazer"] = replacement
+            with self.subTest(replacement=replacement):
+                with self.assertRaisesRegex(ValueError, "human review incomplete"):
+                    self.m.approve(self.root, "test-run", preview["style"], review)
+        review = self.completed_review(current, preview["style"])
+        review["cells"][0]["optional_items"]["watch"] = "pass"
+        self.m.approve(self.root, "test-run", preview["style"], review)
 
     def test_review_rejects_bad_cell_shape_bounds_overlap_order_and_size(self):
         run = self.ingest_all()
@@ -498,8 +531,8 @@ class PreviewTests(unittest.TestCase):
             lambda review: review["checks"].update(correct_subtitle="pending"),
             lambda review: review["checks"].update(readable_ai_footer="fail"),
             lambda review: review["checks"].update(text_subject_non_overlap="pending"),
-            lambda review: review["poses"][0].update(framing="pending"),
-            lambda review: review["poses"][5].pop("framing"),
+            lambda review: review["cells"][0].update(framing="pending"),
+            lambda review: review["cells"][5].pop("framing"),
         )
         for mutate in mutations:
             review = self.completed_review(run, style)
@@ -639,7 +672,7 @@ class PreviewTests(unittest.TestCase):
         path.write_text(json.dumps(run))
         style = run["previews"][0]["style"]
         review = self.completed_review(run, style)
-        review["poses"][5]["pose_layout"] = "pending"
+        review["cells"][5]["pose_layout"] = "pending"
         with self.assertRaisesRegex(ValueError, "human review incomplete"):
             self.m.approve(self.root, "test-run", style, review)
 
