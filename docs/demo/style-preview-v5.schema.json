@@ -68,7 +68,7 @@
     "failedRetry": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "reason_code", "failure_record_path", "failure_record_sha256", "generation_prompt_sha256", "generation_authorization_sha256", "authorized_at", "attempt_number", "scope"],
+      "required": ["kind", "reason_code", "failure_record_sha256", "generation_prompt_sha256", "generation_authorization_sha256", "authorized_at", "attempt_number", "scope"],
       "properties": {
         "kind": {"const": "failed-call-retry"},
         "reason_code": {"enum": ["prompt-binding-failed", "native-generation-timeout-no-output"]},
@@ -107,7 +107,7 @@
     "replacementRevision": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["path", "sha256"],
+      "required": ["sha256"],
       "properties": {
         "path": {"type": "string", "pattern": "^revisions/[a-z0-9-]+/[A-Za-z0-9._-]+/revision\\.json$"},
         "sha256": {"$ref": "#/$defs/hash"}

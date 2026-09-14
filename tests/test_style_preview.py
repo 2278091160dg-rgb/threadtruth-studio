@@ -797,6 +797,40 @@ class PreviewTests(unittest.TestCase):
             )
         self.m._check_plan(self.root, corrected, self.m.run_dir(self.root, "test-run"))
 
+    def test_public_projection_keeps_lineage_hashes_without_private_paths(self):
+        self.m = module()
+        record = {
+            "source": {}, "identity_anchor": None, "rules": {},
+            "previews": [{
+                "style": "american-street",
+                "failed_retry": {
+                    "kind": "failed-call-retry",
+                    "reason_code": "native-generation-timeout-no-output",
+                    "failure_record_path": "failed-calls/american-street/failure.json",
+                    "failure_record_sha256": "1" * 64,
+                    "generation_prompt_sha256": "2" * 64,
+                    "generation_authorization_sha256": "3" * 64,
+                    "authorized_at": "2026-09-14T08:00:00Z",
+                    "attempt_number": 2,
+                    "scope": "single-target-retry;no-auto-retry",
+                },
+                "replacement_history": [{
+                    "path": "revisions/american-street/call-1/revision.json",
+                    "sha256": "4" * 64,
+                }],
+                "human_review": {"evidence_sha256": "5" * 64},
+            }],
+        }
+        public = self.m._public_record(record)
+        preview = public["previews"][0]
+        self.assertNotIn("failure_record_path", preview["failed_retry"])
+        self.assertEqual(preview["failed_retry"]["failure_record_sha256"], "1" * 64)
+        self.assertEqual(preview["replacement_history"], [{"sha256": "4" * 64}])
+        self.assertEqual(preview["human_review"]["evidence_sha256"], self.m._review_hash(public, preview))
+        self.assertNotEqual(preview["human_review"]["evidence_sha256"], "5" * 64)
+        self.assertNotIn("failed-calls/", json.dumps(public))
+        self.assertNotIn("revisions/", json.dumps(public))
+
     def test_rejects_mixed_style_pose_missing_or_duplicate_pose_ids_and_rule_drift(self):
         run = self.prepare()
         path = self.m.run_dir(self.root, "test-run") / "evidence.json"

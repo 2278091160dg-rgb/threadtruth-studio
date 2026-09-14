@@ -4,10 +4,34 @@ All notable changes are documented here. Versions follow Semantic Versioning.
 
 ## Unreleased
 
+## 2026-09-15 — 1.0.0-beta.4
+
+### Trigger
+
+- The maintainer accepted all 24 coordinated-outfit previews, accepted the two corrected pose boards, authorized public GitHub synchronization, and selected PR merge plus a beta.4 prerelease.
+
+### Behavior before
+
+- The accepted coordinated-outfit collection and its complete local failure/replacement lineage existed only under ignored local state; the public repository and latest Release contained only the white-vest gallery.
+
+### Behavior after
+
+- Added the authorized beige-blazer coordinated outfit as a second public 24-style direction-preview collection: 24 optimized native sheets, 24 fixed-card display boards and 24 thumbnails.
+- Bound maintainer acceptance to all 24 current sheets, including the corrected Athleisure and Korean Cold Editorial pose-5 boards. Local failed-call and replacement records remain retained while public evidence exposes hashes without private paths.
+- Runtime Skill behavior is unchanged. The release adds no independent finals, complete primary cases, external installations or automatic retries.
+
 - Added hash-bound replacement of an already composed local preview after a separately authorized targeted correction. The prior native image, receipt, layout, display, thumbnail, review template and full preview record are retained under an immutable revision manifest; any earlier failed-call retry remains in that archived lineage.
 - Corrected batch accounting so separately authorized corrections do not consume another slot in the original immutable six-style batch, while the active correction still requires its own authorization and acceptance hashes.
 - Added hash-bound, single-target retry evidence for recorded prompt-binding failures and native timeouts with no output. The retry must use a new post-failure authorization, the exact planned prompt, and the next attempt number; it does not consume a successful-style slot in the original immutable batch.
+
+### Eval coverage
+
 - Added regression coverage for retry receipt bindings, full six-style batch completion after one authorized failed-call retry, and rejection of missing or mismatched retry authorization.
+- Added regression coverage proving that public projection retains lineage hashes, removes private lineage paths, rebinds the public human-review hash, selects the two accepted v3 sheets, and registers exactly 72 coordinated-outfit JPEGs.
+
+### Verification
+
+- Full repository, 24-pack lint, trigger, Plugin/Skill production, privacy, archive, CI and post-publication download results are recorded in the beta.4 candidate verification report and GitHub prerelease checks.
 
 ## 2026-09-14 — 1.0.0-beta.3
 

@@ -12,7 +12,7 @@ This is a real, rights-cleared source-to-six-result case: four photos of one whi
 
 ## Install and try recognition
 
-Download the Plugin ZIP and its separate checksum from the [`v1.0.0-beta.3` Release](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.3). beta.1 and beta.2 remain immutable. New-host CLI activation remains a separately disclosed compatibility gap. Follow the complete matching [installation guide](docs/INSTALL.md).
+Download the Plugin ZIP and its separate checksum from the [`v1.0.0-beta.4` Release](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.4). beta.1–beta.3 remain immutable. New-host CLI activation remains a separately disclosed compatibility gap. Follow the complete matching [installation guide](docs/INSTALL.md).
 
 After installation, start a **new Codex task**, upload a garment image first, then enter exactly:
 
@@ -27,7 +27,7 @@ Installed it? Share a sanitized result through the [installation feedback form](
 ## What is public today
 
 - Independent six-final coverage: `1/24`, the real case above.
-- Single-style preview coverage: **24/24 machine-layout checked, 24/24 maintainer accepted, and 24/24 published in beta.3**. The series uses the same white vest, one style and six poses per sheet. Each native sheet is preserved as an optimized copy beside a labeled `1200×1200` layout derivative with six `360×480` (`3:4`) cards and a whole-board thumbnail. Six maintainer-requested corrections replace their rejected first drafts with explicit hash lineage. Historical schema 1–3 records remain read-only. These are AI-generated direction previews, not independent finals. Full counts and remaining gates: [work register](docs/WORK-STATUS.md).
+- Single-style preview coverage: **two 24/24 collections are machine-layout checked, maintainer accepted and published in beta.4**: the frozen white vest and the coordinated beige-blazer outfit. Each style has an optimized native sheet, a labeled `1200×1200` display derivative and a whole-board thumbnail. Corrections and failed retries retain hash-bound lineage without publishing private working paths. These are AI-generated direction previews, not independent finals. Full counts and remaining gates: [work register](docs/WORK-STATUS.md).
 - Gendered and culturally named styles translate atmosphere, styling language, lighting, and setting only. They never infer identity, ethnicity, nationality, body, or gender from the garment or wearer.
 
 [Browse the 24-style evidence index](docs/demo/STYLES.md). A six-tile board is a direction preview, not six independent finals and not a completed workflow.
@@ -35,7 +35,7 @@ Installed it? Share a sanitized result through the [installation feedback form](
 Two bounded demonstrations are maintained separately:
 
 - **single garment · 24 styles** — the published white-vest beta.3 collection remains the sole representative source for the style index and gallery below;
-- **coordinated outfit · 24 styles** — an authorized beige-blazer, white-top, dark-denim, olive-tote and brown-loafer source is registered under `ThreadTruth-Demo-Only-1.0`; its v5 collection remains generation-, human-approval- and publication-gated until 24/24 sheets pass.
+- **coordinated outfit · 24 styles** — the authorized beige-blazer, white-top, dark-denim, olive-tote and brown-loafer [beta.4 collection](docs/demo/style-previews/beige-blazer-denim-outfit-24-v1/index.html) is published under `ThreadTruth-Demo-Only-1.0` with 24/24 approval.
 
 These two examples demonstrate the governed workflows; they do not prove universal garment or outfit coverage and do not count as non-maintainer adoption or additional complete primary cases.
 
@@ -64,7 +64,7 @@ There is no runtime telemetry, MCP server, external connector, API-key flow, or 
 
 ## Release and compatibility status
 
-The public Beta began with [`v1.0.0-beta.1`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.1). [`v1.0.0-beta.3`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.3) is the newest public download; it adds the accepted 24-style preview gallery without changing runtime behavior. Audited host: macOS `26.6.2`, `codex-cli 0.144.1`. Codex desktop build: unavailable, not inferred. See [compatibility](docs/COMPATIBILITY.md) and the [30-day Beta register](docs/BETA.md).
+The public Beta began with [`v1.0.0-beta.1`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.1). [`v1.0.0-beta.4`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.4) is the newest public download; it adds the accepted coordinated-outfit 24-style preview gallery without changing runtime behavior. Audited host: macOS `26.6.2`, `codex-cli 0.144.1`. Codex desktop build: unavailable, not inferred. See [compatibility](docs/COMPATIBILITY.md) and the [30-day Beta register](docs/BETA.md).
 
 The project's own exit targets are at least 30 days, five non-maintainer installations, and three authorized complete cases; these are project targets, not OpenAI admission rules. Codex for Open Source application details live only in [docs/CODEX-FOR-OSS.md](docs/CODEX-FOR-OSS.md).
 

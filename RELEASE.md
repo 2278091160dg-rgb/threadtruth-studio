@@ -2,8 +2,8 @@
 
 ## Released Beta
 
-- Version: `1.0.0-beta.3`
-- Status: [`v1.0.0-beta.3`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.3) published as a GitHub prerelease at `2026-09-14T05:57:34Z`. beta.1 and beta.2 remain available and immutable.
+- Version: `1.0.0-beta.4`
+- Status: `v1.0.0-beta.4` release candidate. beta.1–beta.3 remain available and immutable.
 - License: Apache-2.0
 - Distribution: Codex Plugin repository plus allowlist-built archive
 - Runtime telemetry: none
@@ -19,7 +19,7 @@
 - A non-maintainer clean environment repeats installation and discovery before the Beta exits.
 - The maintainer reviews the final artifact names, checksums, and release notes before publication.
 
-For beta.3, runtime bytes remain unchanged from beta.1/beta.2. The gallery contains 24 hash-bound, human-accepted direction previews and six explicit correction lineages; it does not raise independent-final coverage above 1/24 or complete-case coverage above 1/3. Registration-helper behavior is still supported by disposable-fixture tests, while fresh-host CLI activation and external lifecycle evidence remain pending. See the beta.2 [installer verification](docs/verification/2026-09-13-beta.2.md) and the [beta.3 candidate verification](docs/verification/2026-09-14-beta.3-candidate.md).
+For beta.4, runtime bytes remain unchanged. The release adds a second 24-style, hash-bound, human-accepted direction-preview collection for one coordinated outfit. It does not raise independent-final coverage above 1/24 or complete-case coverage above 1/3. Local failure and replacement records remain private; the public record retains their hashes. Fresh-host CLI activation and external lifecycle evidence remain pending.
 
 ## Known limitations
 
@@ -45,4 +45,4 @@ python3 tools/primary-demo.py build-media \
 
 Both commands create a versioned ZIP and a separate SHA-256 sidecar under `dist/`. The Plugin ZIP excludes development tools and full-resolution PNGs; the media ZIP contains four metadata-stripped authorized sources, six metadata-stripped full-resolution PNG results, allowlisted rights/run evidence, a README, and an internal checksum manifest. Raw prompts, private logs, previews, and staging records are excluded.
 
-The beta.1 media archive remains the authoritative unchanged original six-image package; beta.2/beta.3 do not duplicate it. beta.3 carries optimized public copies of the 24 accepted native preview sheets, their layout derivatives, thumbnails and sanitized evidence. Raw native PNGs, local receipts, rejected drafts and unapproved candidates never enter the Plugin envelope. The historical mixed-style v1 schema is retained for read-only interpretation only; release validation rejects v1 promotion.
+The beta.1 media archive remains the authoritative unchanged original six-image package; later Betas do not duplicate it. beta.4 carries both accepted 24-style preview collections, including optimized native sheets, layout derivatives, thumbnails and sanitized evidence. Raw native PNGs, local receipts, rejected drafts and private lineage paths never enter the Plugin envelope.

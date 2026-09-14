@@ -12,7 +12,7 @@ ThreadTruth Studio 是独立维护的社区 Codex Plugin。它从真实服饰图
 
 ## 安装并测试识别
 
-从 [`v1.0.0-beta.3` Release](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.3)分别下载 Plugin ZIP 与校验文件。beta.1 与 beta.2 保持不可变。真实新宿主 CLI 激活仍是另行披露的兼容性缺口。请按完整的[安装指南](docs/INSTALL.md)操作。
+从 [`v1.0.0-beta.4` Release](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.4)分别下载 Plugin ZIP 与校验文件。beta.1–beta.3 保持不可变。真实新宿主 CLI 激活仍是另行披露的兼容性缺口。请按完整的[安装指南](docs/INSTALL.md)操作。
 
 安装后新建一个 **Codex 任务**，先上传服饰图，再原样输入：
 
@@ -27,7 +27,7 @@ ThreadTruth Studio 是独立维护的社区 Codex Plugin。它从真实服饰图
 ## 当前公开证据
 
 - 六张独立正式成片覆盖：`1/24`，即上方真实案例。
-- 单风格预览覆盖：**机器版式24/24、维护者验收24/24、beta.3公开24/24**。全部使用同一白马甲，每张一种风格、六个姿势；每张都保留原生整板优化副本、`1200×1200`排版衍生图和整板缩略图，六个卡片外框均为`360×480`（`3:4`）。6张定向纠正版以哈希关系明确替换其被淘汰初稿。旧schema 1–3仍只读。所有图片均标为AI生成方向预览、非独立成片。完整进度见[任务台账](docs/WORK-STATUS.md)。
+- 单风格预览覆盖：**两个集合均为机器版式24/24、维护者验收24/24、beta.4公开24/24**，分别是冻结的白马甲和米色西装完整套装。每个风格均有原生整板优化副本、`1200×1200`展示图和整板缩略图；纠正与失败重试保留哈希证据，但不公开本地工作路径。所有图片均为AI生成方向预览、非独立成片。完整进度见[任务台账](docs/WORK-STATUS.md)。
 - 性别或文化命名风格只翻译氛围、造型语言、光线与场景，不从服饰或人物推断身份、族裔、国籍、身体或性别。
 
 [查看 24 风格证据索引](docs/demo/STYLES.md)。六格看板只是方向预览，不等于六张独立成片，也不计为完整案例。
@@ -35,7 +35,7 @@ ThreadTruth Studio 是独立维护的社区 Codex Plugin。它从真实服饰图
 两个边界清晰的演示分别维护：
 
 - **单件服饰 · 24种风格** — 已公开的白马甲 beta.3 集合仍是下方图库与风格索引的唯一代表来源；
-- **完整套装 · 24种风格** — 米色西装、白色上衣、深色牛仔裤、橄榄色托特包与棕色乐福鞋的授权源图已按 `ThreadTruth-Demo-Only-1.0` 登记；v5 集合在 24/24 通过前仍受生图、人工验收和公开提升三重门禁。
+- **完整套装 · 24种风格** — 米色西装、白色上衣、深色牛仔裤、橄榄色托特包与棕色乐福鞋的 [beta.4 集合](docs/demo/style-previews/beige-blazer-denim-outfit-24-v1/index.html) 已按 `ThreadTruth-Demo-Only-1.0` 公开并完成24/24验收。
 
 这两个示例只展示受治理的流程，不证明所有服饰或套装均已覆盖，也不计为非维护者采用或新增完整主案例。
 
@@ -64,7 +64,7 @@ ThreadTruth Studio 是独立维护的社区 Codex Plugin。它从真实服饰图
 
 ## 发布与兼容状态
 
-公开 Beta 从 [`v1.0.0-beta.1`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.1) 开始。[`v1.0.0-beta.3`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.3) 是最新公开下载，增加已验收的24风格预览图库，不改变运行时行为。已审计宿主：macOS `26.6.2`、`codex-cli 0.144.1`；Codex 桌面版 build 不可用，不能从 CLI 版本推断。详见[兼容性](docs/COMPATIBILITY.md)与[30 天 Beta 登记](docs/BETA.md)。
+公开 Beta 从 [`v1.0.0-beta.1`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.1) 开始。[`v1.0.0-beta.4`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.4) 是最新公开下载，增加已验收的完整套装24风格图库，不改变运行时行为。已审计宿主：macOS `26.6.2`、`codex-cli 0.144.1`；Codex 桌面版 build 不可用，不能从 CLI 版本推断。详见[兼容性](docs/COMPATIBILITY.md)与[30 天 Beta 登记](docs/BETA.md)。
 
 至少 30 天、5 个非维护者安装、3 个授权完整案例，是项目自己的退出目标，不是 OpenAI 固定准入条件。Codex for Open Source 申请细节只放在 [docs/CODEX-FOR-OSS.md](docs/CODEX-FOR-OSS.md)。
 

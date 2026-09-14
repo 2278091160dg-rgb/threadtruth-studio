@@ -580,10 +580,13 @@ def _check_replacement_history(preview, directory):
 
 def _check_failed_retry(failed_retry, preview, generation, record, batch, directory):
     required = {
-        "kind", "reason_code", "failure_record_path", "failure_record_sha256",
+        "kind", "reason_code", "failure_record_sha256",
         "generation_prompt_sha256", "generation_authorization_sha256",
         "authorized_at", "attempt_number", "scope",
     }
+    public_summary = isinstance(failed_retry, dict) and "failure_record_path" not in failed_retry
+    if not public_summary:
+        required.add("failure_record_path")
     if not isinstance(failed_retry, dict) or set(failed_retry) != required:
         raise ValueError("failed retry record fields invalid")
     if (failed_retry["kind"] != "failed-call-retry"
@@ -598,21 +601,24 @@ def _check_failed_retry(failed_retry, preview, generation, record, batch, direct
         "generation_authorization_sha256",
     )):
         raise ValueError("failed retry record fields invalid")
-    expected_path = f"failed-calls/{preview['style']}/failure.json"
-    if failed_retry["failure_record_path"] != expected_path or directory is None:
-        raise ValueError("failed retry failure record path invalid")
-    failure_path = child(directory, expected_path)
-    if not failure_path.is_file() or digest(failure_path.read_bytes()) != failed_retry["failure_record_sha256"]:
-        raise ValueError("failed retry failure record hash mismatch")
-    failure = read_json(failure_path)
-    failure_required = {
-        "schema_version", "run_id", "batch_id", "style", "status",
-        "attempt_number", "batch_halted", "automatic_retry_performed",
-        "authorization_sha256", "native_output_path", "native_output_sha256",
-    }
-    if not failure_required.issubset(failure):
-        raise ValueError("failed retry source record invalid")
-    if (failure["schema_version"] != "failure-record-v1"
+    failure = None
+    if not public_summary:
+        expected_path = f"failed-calls/{preview['style']}/failure.json"
+        if failed_retry["failure_record_path"] != expected_path or directory is None:
+            raise ValueError("failed retry failure record path invalid")
+        failure_path = child(directory, expected_path)
+        if not failure_path.is_file() or digest(failure_path.read_bytes()) != failed_retry["failure_record_sha256"]:
+            raise ValueError("failed retry failure record hash mismatch")
+        failure = read_json(failure_path)
+    if failure is not None:
+        failure_required = {
+            "schema_version", "run_id", "batch_id", "style", "status",
+            "attempt_number", "batch_halted", "automatic_retry_performed",
+            "authorization_sha256", "native_output_path", "native_output_sha256",
+        }
+        if not failure_required.issubset(failure):
+            raise ValueError("failed retry source record invalid")
+    if failure is not None and (failure["schema_version"] != "failure-record-v1"
             or failure["run_id"] != record["run_id"]
             or failure["batch_id"] != batch["batch_id"]
             or failure["style"] != preview["style"]
@@ -621,19 +627,19 @@ def _check_failed_retry(failed_retry, preview, generation, record, batch, direct
             or failure["automatic_retry_performed"] is not False
             or failure["authorization_sha256"] != batch["authorization_sha256"]):
         raise ValueError("failed retry source record invalid")
-    if type(failure["attempt_number"]) is not int or failure["attempt_number"] < 1:
+    if failure is not None and (type(failure["attempt_number"]) is not int or failure["attempt_number"] < 1):
         raise ValueError("failed retry source record invalid")
-    if (type(failed_retry["attempt_number"]) is not int
-            or failed_retry["attempt_number"] != failure["attempt_number"] + 1):
+    if (type(failed_retry["attempt_number"]) is not int or failed_retry["attempt_number"] < 2
+            or (failure is not None and failed_retry["attempt_number"] != failure["attempt_number"] + 1)):
         raise ValueError("failed retry attempt number invalid")
-    failure_prompt_hash = (
+    failure_prompt_hash = None if failure is None else (
         failure.get("planned_prompt_sha256")
         if failure["status"] == "prompt-binding-failed"
         else failure.get("prompt_sha256")
     )
-    if failure_prompt_hash != preview["prompt_sha256"]:
+    if failure is not None and failure_prompt_hash != preview["prompt_sha256"]:
         raise ValueError("failed retry source prompt mismatch")
-    if failure["status"] == "native-generation-timeout-no-output" and (
+    if failure is not None and failure["status"] == "native-generation-timeout-no-output" and (
         failure["native_output_path"] is not None or failure["native_output_sha256"] is not None
     ):
         raise ValueError("failed retry timeout record contains output")
@@ -644,9 +650,10 @@ def _check_failed_retry(failed_retry, preview, generation, record, batch, direct
             or generation["authorization_sha256"] != failed_retry["generation_authorization_sha256"]):
         raise ValueError("failed retry requires a new authorization hash")
     authorized_at = _primary().parse_iso_z(failed_retry["authorized_at"])
-    failed_at_value = failure.get("terminated_at") or failure.get("generated_at")
-    if not failed_at_value or authorized_at <= _primary().parse_iso_z(failed_at_value):
-        raise ValueError("failed retry authorization must postdate failure")
+    if failure is not None:
+        failed_at_value = failure.get("terminated_at") or failure.get("generated_at")
+        if not failed_at_value or authorized_at <= _primary().parse_iso_z(failed_at_value):
+            raise ValueError("failed retry authorization must postdate failure")
     if _primary().parse_iso_z(generation["generated_at"]) < authorized_at:
         raise ValueError("generation predates failed retry authorization")
 
@@ -870,6 +877,20 @@ def public_assets(record):
             if 'composition' in preview:
                 assets.append({'style': preview['style'], 'role': role, **preview['composition'][key]})
     return assets
+
+
+def _public_record(record):
+    public = copy.deepcopy(record)
+    for preview in public.get("previews", []):
+        if "failed_retry" in preview:
+            preview["failed_retry"].pop("failure_record_path", None)
+        if "replacement_history" in preview:
+            preview["replacement_history"] = [
+                {"sha256": revision["sha256"]} for revision in preview["replacement_history"]
+            ]
+        if "human_review" in preview:
+            preview["human_review"]["evidence_sha256"] = _review_hash(public, preview)
+    return public
 
 
 def compose(root, run_id, style, layout, font):
@@ -1599,9 +1620,10 @@ def promote(root, run_id):
         raise ValueError("; ".join(findings))
     if record["status"] != "approved":
         raise ValueError("approval state invalid")
+    public_record = _public_record(record)
     target = child(root, f"docs/demo/style-previews/{run_id}")
     if target.exists():
-        if read_json(target / "evidence.json") != record or validate_public_previews(root):
+        if read_json(target / "evidence.json") != public_record or validate_public_previews(root):
             raise ValueError("refuse to overwrite different or invalid public evidence")
         _primary().render_rights_index(root)
         return target
@@ -1609,11 +1631,11 @@ def promote(root, run_id):
     with tempfile.TemporaryDirectory(dir=directory) as temporary:
         stage = Path(temporary) / "public"
         stage.mkdir()
-        for asset in public_assets(record):
+        for asset in public_assets(public_record):
             shutil.copyfile(child(directory, asset['path']), stage / asset['path'])
-        write_json(stage / "evidence.json", record)
-        (stage / "README.md").write_text(_readme(record), encoding="utf-8")
-        (stage / "index.html").write_text(_html(record, directory=stage), encoding="utf-8")
+        write_json(stage / "evidence.json", public_record)
+        (stage / "README.md").write_text(_readme(public_record), encoding="utf-8")
+        (stage / "index.html").write_text(_html(public_record, directory=stage), encoding="utf-8")
         created_target = False
         rights_path = child(root, "docs/demo/RIGHTS.md")
         rights_before = rights_path.read_bytes() if rights_path.exists() else None
