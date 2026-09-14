@@ -158,7 +158,7 @@ Expected: FAIL because the source schema/directory and validator are absent.
 
 - [ ] **Step 3: Add the schema and optimized source**
 
-Generate `source.jpg` from `maintainer-provided-source-attachment` without altering content or aspect ratio, then construct the rights record from measured bytes:
+Generate `source.jpg` from the maintainer-provided source attachment identified by the original SHA-256 in Global Constraints, without altering content or aspect ratio, then construct the rights record from measured bytes:
 
 ```python
 source_jpg = root / "docs/demo/preview-sources/beige-blazer-denim-outfit/source.jpg"
