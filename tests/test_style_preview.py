@@ -36,7 +36,36 @@ class PreviewTests(unittest.TestCase):
 
     def prepare(self):
         self.m = module()
-        return self.m.prepare(self.root, "test-run")
+        return self.m.prepare(self.root, "test-run", "beige-blazer-denim-outfit")
+
+    def test_v5_outfit_plan_binds_one_source_and_every_outfit_fact(self):
+        self.m = module()
+        run = self.m.prepare(self.root, "outfit-run", "beige-blazer-denim-outfit")
+        self.assertEqual(run["schema_version"], "5.0")
+        self.assertEqual(run["source"]["case_id"], "beige-blazer-denim-outfit")
+        self.assertEqual(len(run["source"]["assets"]), 1)
+        self.assertEqual(run["identity_anchor"]["role"], "identity-only")
+        for preview in run["previews"]:
+            prompt = (
+                self.m.run_dir(self.root, "outfit-run") / "prompts" / f"{preview['style']}.txt"
+            ).read_text()
+            for fact in run["source"]["outfit"]["core_items"]:
+                self.assertIn(fact, prompt)
+            self.assertIn("complete coordinated outfit", prompt)
+            self.assertIn("Attached image 1 is the only authoritative outfit truth", prompt)
+            self.assertIn("Attached image 2 is identity-only", prompt)
+            self.assertNotIn("same one white hooded puffer vest", prompt)
+
+    def test_v5_prepare_requires_a_valid_hash_bound_source_case(self):
+        self.m = module()
+        with self.assertRaisesRegex(ValueError, "source case is required"):
+            self.m.prepare(self.root, "missing-source", None)
+        with self.assertRaisesRegex(ValueError, "unknown preview source"):
+            self.m.prepare(self.root, "unknown-source", "unknown")
+        source = self.root / "docs/demo/preview-sources/beige-blazer-denim-outfit/source.jpg"
+        source.write_bytes(b"changed")
+        with self.assertRaisesRegex(ValueError, "preview source"):
+            self.m.prepare(self.root, "drifted-source", "beige-blazer-denim-outfit")
 
     def test_released_v4_collection_matches_golden_manifest(self):
         manifest = json.loads((ROOT / "tests/fixtures/white-vest-24-v1-beta3.sha256.json").read_text())
@@ -190,7 +219,7 @@ class PreviewTests(unittest.TestCase):
             preview["label_contract"],
             {
                 "title": preview["display_name"],
-                "subtitle": f"同款白马甲 · {preview['mode']} 场景版 · 六姿势预览",
+                "subtitle": f"同款完整套装 · {preview['mode']} {self.m.MODE_NAMES[preview['mode']]} · 六姿势预览",
                 "footer": "AI生成 · 方向预览 · 非成片 / PREVIEW ONLY — NOT FINAL",
             },
         )
@@ -248,7 +277,8 @@ class PreviewTests(unittest.TestCase):
     def test_prepare_binds_registry_packs_runtime_rules_and_canonical_action_zero_prompt(self):
         run = self.prepare()
         self.assertEqual(set(run["rules"]), {"prompt_build", "modes_scenes", "safety_core", "style_router"})
-        self.assertEqual(len(run["source"]["assets"]), 4)
+        self.assertEqual(len(run["source"]["assets"]), 1)
+        self.assertEqual(run["source"]["review_contract"], "coordinated-outfit-v1")
         self.assertEqual(run["identity_anchor"]["role"], "identity-only")
         masters = [
             "SIDE_TURN_STANDING", "SIDE_LEANING_WALL", "UPRIGHT_SEATED",
@@ -525,11 +555,11 @@ class PreviewTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "duplicate native output"):
             self.m.ingest(self.root, "test-run", second["style"], image, self.generation(second, 2))
 
-    def test_source_authorization_and_incomplete_whole_sheet_review_fail_closed(self):
+    def test_source_binding_and_incomplete_whole_sheet_review_fail_closed(self):
         run = self.ingest_all()
         path = self.m.run_dir(self.root, "test-run") / "evidence.json"
         changed = copy.deepcopy(run)
-        changed["source"]["authorization"]["public_use_authorized"] = False
+        changed["source"]["rights_sha256"] = "0" * 64
         path.write_text(json.dumps(changed))
         self.assertTrue(self.m.audit(self.root, "test-run"))
         path.write_text(json.dumps(run))

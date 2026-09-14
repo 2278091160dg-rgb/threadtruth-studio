@@ -24,6 +24,13 @@ def _primary():
     return module
 
 
+def _demo_media():
+    spec = importlib.util.spec_from_file_location("preview_demo_media", Path(__file__).with_name("demo_media.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 CASE = "white-hooded-puffer-vest-korean-cold"
 SOURCE_REF = f"docs/demo/primary-cases/{CASE}/rights.json"
 PACK_ROOT = "skills/threadtruth-studio/references/styles"
@@ -172,6 +179,35 @@ def _source(root):
     return source, {"path": f"{base}/{anchor['path']}", "sha256": anchor["public_sha256"], "role": "identity-only"}
 
 
+def load_preview_source(root: Path, case_id: str) -> tuple[dict, dict | None]:
+    if not isinstance(case_id, str) or not ID.fullmatch(case_id):
+        raise ValueError("unknown preview source")
+    if case_id != "beige-blazer-denim-outfit":
+        raise ValueError("unknown preview source")
+    findings = _demo_media().validate_preview_sources(root)
+    if findings:
+        raise ValueError("preview source invalid: " + "; ".join(findings))
+    rights_ref = f"docs/demo/preview-sources/{case_id}/rights.json"
+    rights_path = child(root, rights_ref)
+    rights = read_json(rights_path)
+    public = rights["public_asset"]
+    source = {
+        "case_id": case_id,
+        "rights_ref": rights_ref,
+        "rights_sha256": digest(rights_path.read_bytes()),
+        "assets": [{
+            "path": f"docs/demo/preview-sources/{case_id}/{public['path']}",
+            "role": "outfit-source",
+            "sha256": public["sha256"],
+        }],
+        "subtitle": "同款完整套装",
+        "outfit": copy.deepcopy(rights["outfit"]),
+        "review_contract": rights["review_contract"],
+    }
+    _, anchor = _source(root)
+    return source, anchor
+
+
 def _rules(root):
     return {
         name: {"path": relative, "sha256": digest(child(root, relative).read_bytes())}
@@ -230,25 +266,27 @@ def _mode_scene(mode, scenes, ordinal):
 
 def _prompt(preview, source, anchor, preview_negative):
     visual = preview["visual"]
+    source_count = len(source["assets"])
     lines = [
         f"Create one action-0 preview for style {preview['style']}.",
-        "Use a single 2x3 grid contact-sheet preview on a square 1:1 board showing the SAME one white hooded puffer vest in six different directions.",
+        "Use a single 2x3 grid contact-sheet preview on a square 1:1 board showing the same complete coordinated outfit in six different directions.",
         "Top row poses 1-2-3; bottom row poses 4-5-6. Six equal 3:4 portrait cells, one pose per cell, one adult female model identity throughout this sheet.",
         "Reserve independent title, subtitle and footer bands outside all six pose cells; keep the three text bands distinct and clear of every subject.",
         f"Render this exact full bilingual title natively at the top: {preview['label_contract']['title']}",
         f"Render this exact subtitle natively below the title: {preview['label_contract']['subtitle']}",
         f"Render this exact disclosure natively in the footer: {preview['label_contract']['footer']}",
-        "Attached images 1-4 are the only authoritative garment truth. Preserve the white color, hood, zipper, length, padding, seams and construction.",
-        "Never replace or redesign the vest and never invent details. Keep it clearly visible in every cell.",
-        "Attached image 5 is identity-only: preserve face, hair, apparent age and body proportions; never treat it as garment authority.",
-        "Style changes mood, low-distraction background, pose treatment and lighting only; source truth overrides every style-pack suggestion.",
+        f"Attached image{'s' if source_count != 1 else ''} 1{'-' + str(source_count) if source_count != 1 else ''} {'are' if source_count != 1 else 'is'} the only authoritative outfit truth.",
+        "Preserve every core item exactly: " + "; ".join(source["outfit"]["core_items"]) + ".",
+        "Keep the complete coordinated outfit visible in all six cells. Never replace a garment or invent a brand, logo or text.",
+        f"Attached image {source_count + 1} is identity-only: preserve face, hair, apparent age and body proportions; never treat it as outfit authority.",
+        "Style may change mood, low-distraction background, pose treatment and lighting only; source truth overrides every style-pack suggestion.",
         f"Mode: {preview['mode']} derived from the registered pack default and runtime mode rules.",
         f"Mood only: {visual['mood']}",
         f"Attitude: {visual['persona']}",
         f"Lighting/background palette: {visual['lighting']}",
         "This is a LOW-RES DIRECTION PREVIEW, not a final deliverable. Keep the footer visible and unobtrusive, no larger than about 3-4% of image height.",
         "All requested text must be native-rendered in the generated board. Never cover the model, face, vest, shoes, bag or pose. Do not place a large centered watermark.",
-        "Garment references: " + ", ".join(asset["path"] for asset in source["assets"]),
+        "Outfit references: " + ", ".join(asset["path"] for asset in source["assets"]),
         "Identity-only reference: " + anchor["path"],
     ]
     for pose in preview["poses"]:
@@ -258,7 +296,7 @@ def _prompt(preview, source, anchor, preview_negative):
             f"Head/gaze: {pose['head_gaze']}",
             f"Mode/scene: {pose['scene']}",
             f"Framing: {preview['layout_contract']['framing'][pose['ordinal'] - 1]}",
-            "Retain white vest color and every visible source construction detail.",
+            "Retain every core outfit item and all visible source construction detail.",
         ])
     lines.extend([
         "",
@@ -268,9 +306,9 @@ def _prompt(preview, source, anchor, preview_negative):
     return "\n".join(lines) + "\n"
 
 
-def _plan(root, run_id):
+def _plan_v5(root, run_id, source_case):
     run_dir(root, run_id)
-    source, anchor = _source(root)
+    source, anchor = load_preview_source(root, source_case)
     rules = _rules(root)
     canonical_poses, preview_negative = _canonical_action_zero(root)
     previews = []
@@ -297,7 +335,7 @@ def _plan(root, run_id):
             "layout_contract": copy.deepcopy(LAYOUT_CONTRACT),
             "label_contract": {
                 "title": _field(text, "name"),
-                "subtitle": f"同款白马甲 · {mode} {MODE_NAMES[mode]} · 六姿势预览",
+                "subtitle": f"{source['subtitle']} · {mode} {MODE_NAMES[mode]} · 六姿势预览",
                 "footer": PREVIEW_MARK,
             },
         }
@@ -324,14 +362,18 @@ def _require_mutable_v5(record):
         raise ValueError("unsupported preview schema")
 
 
-def prepare(root, run_id):
+def prepare(root, run_id, source_case=None):
     directory = run_dir(root, run_id)
     if directory.exists():
         existing = read_json(directory / "evidence.json")
         _require_mutable_v5(existing)
+        if source_case is not None and existing.get("source", {}).get("case_id") != source_case:
+            raise ValueError("source case does not match existing run")
         _check_plan(root, existing, directory)
         return existing
-    plan = _plan(root, run_id)
+    if source_case is None:
+        raise ValueError("source case is required for schema 5.0 preview runs")
+    plan = _plan_v5(root, run_id, source_case)
     directory.mkdir(parents=True)
     (directory / "prompts").mkdir()
     _, preview_negative = _canonical_action_zero(root)
@@ -352,7 +394,7 @@ def _check_plan(root, record, directory=None):
         raise ValueError("invalid preview state")
     if directory is not None and record.get("run_id") != directory.name:
         raise ValueError("run id mismatch")
-    expected = _plan(root, record["run_id"])
+    expected = _plan_v5(root, record["run_id"], record.get("source", {}).get("case_id"))
     if set(record) != set(expected):
         raise ValueError("unexpected evidence fields")
     for key in ("schema_version", "run_id", "role", "source", "identity_anchor", "rules", "ai_label"):
@@ -811,7 +853,8 @@ def _validate_preview(record, preview, directory, require_approval, local, requi
             raise ValueError("native output hash mismatch")
         if receipt.get("native_dimensions") != _native_dimensions(native):
             raise ValueError("native output dimensions mismatch")
-    if _primary().parse_iso_z(preview["generation"]["generated_at"]) < _primary().parse_iso_z(record["source"]["authorization"]["declared_at"]):
+    authorization = record["source"].get("authorization")
+    if authorization is not None and _primary().parse_iso_z(preview["generation"]["generated_at"]) < _primary().parse_iso_z(authorization["declared_at"]):
         raise ValueError("generation predates source authorization")
     if require_composition or 'composition' in preview:
         _check_composition(preview, directory, local)
@@ -1151,6 +1194,8 @@ def main(argv=None):
     for name in ("prepare", "ingest", "compose", "audit", "gallery", "approve", "promote"):
         command = commands.add_parser(name)
         command.add_argument("--run-id", required=True)
+        if name == "prepare":
+            command.add_argument("--source-case", required=True)
         if name in {"ingest", "compose", "audit", "gallery", "approve"}:
             command.add_argument("--style")
         if name == "ingest":
@@ -1186,7 +1231,7 @@ def main(argv=None):
         elif args.command in {"audit", "gallery"}:
             result = globals()[args.command](args.root, args.run_id, style=args.style)
         else:
-            result = globals()[args.command](args.root, args.run_id)
+            result = globals()[args.command](args.root, args.run_id, args.source_case) if args.command == "prepare" else globals()[args.command](args.root, args.run_id)
         print(str(result) if isinstance(result, Path) else json.dumps(result, ensure_ascii=False, indent=2))
         return 1 if args.command == "audit" and result else 0
     except (OSError, ValueError, KeyError, TypeError) as error:
