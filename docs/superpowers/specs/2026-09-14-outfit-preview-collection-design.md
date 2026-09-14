@@ -2,7 +2,7 @@
 
 Date: 2026-09-14
 
-Status: revised after independent audit; written review pending
+Status: accepted by maintainer after independent re-audit passed
 
 Scope: development evidence and public demo only; runtime generation behavior stays unchanged
 
