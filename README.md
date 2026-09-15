@@ -6,9 +6,11 @@
 
 ThreadTruth Studio is an independent, community-maintained Codex Plugin. It reads visible facts from real single-garment or coordinated-outfit photos, routes among 24 style packs, waits for explicit approval before paid image generation, and governs a six-image delivery with commercial QA. For an outfit, it preserves each garment plus the visible layering, proportions, shoes, bag and accessory relationships rather than restyling the look. It is not an OpenAI product or endorsement.
 
-![The same coordinated beige-blazer outfit shown as a six-pose E-commerce Studio direction preview](docs/demo/style-previews/beige-blazer-denim-outfit-24-v1/ecommerce-studio-display.jpg)
+| Real coordinated-outfit source | Same outfit · six-pose direction preview |
+|---|---|
+| <img src="docs/demo/preview-sources/beige-blazer-denim-outfit/source.jpg" alt="Real source photo of the coordinated beige-blazer outfit" width="300"> | <img src="docs/demo/style-previews/beige-blazer-denim-outfit-24-v1/ecommerce-studio-display.jpg" alt="The same coordinated beige-blazer outfit shown as a six-pose E-commerce Studio direction preview" width="700"> |
 
-This accepted beta.4 direction preview keeps one complete look—beige blazer, white top, dark denim, olive tote and brown loafers—consistent across six poses. It is a preview sheet, not six independent finals. [Browse all 24 outfit styles](docs/demo/style-previews/beige-blazer-denim-outfit-24-v1/index.html) · [Media rights](docs/demo/RIGHTS.md)
+This source-to-result comparison shows the Skill's coordinated-outfit path: the accepted beta.4 direction preview keeps one complete look—beige blazer, white top, dark denim, olive tote and brown loafers—consistent across six poses. It is a preview sheet, not six independent finals. [Browse all 24 outfit styles](docs/demo/style-previews/beige-blazer-denim-outfit-24-v1/index.html) · [Media rights](docs/demo/RIGHTS.md)
 
 ![A real white hooded puffer vest source beside six independent Korean Cold Editorial results](docs/demo/primary-cases/white-hooded-puffer-vest-korean-cold/hero.jpg)
 

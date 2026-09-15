@@ -6,9 +6,11 @@
 
 ThreadTruth Studio 是独立维护的社区 Codex Plugin。它从真实单件服饰或完整搭配套装图提取可见事实，在 24 个风格包中路由，付费生图前等待明确授权，并以商业 QA 管理六张独立成片。处理套装时，不仅保留每件单品，还锁定可见的层次、穿搭比例及鞋包配饰关系，不重新搭配造型。本项目不是 OpenAI 官方产品或背书。
 
-![同一套米色西装完整搭配的六姿势电商棚拍方向预览](docs/demo/style-previews/beige-blazer-denim-outfit-24-v1/ecommerce-studio-display.jpg)
+| 真实完整套装源图 | 同一套装 · 六姿势方向预览 |
+|---|---|
+| <img src="docs/demo/preview-sources/beige-blazer-denim-outfit/source.jpg" alt="米色西装完整搭配的真实源图" width="300"> | <img src="docs/demo/style-previews/beige-blazer-denim-outfit-24-v1/ecommerce-studio-display.jpg" alt="同一套米色西装完整搭配的六姿势电商棚拍方向预览" width="700"> |
 
-这是 beta.4 已验收的完整套装方向预览：米色西装、白色上衣、深色牛仔裤、橄榄色托特包和棕色乐福鞋在六个姿势中保持一致。它是一张预览看板，不是六张独立成片。[查看套装全部24种风格](docs/demo/style-previews/beige-blazer-denim-outfit-24-v1/index.html) · [媒体权利](docs/demo/RIGHTS.md)
+这组“源图 → 结果”对照直接展示 Skill 的完整套装路径：beta.4 已验收的方向预览让米色西装、白色上衣、深色牛仔裤、橄榄色托特包和棕色乐福鞋在六个姿势中保持一致。它是一张预览看板，不是六张独立成片。[查看套装全部24种风格](docs/demo/style-previews/beige-blazer-denim-outfit-24-v1/index.html) · [媒体权利](docs/demo/RIGHTS.md)
 
 ![一件真实白色连帽羽绒马甲的源图与六张独立韩系冷感正式成片](docs/demo/primary-cases/white-hooded-puffer-vest-korean-cold/hero.jpg)
 

@@ -14,7 +14,7 @@ All notable changes are documented here. Versions follow Semantic Versioning.
 
 ### Behavior after
 
-- The README now leads with the accepted coordinated-outfit preview while retaining the white vest as the distinct six-independent-final case.
+- The README now leads with a left-to-right coordinated-outfit source/result comparison—real source on the left, accepted six-pose preview on the right—while retaining the white vest as the distinct six-independent-final case.
 - Skill and Plugin discovery metadata now explicitly cover both real single-garment and coordinated-outfit photos. Outfit fidelity means preserving every visible item, layering, proportions and shoe/bag/accessory relationships; it does not add virtual try-on or automatic restyling.
 
 ### Eval coverage
