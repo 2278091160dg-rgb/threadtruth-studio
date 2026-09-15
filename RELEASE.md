@@ -3,7 +3,7 @@
 ## Released Beta
 
 - Version: `1.0.0-beta.4`
-- Status: `v1.0.0-beta.4` release candidate. beta.1–beta.3 remain available and immutable.
+- Status: [`v1.0.0-beta.4`](https://github.com/denggui-ai/threadtruth-studio/releases/tag/v1.0.0-beta.4) published as a GitHub prerelease at `2026-09-15T00:18:31Z` from merge commit `f80b4c4`. beta.1–beta.3 remain available and immutable.
 - License: Apache-2.0
 - Distribution: Codex Plugin repository plus allowlist-built archive
 - Runtime telemetry: none
