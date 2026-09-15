@@ -1,11 +1,11 @@
 ---
 name: threadtruth-studio
-description: Create source-faithful fashion portrait sets from a real garment photo using 24 routed styles, explicit generation approval, six-image delivery, and commercial QA. Use for apparel model, editorial, and ecommerce portraits. Do not use for non-apparel products, text-only concepts, or general virtual try-on/API integration.
+description: Create source-faithful fashion portrait sets from real garment or coordinated-outfit photos using 24 routed styles, explicit generation approval, six-image delivery, and commercial QA. Use for apparel model, editorial, and ecommerce portraits. Do not use for non-apparel products, text-only concepts, or general virtual try-on/API integration.
 ---
 
 # ThreadTruth Studio｜服饰保真人像工坊
 
-> 把一张真实服饰图,转译成 6 张指定**风格**的高端服饰人像图。
+> 把真实单件服饰或完整搭配套装图,转译成 6 张指定**风格**的高端服饰人像图。
 > 服饰是唯一事实源,模型负责重塑姿势·头部·场景·氛围,**绝不重新设计服饰**。
 > **core 只管门禁/管线/安全/治理、"五正交轴"横切,以及输出形态/交付规格交互轴;视觉风格底座全部来自可插拔风格包**(`references/styles/<slug>.pack.yaml`)。
 

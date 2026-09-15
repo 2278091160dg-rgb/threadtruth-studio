@@ -101,7 +101,7 @@ class RepositoryContractTests(unittest.TestCase):
         text = (SKILL / "SKILL.md").read_text()
         self.assertIn("name: threadtruth-studio", text)
         expected = (
-            "Create source-faithful fashion portrait sets from a real garment photo "
+            "Create source-faithful fashion portrait sets from real garment or coordinated-outfit photos "
             "using 24 routed styles, explicit generation approval, six-image delivery, "
             "and commercial QA. Use for apparel model, editorial, and ecommerce portraits. "
             "Do not use for non-apparel products, text-only concepts, or general virtual "

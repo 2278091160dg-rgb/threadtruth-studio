@@ -4,11 +4,15 @@
 
 **面向 Codex 的源图保真服饰人像生产流程。**
 
-ThreadTruth Studio 是独立维护的社区 Codex Plugin。它从真实服饰图提取可见事实，在 24 个风格包中路由，付费生图前等待明确授权，并以商业 QA 管理六张独立成片。本项目不是 OpenAI 官方产品或背书。
+ThreadTruth Studio 是独立维护的社区 Codex Plugin。它从真实单件服饰或完整搭配套装图提取可见事实，在 24 个风格包中路由，付费生图前等待明确授权，并以商业 QA 管理六张独立成片。处理套装时，不仅保留每件单品，还锁定可见的层次、穿搭比例及鞋包配饰关系，不重新搭配造型。本项目不是 OpenAI 官方产品或背书。
+
+![同一套米色西装完整搭配的六姿势电商棚拍方向预览](docs/demo/style-previews/beige-blazer-denim-outfit-24-v1/ecommerce-studio-display.jpg)
+
+这是 beta.4 已验收的完整套装方向预览：米色西装、白色上衣、深色牛仔裤、橄榄色托特包和棕色乐福鞋在六个姿势中保持一致。它是一张预览看板，不是六张独立成片。[查看套装全部24种风格](docs/demo/style-previews/beige-blazer-denim-outfit-24-v1/index.html) · [媒体权利](docs/demo/RIGHTS.md)
 
 ![一件真实白色连帽羽绒马甲的源图与六张独立韩系冷感正式成片](docs/demo/primary-cases/white-hooded-puffer-vest-korean-cold/hero.jpg)
 
-这是权利清晰的真实“源图 → 六张成片”案例：同一件白色连帽羽绒马甲的 4 张照片，生成 6 张独立韩系冷感杂志风 B1 图片，登记 SHA-256 并完成人工验收。[查看案例](docs/demo/primary-cases/white-hooded-puffer-vest-korean-cold/README.md) · [媒体权利](docs/demo/RIGHTS.md)
+白马甲仍是权利清晰的完整“源图 → 六张成片”案例：同一件服饰的4张照片生成6张独立韩系冷感杂志风 B1 图片，登记 SHA-256 并完成人工验收。[查看完整案例](docs/demo/primary-cases/white-hooded-puffer-vest-korean-cold/README.md)
 
 ## 安装并测试识别
 
@@ -56,7 +60,7 @@ ThreadTruth Studio 是独立维护的社区 Codex Plugin。它从真实服饰图
 
 ## 工作边界
 
-上传服饰始终是颜色、材质观感、廓形、长度、结构、图案、Logo 位置和配饰的事实源。风格只改变视觉处理，不改变商品事实。流程包含真实服饰输入门禁、确定性路由、独立付费授权、串行六图、身份锚、画布检查和证据化 QA。
+上传的单件服饰或已锁定完整套装始终是颜色、材质观感、廓形、长度、结构、图案、Logo 位置和配饰的事实源。完整套装还必须保留每件单品、穿搭层次、比例以及可见鞋包配饰关系。风格只改变视觉处理，不改变商品事实或重新搭配造型。流程包含真实服饰输入门禁、确定性路由、独立付费授权、串行六图、身份锚、画布检查和证据化 QA。
 
 适用于服饰模特、电商人像和时尚编辑；不适用于非服饰商品、纯文字概念图、通用虚拟试衣、CAD 级合体模拟、API 集成或无人值守商业交付。不保证小字/Logo 完全准确、平台审核通过或销售效果。
 

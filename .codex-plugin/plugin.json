@@ -20,13 +20,13 @@
   "interface": {
     "displayName": "ThreadTruth Studio",
     "shortDescription": "Source-faithful fashion portrait production",
-    "longDescription": "Create six-image apparel portrait sets from a real garment photo with explicit approval, deterministic style routing, and commercial QA.",
+    "longDescription": "Create six-image apparel portrait sets from real garment or coordinated-outfit photos with explicit approval, deterministic style routing, and commercial QA.",
     "developerName": "DENGGUI",
     "category": "Creative",
-    "capabilities": ["fashion portrait planning", "24-style routing", "commercial QA"],
+    "capabilities": ["single-garment fidelity", "coordinated-outfit fidelity", "24-style routing", "commercial QA"],
     "websiteURL": "https://github.com/2278091160dg-rgb/threadtruth-studio",
     "defaultPrompt": [
-      "Use $threadtruth-studio to inspect my real garment photo, recommend a style, and wait for my explicit generation choice."
+      "Use $threadtruth-studio to inspect my real garment or coordinated-outfit photos, recommend a style, and wait for my explicit generation choice."
     ]
   }
 }
