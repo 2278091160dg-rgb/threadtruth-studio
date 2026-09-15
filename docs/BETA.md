@@ -4,7 +4,7 @@ Status: **active**.
 
 The Beta clock began when [`v1.0.0-beta.1`](https://github.com/2278091160dg-rgb/threadtruth-studio/releases/tag/v1.0.0-beta.1) was published at **2026-09-13T04:59:28Z** (Asia/Shanghai: **2026-09-13 12:59:28**). The 30-day minimum reaches **2026-10-13T04:59:28Z**; elapsed time alone does not satisfy the exit criteria.
 
-Publication baseline: one maintainer-owned authorized complete workflow, one auxiliary CC0 rights case, one of 24 styles with final-image evidence, zero qualifying non-maintainer installations, and zero Release downloads at `publishedAt`. The later beta.3 prerelease adds 24/24 direction previews but does not add a complete workflow.
+Publication baseline: one maintainer-owned authorized complete workflow, one auxiliary CC0 rights case, one of 24 styles with final-image evidence, and zero qualifying non-maintainer installations. Beta.3 added the white-vest 24-style preview collection; beta.4 adds the coordinated-outfit 24-style preview collection. Neither adds a complete workflow.
 
 ## Maintainer preflight — 2026-09-12
 
@@ -44,4 +44,4 @@ Maintainers can run `python3 tools/beta-metrics.py` from the development checkou
 
 Plugin ZIP, original media ZIP, checksum and other downloads are recorded separately. Traffic is a UTC rolling 14-day snapshot; overlapping weeks must never be added together. Unavailable/forbidden data is marked unavailable, not zero. Only reviewed aggregates may be added to this public register. Retain local summaries through the Beta review; inspect and explicitly delete selected dated snapshots when no longer needed.
 
-The preview target is published in beta.3: 24 separate single-style, six-pose previews of the same white vest, 24/24 machine-layout checked, 24/24 maintainer accepted and 24/24 publicly included. Schema `4.0` separates retained native content from explicit local layout derivatives: `1200×1200` boards, six `360×480` cards, fit-with-padding without stretching, upscaling or subject cropping. Local style labels and AI/non-final disclosures are not native-rendering claims. Six targeted corrections replace their rejected first drafts with hash-bound lineage. Old schema 1–3 records keep their original findings and cannot inherit new approval. The GitHub Release was published at `2026-09-14T05:57:34Z`; previews never satisfy the three-complete-workflow target. See the [total task register and schedule](WORK-STATUS.md).
+Two preview targets are published: beta.3 retains the frozen white-vest 24-style collection, and beta.4 adds the coordinated-outfit 24-style collection. Each is 24/24 machine-layout checked, maintainer accepted and publicly included. They remain six-pose direction previews, never satisfy the three-complete-workflow target, and do not change the Beta clock. See the [total task register and schedule](WORK-STATUS.md).

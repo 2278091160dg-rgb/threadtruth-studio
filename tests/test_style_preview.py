@@ -1,5 +1,6 @@
 """Behavior gates for development-only preview evidence (synthetic test pixels)."""
 import copy
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -35,15 +36,226 @@ class PreviewTests(unittest.TestCase):
 
     def prepare(self):
         self.m = module()
-        return self.m.prepare(self.root, "test-run")
+        run = self.m.prepare(self.root, "test-run", "beige-blazer-denim-outfit")
+        self.batch_for_style = {}
+        for batch_number, offset in enumerate(range(0, 24, 6), start=1):
+            styles = [preview["style"] for preview in run["previews"][offset:offset + 6]]
+            manifest = {
+                "schema_version": "1.0",
+                "batch_id": f"outfit-batch-{batch_number:02d}",
+                "run_id": "test-run",
+                "styles": styles,
+                "maximum_calls": 6,
+                "authorization_sha256": str(batch_number) * 64,
+                "authorized_at": f"2026-09-14T0{batch_number}:00:00Z",
+                "scope": "serial-native-generation;no-auto-retry",
+            }
+            run = self.m.register_batch(self.root, "test-run", manifest)
+            for style in styles:
+                self.batch_for_style[style] = manifest
+        return run
+
+    def test_v5_outfit_plan_binds_one_source_and_every_outfit_fact(self):
+        self.m = module()
+        run = self.m.prepare(self.root, "outfit-run", "beige-blazer-denim-outfit")
+        self.assertEqual(run["schema_version"], "5.0")
+        self.assertEqual(run["source"]["case_id"], "beige-blazer-denim-outfit")
+        self.assertEqual(len(run["source"]["assets"]), 1)
+        self.assertEqual(run["identity_anchor"]["role"], "identity-only")
+        for preview in run["previews"]:
+            prompt = (
+                self.m.run_dir(self.root, "outfit-run") / "prompts" / f"{preview['style']}.txt"
+            ).read_text()
+            for fact in run["source"]["outfit"]["core_items"]:
+                self.assertIn(fact, prompt)
+            self.assertIn("complete coordinated outfit", prompt)
+            self.assertIn("Attached image 1 is the only authoritative outfit truth", prompt)
+            self.assertIn("Attached image 2 is identity-only", prompt)
+            self.assertNotIn("same one white hooded puffer vest", prompt)
+
+    def test_v5_prepare_requires_a_valid_hash_bound_source_case(self):
+        self.m = module()
+        with self.assertRaisesRegex(ValueError, "source case is required"):
+            self.m.prepare(self.root, "missing-source", None)
+        with self.assertRaisesRegex(ValueError, "unknown preview source"):
+            self.m.prepare(self.root, "unknown-source", "unknown")
+        source = self.root / "docs/demo/preview-sources/beige-blazer-denim-outfit/source.jpg"
+        source.write_bytes(b"changed")
+        with self.assertRaisesRegex(ValueError, "preview source"):
+            self.m.prepare(self.root, "drifted-source", "beige-blazer-denim-outfit")
+
+    def test_released_v4_collection_matches_golden_manifest(self):
+        manifest = json.loads((ROOT / "tests/fixtures/white-vest-24-v1-beta3.sha256.json").read_text())
+        public = ROOT / "docs/demo/style-previews/white-vest-24-v1"
+        self.assertEqual(
+            sorted(path.relative_to(public).as_posix() for path in public.rglob("*") if path.is_file()),
+            sorted(manifest),
+        )
+        for relative, expected in manifest.items():
+            data = (public / relative).read_bytes()
+            self.assertEqual(hashlib.sha256(data).hexdigest(), expected["sha256"])
+            self.assertEqual(len(data), expected["bytes"])
+
+    def test_schema_v4_is_public_read_only_and_all_mutations_refuse_it(self):
+        self.m = module()
+        public = ROOT / "docs/demo/style-previews/white-vest-24-v1"
+        local = self.m.run_dir(self.root, "white-vest-24-v1")
+        local.mkdir(parents=True)
+        shutil.copyfile(public / "evidence.json", local / "evidence.json")
+        record = json.loads((local / "evidence.json").read_text())
+        self.assertEqual(record["schema_version"], "4.0")
+        style = record["previews"][0]["style"]
+        for mutate in (
+            lambda: self.m.prepare(self.root, "white-vest-24-v1"),
+            lambda: self.m.ingest(self.root, "white-vest-24-v1", style, self.image(1), {}),
+            lambda: self.m.compose(self.root, "white-vest-24-v1", style, {}, Path("missing-font")),
+            lambda: self.m.approve(self.root, "white-vest-24-v1", style, {}),
+            lambda: self.m.promote(self.root, "white-vest-24-v1"),
+        ):
+            with self.assertRaisesRegex(ValueError, "schema 4.0 is frozen"):
+                mutate()
 
     def generation(self, preview, number, *, call_id=None):
+        manifest = self.batch_for_style[preview["style"]]
         return {
             "tool": "native-imagegen",
-            "call_id": call_id or f"test-call-{number}",
-            "generated_at": "2026-09-13T01:00:00Z",
+            "call_id": f"test-call-{number}" if call_id is None else call_id,
+            "generated_at": "2026-09-14T08:10:00Z",
             "prompt_sha256": preview["prompt_sha256"],
+            "batch_id": manifest["batch_id"],
+            "authorization_sha256": manifest["authorization_sha256"],
+            "model_docs_url": "https://learn.chatgpt.com/docs/image-generation",
+            "model_docs_verified_at": "2026-09-14",
+            "per_call_model": "unavailable",
         }
+
+    def test_four_batches_are_immutable_ordered_and_non_overlapping(self):
+        self.m = module()
+        run = self.m.prepare(self.root, "batch-run", "beige-blazer-denim-outfit")
+        styles = [preview["style"] for preview in run["previews"]]
+
+        def manifest(number, selected):
+            return {
+                "schema_version": "1.0",
+                "batch_id": f"outfit-batch-{number:02d}",
+                "run_id": "batch-run",
+                "styles": selected,
+                "maximum_calls": 6,
+                "authorization_sha256": str(number) * 64,
+                "authorized_at": f"2026-09-14T0{number}:00:00Z",
+                "scope": "serial-native-generation;no-auto-retry",
+            }
+
+        first = manifest(1, styles[:6])
+        registered = self.m.register_batch(self.root, "batch-run", first)
+        self.assertEqual(self.m.register_batch(self.root, "batch-run", first), registered)
+        changed = copy.deepcopy(first)
+        changed["styles"] = list(reversed(changed["styles"]))
+        with self.assertRaisesRegex(ValueError, "immutable"):
+            self.m.register_batch(self.root, "batch-run", changed)
+        with self.assertRaisesRegex(ValueError, "overlap"):
+            self.m.register_batch(self.root, "batch-run", manifest(2, styles[5:11]))
+        with self.assertRaisesRegex(ValueError, "one through six"):
+            self.m.register_batch(self.root, "batch-run", manifest(2, styles[6:13]))
+        for number, offset in ((2, 6), (3, 12), (4, 18)):
+            self.m.register_batch(self.root, "batch-run", manifest(number, styles[offset:offset + 6]))
+        with self.assertRaisesRegex(ValueError, "four batches"):
+            self.m.register_batch(self.root, "batch-run", manifest(5, [styles[0]]))
+
+    def test_generation_is_bound_to_registered_batch_authorization(self):
+        run = self.prepare()
+        preview = run["previews"][0]
+        generation = self.generation(preview, 1, call_id=None)
+        generation["call_id"] = None
+        record = self.m.ingest(self.root, "test-run", preview["style"], self.image(1), generation)
+        self.assertIsNone(record["previews"][0]["generation"]["call_id"])
+        second = run["previews"][1]
+        wrong_batch = self.generation(second, 2)
+        wrong_batch["batch_id"] = self.batch_for_style[run["previews"][6]["style"]]["batch_id"]
+        with self.assertRaisesRegex(ValueError, "outside registered batch"):
+            self.m.ingest(self.root, "test-run", second["style"], self.image(2), wrong_batch)
+        wrong_hash = self.generation(second, 2)
+        wrong_hash["authorization_sha256"] = "f" * 64
+        with self.assertRaisesRegex(ValueError, "authorization hash"):
+            self.m.ingest(self.root, "test-run", second["style"], self.image(2), wrong_hash)
+
+    def failure_retry(self, run, preview, *, status="native-generation-timeout-no-output"):
+        manifest = self.batch_for_style[preview["style"]]
+        directory = self.m.run_dir(self.root, "test-run")
+        failure_relative = f"failed-calls/{preview['style']}/failure.json"
+        failure_path = directory / failure_relative
+        failure_path.parent.mkdir(parents=True, exist_ok=True)
+        failure = {
+            "schema_version": "failure-record-v1",
+            "run_id": "test-run",
+            "batch_id": manifest["batch_id"],
+            "style": preview["style"],
+            "status": status,
+            "attempt_number": 1,
+            "batch_halted": True,
+            "automatic_retry_performed": False,
+            "call_id": None,
+            "terminated_at": "2026-09-14T07:00:00Z",
+            "authorization_sha256": manifest["authorization_sha256"],
+            "prompt_path": f"prompts/{preview['style']}.txt",
+            "prompt_sha256": preview["prompt_sha256"],
+            "native_output_path": None,
+            "native_output_sha256": None,
+            "next_action": f"No retry without a new targeted authorization for {preview['style']}.",
+        }
+        self.m.write_json(failure_path, failure)
+        retry_authorization = "f" * 64
+        return {
+            "kind": "failed-call-retry",
+            "reason_code": status,
+            "failure_record_path": failure_relative,
+            "failure_record_sha256": self.m.digest(failure_path.read_bytes()),
+            "generation_prompt_sha256": preview["prompt_sha256"],
+            "generation_authorization_sha256": retry_authorization,
+            "authorized_at": "2026-09-14T08:00:00Z",
+            "attempt_number": 2,
+            "scope": "single-target-retry;no-auto-retry",
+        }
+
+    def test_failed_call_retry_binds_new_authorization_and_does_not_consume_batch_slot(self):
+        run = self.prepare()
+        preview = run["previews"][0]
+        failed_retry = self.failure_retry(run, preview)
+        generation = self.generation(preview, 1)
+        generation["authorization_sha256"] = failed_retry["generation_authorization_sha256"]
+        record = self.m.ingest(
+            self.root, "test-run", preview["style"], self.image(1), generation,
+            failed_retry=failed_retry,
+        )
+        stored = record["previews"][0]
+        self.assertEqual(stored["failed_retry"], failed_retry)
+        receipt = self.m.read_json(
+            self.m.run_dir(self.root, "test-run") / "native-receipts" / f"{preview['style']}.json"
+        )
+        self.assertEqual(receipt["bindings"]["failed_retry_sha256"], self.m.object_hash(failed_retry))
+        self.assertEqual(receipt["bindings"]["generation_prompt_sha256"], preview["prompt_sha256"])
+        for number, remaining in enumerate(run["previews"][1:6], start=2):
+            record = self.m.ingest(
+                self.root, "test-run", remaining["style"], self.image(number),
+                self.generation(remaining, number),
+            )
+        self.m._check_plan(self.root, record, self.m.run_dir(self.root, "test-run"))
+
+    def test_failed_call_retry_rejects_unbound_or_mismatched_authorization(self):
+        run = self.prepare()
+        preview = run["previews"][0]
+        failed_retry = self.failure_retry(run, preview)
+        generation = self.generation(preview, 1)
+        generation["authorization_sha256"] = failed_retry["generation_authorization_sha256"]
+        with self.assertRaisesRegex(ValueError, "authorization hash"):
+            self.m.ingest(self.root, "test-run", preview["style"], self.image(1), generation)
+        bad = copy.deepcopy(failed_retry)
+        bad["failure_record_sha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "failure record hash"):
+            self.m.ingest(
+                self.root, "test-run", preview["style"], self.image(1), generation,
+                failed_retry=bad,
+            )
 
     def image(self, number, size=(900, 900)):
         path = self.root / f"input-{number}.png"
@@ -67,7 +279,7 @@ class PreviewTests(unittest.TestCase):
         review = self.m.review_template(record, style)
         review.update(
             reviewer="github:test-human",
-            reviewed_at="2026-09-13T02:00:00Z",
+            reviewed_at="2026-09-14T09:00:00Z",
             confirmation=self.m.confirmation(style),
             public_use_approved=True,
         )
@@ -90,11 +302,16 @@ class PreviewTests(unittest.TestCase):
             "padding_no_subject_loss": "pass",
             "derivative_disclosure": "pass",
         }
-        for pose in review["poses"]:
-            pose.update(
-                product="pass", pose_layout="pass", identity_style="pass",
-                ai_disclosure="pass", framing="pass",
-            )
+        for cell in review["cells"]:
+            cell["core_items"] = {key: "pass" for key in cell["core_items"]}
+            cell["optional_items"] = {
+                key: "not-visible-no-contradiction" for key in cell["optional_items"]
+            }
+            for key in (
+                "complete_outfit_visible", "adult_identity", "anatomy", "pose_layout",
+                "registered_style_distinct", "ai_disclosure", "framing",
+            ):
+                cell[key] = "pass"
         return review
 
     def ingest_all(self):
@@ -133,7 +350,7 @@ class PreviewTests(unittest.TestCase):
 
     def test_prepare_builds_24_single_style_six_pose_previews(self):
         run = self.prepare()
-        self.assertEqual(run["schema_version"], "4.0")
+        self.assertEqual(run["schema_version"], "5.0")
         self.assertEqual(len(run["previews"]), 24)
         self.assertEqual(len({p["style"] for p in run["previews"]}), 24)
         for preview in run["previews"]:
@@ -158,7 +375,7 @@ class PreviewTests(unittest.TestCase):
             preview["label_contract"],
             {
                 "title": preview["display_name"],
-                "subtitle": f"同款白马甲 · {preview['mode']} 场景版 · 六姿势预览",
+                "subtitle": f"同款完整套装 · {preview['mode']} {self.m.MODE_NAMES[preview['mode']]} · 六姿势预览",
                 "footer": "AI生成 · 方向预览 · 非成片 / PREVIEW ONLY — NOT FINAL",
             },
         )
@@ -216,7 +433,8 @@ class PreviewTests(unittest.TestCase):
     def test_prepare_binds_registry_packs_runtime_rules_and_canonical_action_zero_prompt(self):
         run = self.prepare()
         self.assertEqual(set(run["rules"]), {"prompt_build", "modes_scenes", "safety_core", "style_router"})
-        self.assertEqual(len(run["source"]["assets"]), 4)
+        self.assertEqual(len(run["source"]["assets"]), 1)
+        self.assertEqual(run["source"]["review_contract"], "coordinated-outfit-v1")
         self.assertEqual(run["identity_anchor"]["role"], "identity-only")
         masters = [
             "SIDE_TURN_STANDING", "SIDE_LEANING_WALL", "UPRIGHT_SEATED",
@@ -314,9 +532,37 @@ class PreviewTests(unittest.TestCase):
             {"cells": [None, None, None, None, None, None], "title": None, "subtitle": None, "footer": None},
         )
         self.assertTrue(all(value == "pending" for value in review["checks"].values()))
-        self.assertTrue(all(pose["framing"] == "pending" for pose in review["poses"]))
+        self.assertTrue(all(cell["framing"] == "pending" for cell in review["cells"]))
         with self.assertRaisesRegex(ValueError, "human review incomplete"):
             self.m.approve(self.root, "test-run", style, review)
+
+    def test_outfit_review_requires_every_core_item_in_all_six_cells(self):
+        run = self.prepare()
+        preview = run["previews"][0]
+        ingested = self.m.ingest(
+            self.root, "test-run", preview["style"], self.image(1), self.generation(preview, 1)
+        )
+        self.compose(ingested, preview["style"])
+        current = self.m.read_json(self.m.run_dir(self.root, "test-run") / "evidence.json")
+        template = self.m.outfit_review_template(current, preview["style"])
+        self.assertEqual(len(template["cells"]), 6)
+        self.assertEqual(
+            set(template["cells"][0]["core_items"]),
+            {"blazer", "top", "jeans", "tote", "loafers"},
+        )
+        self.assertEqual(set(template["cells"][0]["optional_items"]), {"watch", "jewelry"})
+        for replacement in (None, "pending", "fail", "not-visible-no-contradiction"):
+            review = self.completed_review(current, preview["style"])
+            if replacement is None:
+                review["cells"][0]["core_items"].pop("blazer")
+            else:
+                review["cells"][0]["core_items"]["blazer"] = replacement
+            with self.subTest(replacement=replacement):
+                with self.assertRaisesRegex(ValueError, "human review incomplete"):
+                    self.m.approve(self.root, "test-run", preview["style"], review)
+        review = self.completed_review(current, preview["style"])
+        review["cells"][0]["optional_items"]["watch"] = "pass"
+        self.m.approve(self.root, "test-run", preview["style"], review)
 
     def test_review_rejects_bad_cell_shape_bounds_overlap_order_and_size(self):
         run = self.ingest_all()
@@ -363,8 +609,8 @@ class PreviewTests(unittest.TestCase):
             lambda review: review["checks"].update(correct_subtitle="pending"),
             lambda review: review["checks"].update(readable_ai_footer="fail"),
             lambda review: review["checks"].update(text_subject_non_overlap="pending"),
-            lambda review: review["poses"][0].update(framing="pending"),
-            lambda review: review["poses"][5].pop("framing"),
+            lambda review: review["cells"][0].update(framing="pending"),
+            lambda review: review["cells"][5].pop("framing"),
         )
         for mutate in mutations:
             review = self.completed_review(run, style)
@@ -416,6 +662,7 @@ class PreviewTests(unittest.TestCase):
         correction_prompt = "1" * 64
         generation = self.generation(preview, 1)
         generation["prompt_sha256"] = correction_prompt
+        generation["authorization_sha256"] = "2" * 64
         correction = {
             "kind": "targeted-correction",
             "reason_code": "maintainer-requested-visual-fix",
@@ -464,6 +711,126 @@ class PreviewTests(unittest.TestCase):
                 correction=bad,
             )
 
+    def test_targeted_correction_replaces_completed_preview_and_retains_revision(self):
+        run = self.prepare()
+        preview = run["previews"][0]
+        original_generation = self.generation(preview, 1)
+        self.m.ingest(self.root, "test-run", preview["style"], self.image(1), original_generation)
+        self.compose(self.m.read_json(self.m.run_dir(self.root, "test-run") / "evidence.json"), preview["style"])
+        before = self.m.read_json(self.m.run_dir(self.root, "test-run") / "evidence.json")
+        old = before["previews"][0]
+        correction_prompt = "8" * 64
+        correction = {
+            "kind": "targeted-correction",
+            "reason_code": "maintainer-requested-visual-fix",
+            "generation_prompt_sha256": correction_prompt,
+            "generation_authorization_sha256": "9" * 64,
+            "visual_acceptance_sha256": "a" * 64,
+            "replaces": {
+                "call_id": old["generation"]["call_id"],
+                "original_sha256": old["original_sha256"],
+                "native_sha256": old["sha256"],
+                "display_sha256": old["composition"]["display"]["sha256"],
+            },
+        }
+        generation = dict(
+            self.generation(preview, 2, call_id="correction-call-2"),
+            prompt_sha256=correction_prompt,
+            authorization_sha256="9" * 64,
+        )
+        corrected = self.m.ingest(
+            self.root, "test-run", preview["style"], self.image(2), generation,
+            correction=correction,
+        )
+        stored = corrected["previews"][0]
+        self.assertEqual(stored["generation"], generation)
+        self.assertEqual(stored["correction"], correction)
+        self.assertNotIn("composition", stored)
+        self.assertEqual(len(stored["replacement_history"]), 1)
+        revision = self.m.run_dir(self.root, "test-run") / stored["replacement_history"][0]["path"]
+        self.assertEqual(self.m.digest(revision.read_bytes()), stored["replacement_history"][0]["sha256"])
+        archived = self.m.read_json(revision)
+        self.assertEqual(archived["preview"], old)
+        self.assertTrue((revision.parent / old["path"]).is_file())
+        self.assertTrue((revision.parent / old["composition"]["display"]["path"]).is_file())
+        self.compose(corrected, preview["style"])
+        self.assertEqual(self.m.audit(self.root, "test-run", style=preview["style"]), [])
+
+    def test_targeted_correction_preserves_failed_retry_in_revision_and_not_batch_budget(self):
+        run = self.prepare()
+        preview = run["previews"][0]
+        failed_retry = self.failure_retry(run, preview)
+        original_generation = self.generation(preview, 1)
+        original_generation["authorization_sha256"] = failed_retry["generation_authorization_sha256"]
+        self.m.ingest(
+            self.root, "test-run", preview["style"], self.image(1), original_generation,
+            failed_retry=failed_retry,
+        )
+        self.compose(self.m.read_json(self.m.run_dir(self.root, "test-run") / "evidence.json"), preview["style"])
+        current = self.m.read_json(self.m.run_dir(self.root, "test-run") / "evidence.json")
+        old = current["previews"][0]
+        correction = {
+            "kind": "targeted-correction", "reason_code": "maintainer-requested-visual-fix",
+            "generation_prompt_sha256": "8" * 64, "generation_authorization_sha256": "9" * 64,
+            "visual_acceptance_sha256": "a" * 64,
+            "replaces": {
+                "call_id": old["generation"]["call_id"], "original_sha256": old["original_sha256"],
+                "native_sha256": old["sha256"], "display_sha256": old["composition"]["display"]["sha256"],
+            },
+        }
+        generation = dict(self.generation(preview, 2, call_id="correction-call-2"),
+                          prompt_sha256="8" * 64, authorization_sha256="9" * 64)
+        corrected = self.m.ingest(
+            self.root, "test-run", preview["style"], self.image(2), generation,
+            correction=correction,
+        )
+        stored = corrected["previews"][0]
+        self.assertNotIn("failed_retry", stored)
+        revision = self.m.read_json(
+            self.m.run_dir(self.root, "test-run") / stored["replacement_history"][0]["path"]
+        )
+        self.assertEqual(revision["preview"]["failed_retry"], failed_retry)
+        for number, remaining in enumerate(run["previews"][1:6], start=3):
+            corrected = self.m.ingest(
+                self.root, "test-run", remaining["style"], self.image(number),
+                self.generation(remaining, number),
+            )
+        self.m._check_plan(self.root, corrected, self.m.run_dir(self.root, "test-run"))
+
+    def test_public_projection_keeps_lineage_hashes_without_private_paths(self):
+        self.m = module()
+        record = {
+            "source": {}, "identity_anchor": None, "rules": {},
+            "previews": [{
+                "style": "american-street",
+                "failed_retry": {
+                    "kind": "failed-call-retry",
+                    "reason_code": "native-generation-timeout-no-output",
+                    "failure_record_path": "failed-calls/american-street/failure.json",
+                    "failure_record_sha256": "1" * 64,
+                    "generation_prompt_sha256": "2" * 64,
+                    "generation_authorization_sha256": "3" * 64,
+                    "authorized_at": "2026-09-14T08:00:00Z",
+                    "attempt_number": 2,
+                    "scope": "single-target-retry;no-auto-retry",
+                },
+                "replacement_history": [{
+                    "path": "revisions/american-street/call-1/revision.json",
+                    "sha256": "4" * 64,
+                }],
+                "human_review": {"evidence_sha256": "5" * 64},
+            }],
+        }
+        public = self.m._public_record(record)
+        preview = public["previews"][0]
+        self.assertNotIn("failure_record_path", preview["failed_retry"])
+        self.assertEqual(preview["failed_retry"]["failure_record_sha256"], "1" * 64)
+        self.assertEqual(preview["replacement_history"], [{"sha256": "4" * 64}])
+        self.assertEqual(preview["human_review"]["evidence_sha256"], self.m._review_hash(public, preview))
+        self.assertNotEqual(preview["human_review"]["evidence_sha256"], "5" * 64)
+        self.assertNotIn("failed-calls/", json.dumps(public))
+        self.assertNotIn("revisions/", json.dumps(public))
+
     def test_rejects_mixed_style_pose_missing_or_duplicate_pose_ids_and_rule_drift(self):
         run = self.prepare()
         path = self.m.run_dir(self.root, "test-run") / "evidence.json"
@@ -493,67 +860,83 @@ class PreviewTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "duplicate native output"):
             self.m.ingest(self.root, "test-run", second["style"], image, self.generation(second, 2))
 
-    def test_source_authorization_and_incomplete_whole_sheet_review_fail_closed(self):
+    def test_source_binding_and_incomplete_whole_sheet_review_fail_closed(self):
         run = self.ingest_all()
         path = self.m.run_dir(self.root, "test-run") / "evidence.json"
         changed = copy.deepcopy(run)
-        changed["source"]["authorization"]["public_use_authorized"] = False
+        changed["source"]["rights_sha256"] = "0" * 64
         path.write_text(json.dumps(changed))
         self.assertTrue(self.m.audit(self.root, "test-run"))
         path.write_text(json.dumps(run))
         style = run["previews"][0]["style"]
         review = self.completed_review(run, style)
-        review["poses"][5]["pose_layout"] = "pending"
+        review["cells"][5]["pose_layout"] = "pending"
         with self.assertRaisesRegex(ValueError, "human review incomplete"):
             self.m.approve(self.root, "test-run", style, review)
 
     def test_approved_24_sheet_promotion_is_publicly_verifiable_and_idempotent(self):
         self.approve_all()
+        preview_root = self.root / "docs/demo/style-previews"
+        preview_root.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(
+            ROOT / "docs/demo/style-previews/white-vest-24-v1",
+            preview_root / "white-vest-24-v1",
+        )
+        fixture_root = self.root / "tests/fixtures"
+        fixture_root.mkdir(parents=True)
+        shutil.copyfile(
+            ROOT / "tests/fixtures/white-vest-24-v1-beta3.sha256.json",
+            fixture_root / "white-vest-24-v1-beta3.sha256.json",
+        )
         readme = self.root / 'README.md'
         chinese_readme = self.root / 'README.zh-CN.md'
-        initial_readme = '# Fixture\n<!-- STYLE_PREVIEWS:START -->\nPending\n<!-- STYLE_PREVIEWS:END -->\n'
+        initial_readme = '# Fixture without projection markers\n'
         readme.write_text(initial_readme)
-        chinese_readme.write_text('Missing markers')
+        chinese_readme.write_text(initial_readme)
         index_path = self.root / "docs/demo/style-index.json"
         original_index = index_path.read_bytes()
-        with self.assertRaisesRegex(ValueError, 'README preview markers'):
-            self.m.promote(self.root, 'test-run')
-        self.assertEqual(readme.read_text(), initial_readme)
-        self.assertEqual(index_path.read_bytes(), original_index)
-        self.assertFalse((self.root / 'docs/demo/style-previews/test-run').exists())
-        chinese_readme.write_text(initial_readme)
-        broken_index = json.loads(original_index)
-        broken_index["styles"].pop()
-        index_path.write_text(json.dumps(broken_index))
-        with self.assertRaisesRegex(ValueError, "style index and approved previews differ"):
-            self.m.promote(self.root, "test-run")
-        self.assertFalse((self.root / "docs/demo/style-previews/test-run").exists())
-        index_path.write_bytes(original_index)
+        original_pages = {
+            path: path.read_bytes()
+            for path in [self.root / "docs/demo/STYLES.md", *(self.root / "docs/demo/styles").glob("*.md")]
+        }
         public = self.m.promote(self.root, "test-run")
         self.assertEqual(self.m.validate_public_previews(self.root), [])
         self.assertEqual(self.m.promote(self.root, "test-run"), public)
         self.assertEqual(len(list(public.glob("*.jpg"))), 72)
-        self.assertEqual(readme.read_text().count('-thumb.jpg'), 24)
-        self.assertEqual(chinese_readme.read_text().count('-display.jpg'), 24)
+        self.assertEqual(readme.read_text(), initial_readme)
+        self.assertEqual(chinese_readme.read_text(), initial_readme)
+        self.assertEqual(index_path.read_bytes(), original_index)
+        self.assertTrue(all(path.read_bytes() == before for path, before in original_pages.items()))
         evidence = json.loads((public / "evidence.json").read_text())
-        self.assertEqual(evidence["schema_version"], "4.0")
+        self.assertEqual(evidence["schema_version"], "5.0")
+        gallery = (public / "index.html").read_text()
+        self.assertIn("../../preview-sources/beige-blazer-denim-outfit/source.jpg", gallery)
+        self.assertEqual(gallery.count("-thumb.jpg"), 24)
+        self.assertEqual(gallery.count("-display.jpg"), 24)
+        self.assertIn("https://learn.chatgpt.com/docs/image-generation", gallery)
+        self.assertIn("2026-09-14", gallery)
+        self.assertIn("ThreadTruth-Demo-Only-1.0", gallery)
+        self.assertIn("AI-generated · locally composed direction preview · not final imagery", gallery)
+        self.assertIn("AI生成 · 排版衍生方向预览 · 非成片", gallery)
+        self.assertIn("Limitations / 局限", gallery)
+        self.assertNotRegex(gallery, r'<(?:img|script|link)[^>]+(?:src|href)="https?://')
         rights = (self.root / 'docs/demo/RIGHTS.md').read_text()
+        self.assertIn("ThreadTruth-Demo-Only-1.0", rights)
+        self.assertIn("preview-sources/beige-blazer-denim-outfit/source.jpg", rights)
         for asset in self.m.public_assets(evidence):
             self.assertIn(asset['role'], rights)
             self.assertIn(asset['path'], rights)
             self.assertIn(asset['sha256'][:12], rights)
         self.assertNotIn(str(self.root), (public / "evidence.json").read_text())
-        index = json.loads((self.root / "docs/demo/style-index.json").read_text())
-        self.assertEqual(sum(bool(style.get("preview")) for style in index["styles"]), 24)
-        index["styles"][0]["preview"] = None
-        (self.root / "docs/demo/style-index.json").write_text(json.dumps(index))
-        self.assertTrue(self.m._primary().validate_style_index(self.root))
-        self.assertEqual(self.m.promote(self.root, "test-run"), public)
+        collections = self.m.all_preview_collections(self.root)
+        self.assertEqual(set(collections), {"white-vest-24-v1", "test-run"})
+        links = self.m.representative_preview_links(self.root)
+        self.assertEqual({link["run_id"] for link in links.values()}, {"white-vest-24-v1"})
         self.assertEqual(self.m._primary().validate_style_index(self.root), [])
-        self.assertEqual(sum(style["status"] == "ready" for style in index["styles"]), 1)
         style_page = (self.root / "docs/demo/styles/old-money.md").read_text()
         for suffix in ('', '-display', '-thumb'):
-            self.assertIn(f'(../style-previews/test-run/old-money{suffix}.jpg)', style_page)
+            self.assertIn(f'(../style-previews/white-vest-24-v1/old-money{suffix}.jpg)', style_page)
+            self.assertNotIn(f'(../style-previews/test-run/old-money{suffix}.jpg)', style_page)
         import demo_media
         self.assertEqual(demo_media.validate_public_cases(self.root), [])
         shutil.rmtree(self.root / ".threadtruth")

@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0",
+  "case_id": "beige-blazer-denim-outfit",
+  "status": "approved-for-preview",
+  "license": {
+    "id": "ThreadTruth-Demo-Only-1.0",
+    "scope": "Display and distribution only as part of ThreadTruth Studio repository and releases; no standalone reuse, resale, relicensing or CC0 dedication.",
+    "notice": "Rights remain with their respective holders. This permission does not waive trademark, privacy, personality or cultural rights. Apache-2.0 covers project code and documentation, not this media."
+  },
+  "attestation": {
+    "physical_outfit": true,
+    "repository_and_release_demo_rights": true
+  },
+  "original": {
+    "sha256": "40163fcb0aeae44b1e9b690de9fec047bd517a0764260a4d3f1d014dbfc16d5a",
+    "width": 1086,
+    "height": 1448,
+    "mime": "image/png"
+  },
+  "public_asset": {
+    "path": "source.jpg",
+    "sha256": "f749e5b021f95608d8098058a6b0ce84b302e372f6fa48aba815aca9ab5b5d58",
+    "bytes": 189863,
+    "width": 1086,
+    "height": 1448,
+    "mime": "image/jpeg",
+    "derivation": "EXIF-transposed RGB JPEG transcode; metadata removed"
+  },
+  "outfit": {
+    "name_en": "Beige blazer and dark-denim outfit",
+    "name_zh": "米色西装与深色牛仔套装",
+    "core_items": [
+      "beige single-breasted notched-lapel blazer",
+      "white crew-neck top",
+      "dark indigo straight-leg jeans",
+      "olive structured tote",
+      "dark-brown loafers"
+    ],
+    "optional_when_visible": [
+      "watch",
+      "restrained gold jewelry"
+    ],
+    "forbidden": [
+      "brand invention",
+      "logo invention",
+      "text invention",
+      "replacement garment"
+    ]
+  },
+  "review_contract": "coordinated-outfit-v1"
+}

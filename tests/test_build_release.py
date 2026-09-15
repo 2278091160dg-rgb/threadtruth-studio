@@ -44,6 +44,10 @@ class ReleaseBuildTests(unittest.TestCase):
             self.assertIn(prefix + "docs/demo/style-preview-v1.schema.json", names)
             self.assertIn(prefix + "docs/demo/style-preview-v2.schema.json", names)
             self.assertIn(prefix + "docs/demo/style-preview-v4.schema.json", names)
+            self.assertIn(prefix + "docs/demo/style-preview-v5.schema.json", names)
+            self.assertIn(prefix + "docs/demo/preview-source-v1.schema.json", names)
+            self.assertIn(prefix + "docs/demo/preview-sources/beige-blazer-denim-outfit/source.jpg", names)
+            self.assertIn(prefix + "docs/demo/preview-sources/beige-blazer-denim-outfit/rights.json", names)
             preview_prefix = prefix + "docs/demo/style-previews/white-vest-24-v1/"
             self.assertIn(preview_prefix + "evidence.json", names)
             self.assertIn(preview_prefix + "index.html", names)
@@ -56,6 +60,7 @@ class ReleaseBuildTests(unittest.TestCase):
             self.assertFalse(any("/tests/" in name for name in names))
             self.assertFalse(any("/tools/" in name for name in names))
             self.assertFalse(any("/.threadtruth/" in name for name in names))
+            self.assertFalse(any(name.endswith("image-1.png") for name in names))
 
     def test_release_rejects_tampered_primary_demo_media(self):
         spec = importlib.util.spec_from_file_location("build_release", SCRIPT)

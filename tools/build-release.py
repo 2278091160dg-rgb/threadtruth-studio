@@ -45,6 +45,27 @@ def _validate_public_demo(root: Path) -> None:
     findings = module.validate_public_cases(root)
     if findings:
         raise ValueError("public demo rights validation failed:\n" + "\n".join(findings))
+    preview_path = Path(__file__).with_name("style_preview.py")
+    preview_spec = importlib.util.spec_from_file_location("threadtruth_release_previews", preview_path)
+    if preview_spec is None or preview_spec.loader is None:
+        raise RuntimeError("cannot load preview release validator")
+    preview = importlib.util.module_from_spec(preview_spec)
+    preview_spec.loader.exec_module(preview)
+    collections = preview.all_preview_collections(root)
+    allowed = {"white-vest-24-v1", "beige-blazer-denim-outfit-24-v1"}
+    if set(collections) - allowed or "white-vest-24-v1" not in collections:
+        raise ValueError("public demo rights validation failed:\npreview collection allowlist mismatch")
+    white_vest = collections["white-vest-24-v1"]
+    if white_vest.get("schema_version") != "4.0" or len(preview.public_assets(white_vest)) != 72:
+        raise ValueError("public demo rights validation failed:\nfrozen white-vest release assets invalid")
+    outfit = collections.get("beige-blazer-denim-outfit-24-v1")
+    if outfit is not None and (
+        outfit.get("schema_version") != "5.0"
+        or outfit.get("status") != "approved"
+        or outfit.get("source", {}).get("case_id") != "beige-blazer-denim-outfit"
+        or len(preview.public_assets(outfit)) != 72
+    ):
+        raise ValueError("public demo rights validation failed:\noutfit preview release assets invalid")
 
 
 def _copy_allowlist(root: Path, stage: Path) -> None:

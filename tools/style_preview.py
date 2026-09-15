@@ -24,6 +24,13 @@ def _primary():
     return module
 
 
+def _demo_media():
+    spec = importlib.util.spec_from_file_location("preview_demo_media", Path(__file__).with_name("demo_media.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 CASE = "white-hooded-puffer-vest-korean-cold"
 SOURCE_REF = f"docs/demo/primary-cases/{CASE}/rights.json"
 PACK_ROOT = "skills/threadtruth-studio/references/styles"
@@ -35,8 +42,13 @@ RULE_PATHS = {
 }
 AI_LABEL = "AI-generated style preview — not six independent final images."
 PREVIEW_MARK = "AI生成 · 方向预览 · 非成片 / PREVIEW ONLY — NOT FINAL"
-CURRENT_SCHEMA = "4.0"
-LEGACY_SCHEMAS = {"1.0", "2.0", "3.0"}
+MODEL_DOCS_URL = "https://learn.chatgpt.com/docs/image-generation"
+MODEL_DOCS_VERIFIED_AT = "2026-09-14"
+REPRESENTATIVE_COLLECTION_ID = "white-vest-24-v1"
+HISTORICAL_SCHEMAS = {"1.0", "2.0", "3.0"}
+LEGACY_SCHEMAS = HISTORICAL_SCHEMAS
+FROZEN_PUBLIC_SCHEMA = "4.0"
+CURRENT_SCHEMA = "5.0"
 MODE_NAMES = {"B": "棚拍版", "C": "场景版", "D": "混合版"}
 LAYOUT_CONTRACT = {
     "board_aspect_ratio": "1:1",
@@ -51,7 +63,7 @@ HASH = re.compile(r"[a-f0-9]{64}")
 MAX_BYTES = 8 * 1024 * 1024
 GENERATED_FIELDS = {
     "path", "sha256", "width", "height", "bytes", "original_sha256",
-    "generation", "correction", "human_review", "composition",
+    "generation", "correction", "failed_retry", "replacement_history", "human_review", "composition",
 }
 
 
@@ -170,6 +182,35 @@ def _source(root):
     return source, {"path": f"{base}/{anchor['path']}", "sha256": anchor["public_sha256"], "role": "identity-only"}
 
 
+def load_preview_source(root: Path, case_id: str) -> tuple[dict, dict | None]:
+    if not isinstance(case_id, str) or not ID.fullmatch(case_id):
+        raise ValueError("unknown preview source")
+    if case_id != "beige-blazer-denim-outfit":
+        raise ValueError("unknown preview source")
+    findings = _demo_media().validate_preview_sources(root)
+    if findings:
+        raise ValueError("preview source invalid: " + "; ".join(findings))
+    rights_ref = f"docs/demo/preview-sources/{case_id}/rights.json"
+    rights_path = child(root, rights_ref)
+    rights = read_json(rights_path)
+    public = rights["public_asset"]
+    source = {
+        "case_id": case_id,
+        "rights_ref": rights_ref,
+        "rights_sha256": digest(rights_path.read_bytes()),
+        "assets": [{
+            "path": f"docs/demo/preview-sources/{case_id}/{public['path']}",
+            "role": "outfit-source",
+            "sha256": public["sha256"],
+        }],
+        "subtitle": "同款完整套装",
+        "outfit": copy.deepcopy(rights["outfit"]),
+        "review_contract": rights["review_contract"],
+    }
+    _, anchor = _source(root)
+    return source, anchor
+
+
 def _rules(root):
     return {
         name: {"path": relative, "sha256": digest(child(root, relative).read_bytes())}
@@ -228,25 +269,27 @@ def _mode_scene(mode, scenes, ordinal):
 
 def _prompt(preview, source, anchor, preview_negative):
     visual = preview["visual"]
+    source_count = len(source["assets"])
     lines = [
         f"Create one action-0 preview for style {preview['style']}.",
-        "Use a single 2x3 grid contact-sheet preview on a square 1:1 board showing the SAME one white hooded puffer vest in six different directions.",
+        "Use a single 2x3 grid contact-sheet preview on a square 1:1 board showing the same complete coordinated outfit in six different directions.",
         "Top row poses 1-2-3; bottom row poses 4-5-6. Six equal 3:4 portrait cells, one pose per cell, one adult female model identity throughout this sheet.",
         "Reserve independent title, subtitle and footer bands outside all six pose cells; keep the three text bands distinct and clear of every subject.",
         f"Render this exact full bilingual title natively at the top: {preview['label_contract']['title']}",
         f"Render this exact subtitle natively below the title: {preview['label_contract']['subtitle']}",
         f"Render this exact disclosure natively in the footer: {preview['label_contract']['footer']}",
-        "Attached images 1-4 are the only authoritative garment truth. Preserve the white color, hood, zipper, length, padding, seams and construction.",
-        "Never replace or redesign the vest and never invent details. Keep it clearly visible in every cell.",
-        "Attached image 5 is identity-only: preserve face, hair, apparent age and body proportions; never treat it as garment authority.",
-        "Style changes mood, low-distraction background, pose treatment and lighting only; source truth overrides every style-pack suggestion.",
+        f"Attached image{'s' if source_count != 1 else ''} 1{'-' + str(source_count) if source_count != 1 else ''} {'are' if source_count != 1 else 'is'} the only authoritative outfit truth.",
+        "Preserve every core item exactly: " + "; ".join(source["outfit"]["core_items"]) + ".",
+        "Keep the complete coordinated outfit visible in all six cells. Never replace a garment or invent a brand, logo or text.",
+        f"Attached image {source_count + 1} is identity-only: preserve face, hair, apparent age and body proportions; never treat it as outfit authority.",
+        "Style may change mood, low-distraction background, pose treatment and lighting only; source truth overrides every style-pack suggestion.",
         f"Mode: {preview['mode']} derived from the registered pack default and runtime mode rules.",
         f"Mood only: {visual['mood']}",
         f"Attitude: {visual['persona']}",
         f"Lighting/background palette: {visual['lighting']}",
         "This is a LOW-RES DIRECTION PREVIEW, not a final deliverable. Keep the footer visible and unobtrusive, no larger than about 3-4% of image height.",
         "All requested text must be native-rendered in the generated board. Never cover the model, face, vest, shoes, bag or pose. Do not place a large centered watermark.",
-        "Garment references: " + ", ".join(asset["path"] for asset in source["assets"]),
+        "Outfit references: " + ", ".join(asset["path"] for asset in source["assets"]),
         "Identity-only reference: " + anchor["path"],
     ]
     for pose in preview["poses"]:
@@ -256,7 +299,7 @@ def _prompt(preview, source, anchor, preview_negative):
             f"Head/gaze: {pose['head_gaze']}",
             f"Mode/scene: {pose['scene']}",
             f"Framing: {preview['layout_contract']['framing'][pose['ordinal'] - 1]}",
-            "Retain white vest color and every visible source construction detail.",
+            "Retain every core outfit item and all visible source construction detail.",
         ])
     lines.extend([
         "",
@@ -266,9 +309,9 @@ def _prompt(preview, source, anchor, preview_negative):
     return "\n".join(lines) + "\n"
 
 
-def _plan(root, run_id):
+def _plan_v5(root, run_id, source_case):
     run_dir(root, run_id)
-    source, anchor = _source(root)
+    source, anchor = load_preview_source(root, source_case)
     rules = _rules(root)
     canonical_poses, preview_negative = _canonical_action_zero(root)
     previews = []
@@ -295,7 +338,7 @@ def _plan(root, run_id):
             "layout_contract": copy.deepcopy(LAYOUT_CONTRACT),
             "label_contract": {
                 "title": _field(text, "name"),
-                "subtitle": f"同款白马甲 · {mode} {MODE_NAMES[mode]} · 六姿势预览",
+                "subtitle": f"{source['subtitle']} · {mode} {MODE_NAMES[mode]} · 六姿势预览",
                 "footer": PREVIEW_MARK,
             },
         }
@@ -304,7 +347,8 @@ def _plan(root, run_id):
         previews.append(preview)
     return {
         "schema_version": CURRENT_SCHEMA, "run_id": run_id, "role": "style-preview", "status": "prepared",
-        "source": source, "identity_anchor": anchor, "rules": rules, "ai_label": AI_LABEL, "previews": previews,
+        "source": source, "identity_anchor": anchor, "rules": rules, "ai_label": AI_LABEL,
+        "batches": [], "previews": previews,
     }
 
 
@@ -312,15 +356,107 @@ def _legacy_error(schema):
     return f"preview schema {schema} is superseded historical evidence, not approved for current standard; it is read-only and cannot be prepared, ingested, approved or promoted"
 
 
-def prepare(root, run_id):
+def _require_mutable_v5(record):
+    schema = record.get("schema_version")
+    if schema == FROZEN_PUBLIC_SCHEMA:
+        raise ValueError("preview schema 4.0 is frozen public evidence; mutation is forbidden")
+    if schema in HISTORICAL_SCHEMAS:
+        raise ValueError(_legacy_error(schema))
+    if schema != CURRENT_SCHEMA:
+        raise ValueError("unsupported preview schema")
+
+
+def _validated_batch(record, manifest):
+    required = {
+        "schema_version", "batch_id", "run_id", "styles", "maximum_calls",
+        "authorization_sha256", "authorized_at", "scope",
+    }
+    if not isinstance(manifest, dict) or set(manifest) != required:
+        raise ValueError("batch manifest fields invalid")
+    if manifest["schema_version"] != "1.0" or not ID.fullmatch(str(manifest["batch_id"])):
+        raise ValueError("batch manifest fields invalid")
+    if manifest["run_id"] != record["run_id"]:
+        raise ValueError("batch run id mismatch")
+    styles = manifest["styles"]
+    if not isinstance(styles, list) or not 1 <= len(styles) <= 6 or len(styles) != len(set(styles)):
+        raise ValueError("batch requires one through six unique styles")
+    planned = [preview["style"] for preview in record["previews"]]
+    if any(style not in planned for style in styles) or styles != [style for style in planned if style in styles]:
+        raise ValueError("batch styles must preserve planned order")
+    if type(manifest["maximum_calls"]) is not int or manifest["maximum_calls"] != len(styles):
+        raise ValueError("batch maximum_calls must equal its one through six styles")
+    if not HASH.fullmatch(str(manifest["authorization_sha256"])):
+        raise ValueError("batch authorization hash missing")
+    _primary().parse_iso_z(manifest["authorized_at"])
+    if manifest["scope"] != "serial-native-generation;no-auto-retry":
+        raise ValueError("batch scope must require serial generation and no auto retry")
+    return copy.deepcopy(manifest)
+
+
+def _check_batches(record, directory=None, require_complete=False):
+    batches = record.get("batches")
+    if not isinstance(batches, list) or len(batches) > 4:
+        raise ValueError("at most four batches are allowed")
+    validated = [_validated_batch(record, batch) for batch in batches]
+    ids = [batch["batch_id"] for batch in validated]
+    styles = [style for batch in validated for style in batch["styles"]]
+    if len(ids) != len(set(ids)):
+        raise ValueError("duplicate batch id")
+    if len(styles) != len(set(styles)):
+        raise ValueError("batch style overlap")
+    if directory is not None:
+        batch_dir = directory / "batches"
+        actual = sorted(path.name for path in batch_dir.glob("*.json")) if batch_dir.is_dir() else []
+        expected = sorted(f"{batch_id}.json" for batch_id in ids)
+        if actual != expected:
+            raise ValueError("local batch manifest set mismatch")
+        for batch in validated:
+            if read_json(child(directory, f"batches/{batch['batch_id']}.json")) != batch:
+                raise ValueError("immutable batch manifest changed")
+    if require_complete:
+        planned = [preview["style"] for preview in record["previews"]]
+        if len(validated) != 4 or styles != planned:
+            raise ValueError("four batches must cover the ordered 24-style plan")
+    return {batch["batch_id"]: batch for batch in validated}
+
+
+def register_batch(root: Path, run_id: str, manifest: dict) -> dict:
+    directory = run_dir(root, run_id)
+    record = read_json(directory / "evidence.json")
+    _require_mutable_v5(record)
+    _check_plan(root, record, directory)
+    existing = next((batch for batch in record["batches"] if batch.get("batch_id") == manifest.get("batch_id")), None)
+    if existing is not None:
+        if existing != manifest:
+            raise ValueError("immutable batch manifest cannot be overwritten")
+        return record
+    if len(record["batches"]) >= 4:
+        raise ValueError("at most four batches are allowed")
+    validated = _validated_batch(record, manifest)
+    registered_styles = {style for batch in record["batches"] for style in batch["styles"]}
+    if registered_styles.intersection(validated["styles"]):
+        raise ValueError("batch style overlap")
+    record["batches"].append(validated)
+    path = child(directory, f"batches/{validated['batch_id']}.json")
+    if path.exists():
+        raise ValueError("immutable batch manifest collision")
+    _atomic_json(path, validated)
+    _atomic_json(directory / "evidence.json", record)
+    return record
+
+
+def prepare(root, run_id, source_case=None):
     directory = run_dir(root, run_id)
     if directory.exists():
         existing = read_json(directory / "evidence.json")
-        if existing.get("schema_version") in LEGACY_SCHEMAS:
-            raise ValueError(_legacy_error(existing.get("schema_version")))
+        _require_mutable_v5(existing)
+        if source_case is not None and existing.get("source", {}).get("case_id") != source_case:
+            raise ValueError("source case does not match existing run")
         _check_plan(root, existing, directory)
         return existing
-    plan = _plan(root, run_id)
+    if source_case is None:
+        raise ValueError("source case is required for schema 5.0 preview runs")
+    plan = _plan_v5(root, run_id, source_case)
     directory.mkdir(parents=True)
     (directory / "prompts").mkdir()
     _, preview_negative = _canonical_action_zero(root)
@@ -341,7 +477,7 @@ def _check_plan(root, record, directory=None):
         raise ValueError("invalid preview state")
     if directory is not None and record.get("run_id") != directory.name:
         raise ValueError("run id mismatch")
-    expected = _plan(root, record["run_id"])
+    expected = _plan_v5(root, record["run_id"], record.get("source", {}).get("case_id"))
     if set(record) != set(expected):
         raise ValueError("unexpected evidence fields")
     for key in ("schema_version", "run_id", "role", "source", "identity_anchor", "rules", "ai_label"):
@@ -352,6 +488,7 @@ def _check_plan(root, record, directory=None):
         raise ValueError("24 previews required")
     if len({preview.get("style") for preview in actual_previews if isinstance(preview, dict)}) != 24:
         raise ValueError("24 unique preview styles required")
+    batches = _check_batches(record, directory)
     for preview, planned in zip(actual_previews, expected["previews"]):
         if not isinstance(preview, dict) or set(preview) - (set(planned) | GENERATED_FIELDS):
             raise ValueError("unexpected preview fields")
@@ -366,12 +503,21 @@ def _check_plan(root, record, directory=None):
             prompt = child(directory, f"prompts/{preview['style']}.txt")
             if digest(prompt.read_bytes()) != preview["prompt_sha256"]:
                 raise ValueError("prompt hash mismatch")
+            _check_replacement_history(preview, directory)
     generated = [preview for preview in actual_previews if "generation" in preview]
-    calls = [preview.get("generation", {}).get("call_id") for preview in generated]
+    calls = [preview.get("generation", {}).get("call_id") for preview in generated if preview.get("generation", {}).get("call_id") is not None]
     originals = [preview.get("original_sha256") for preview in generated]
     optimized = [preview.get("sha256") for preview in generated]
     if len(calls) != len(set(calls)) or len(originals) != len(set(originals)) or len(optimized) != len(set(optimized)):
         raise ValueError("duplicate native call or preview hash")
+    for batch_id, batch in batches.items():
+        consumed = sum(
+            1
+            for preview in generated
+            if preview.get("generation", {}).get("batch_id") == batch_id
+        )
+        if consumed > batch["maximum_calls"]:
+            raise ValueError("batch maximum_calls consumed")
 
 
 def _image(path):
@@ -417,17 +563,143 @@ def _check_correction(correction, preview, generation):
         raise ValueError("generation prompt mismatch")
 
 
-def _generation(generation, preview):
-    if not isinstance(generation, dict) or set(generation) != {"tool", "call_id", "generated_at", "prompt_sha256"}:
+def _check_replacement_history(preview, directory):
+    history = preview.get("replacement_history", [])
+    if not isinstance(history, list):
+        raise ValueError("replacement history invalid")
+    for item in history:
+        if not isinstance(item, dict) or set(item) != {"path", "sha256"}:
+            raise ValueError("replacement history invalid")
+        path = child(directory, item["path"])
+        if not path.is_file() or digest(path.read_bytes()) != item["sha256"]:
+            raise ValueError("replacement history hash mismatch")
+        revision = read_json(path)
+        if set(revision) != {"preview", "receipt"} or revision["preview"].get("style") != preview["style"]:
+            raise ValueError("replacement history invalid")
+
+
+def _check_failed_retry(failed_retry, preview, generation, record, batch, directory):
+    required = {
+        "kind", "reason_code", "failure_record_sha256",
+        "generation_prompt_sha256", "generation_authorization_sha256",
+        "authorized_at", "attempt_number", "scope",
+    }
+    public_summary = isinstance(failed_retry, dict) and "failure_record_path" not in failed_retry
+    if not public_summary:
+        required.add("failure_record_path")
+    if not isinstance(failed_retry, dict) or set(failed_retry) != required:
+        raise ValueError("failed retry record fields invalid")
+    if (failed_retry["kind"] != "failed-call-retry"
+            or failed_retry["scope"] != "single-target-retry;no-auto-retry"):
+        raise ValueError("failed retry record fields invalid")
+    if failed_retry["reason_code"] not in {
+        "prompt-binding-failed", "native-generation-timeout-no-output",
+    }:
+        raise ValueError("failed retry reason invalid")
+    if any(not HASH.fullmatch(str(failed_retry[key])) for key in (
+        "failure_record_sha256", "generation_prompt_sha256",
+        "generation_authorization_sha256",
+    )):
+        raise ValueError("failed retry record fields invalid")
+    failure = None
+    if not public_summary:
+        expected_path = f"failed-calls/{preview['style']}/failure.json"
+        if failed_retry["failure_record_path"] != expected_path or directory is None:
+            raise ValueError("failed retry failure record path invalid")
+        failure_path = child(directory, expected_path)
+        if not failure_path.is_file() or digest(failure_path.read_bytes()) != failed_retry["failure_record_sha256"]:
+            raise ValueError("failed retry failure record hash mismatch")
+        failure = read_json(failure_path)
+    if failure is not None:
+        failure_required = {
+            "schema_version", "run_id", "batch_id", "style", "status",
+            "attempt_number", "batch_halted", "automatic_retry_performed",
+            "authorization_sha256", "native_output_path", "native_output_sha256",
+        }
+        if not failure_required.issubset(failure):
+            raise ValueError("failed retry source record invalid")
+    if failure is not None and (failure["schema_version"] != "failure-record-v1"
+            or failure["run_id"] != record["run_id"]
+            or failure["batch_id"] != batch["batch_id"]
+            or failure["style"] != preview["style"]
+            or failure["status"] != failed_retry["reason_code"]
+            or failure["batch_halted"] is not True
+            or failure["automatic_retry_performed"] is not False
+            or failure["authorization_sha256"] != batch["authorization_sha256"]):
+        raise ValueError("failed retry source record invalid")
+    if failure is not None and (type(failure["attempt_number"]) is not int or failure["attempt_number"] < 1):
+        raise ValueError("failed retry source record invalid")
+    if (type(failed_retry["attempt_number"]) is not int or failed_retry["attempt_number"] < 2
+            or (failure is not None and failed_retry["attempt_number"] != failure["attempt_number"] + 1)):
+        raise ValueError("failed retry attempt number invalid")
+    failure_prompt_hash = None if failure is None else (
+        failure.get("planned_prompt_sha256")
+        if failure["status"] == "prompt-binding-failed"
+        else failure.get("prompt_sha256")
+    )
+    if failure is not None and failure_prompt_hash != preview["prompt_sha256"]:
+        raise ValueError("failed retry source prompt mismatch")
+    if failure is not None and failure["status"] == "native-generation-timeout-no-output" and (
+        failure["native_output_path"] is not None or failure["native_output_sha256"] is not None
+    ):
+        raise ValueError("failed retry timeout record contains output")
+    if (failed_retry["generation_prompt_sha256"] != preview["prompt_sha256"]
+            or generation["prompt_sha256"] != failed_retry["generation_prompt_sha256"]):
+        raise ValueError("generation prompt mismatch")
+    if (failed_retry["generation_authorization_sha256"] == batch["authorization_sha256"]
+            or generation["authorization_sha256"] != failed_retry["generation_authorization_sha256"]):
+        raise ValueError("failed retry requires a new authorization hash")
+    authorized_at = _primary().parse_iso_z(failed_retry["authorized_at"])
+    if failure is not None:
+        failed_at_value = failure.get("terminated_at") or failure.get("generated_at")
+        if not failed_at_value or authorized_at <= _primary().parse_iso_z(failed_at_value):
+            raise ValueError("failed retry authorization must postdate failure")
+    if _primary().parse_iso_z(generation["generated_at"]) < authorized_at:
+        raise ValueError("generation predates failed retry authorization")
+
+
+def _generation(generation, preview, record, directory=None):
+    if record.get("schema_version") == FROZEN_PUBLIC_SCHEMA:
+        if not isinstance(generation, dict) or set(generation) != {"tool", "call_id", "generated_at", "prompt_sha256"}:
+            raise ValueError("generation record fields invalid")
+        if generation["tool"] != "native-imagegen" or not isinstance(generation["call_id"], str) or not ID.fullmatch(generation["call_id"]):
+            raise ValueError("native generation call required")
+        if preview.get("correction") is not None:
+            _check_correction(preview["correction"], preview, generation)
+        elif generation["prompt_sha256"] != preview["prompt_sha256"]:
+            raise ValueError("generation prompt mismatch")
+        _primary().parse_iso_z(generation["generated_at"])
+        return
+    required = {
+        "tool", "call_id", "generated_at", "prompt_sha256", "batch_id",
+        "authorization_sha256", "model_docs_url", "model_docs_verified_at", "per_call_model",
+    }
+    if not isinstance(generation, dict) or set(generation) != required:
         raise ValueError("generation record fields invalid")
-    if generation["tool"] != "native-imagegen" or not isinstance(generation["call_id"], str) or not ID.fullmatch(generation["call_id"]):
+    call_id = generation["call_id"]
+    if generation["tool"] != "native-imagegen" or (call_id is not None and (not isinstance(call_id, str) or not ID.fullmatch(call_id))):
         raise ValueError("native generation call required")
+    batches = _check_batches(record)
+    batch = batches.get(generation["batch_id"])
+    if batch is None or preview["style"] not in batch["styles"]:
+        raise ValueError("style is outside registered batch")
     correction = preview.get("correction")
+    failed_retry = preview.get("failed_retry")
     if correction is not None:
         _check_correction(correction, preview, generation)
+        if generation["authorization_sha256"] != correction["generation_authorization_sha256"] or generation["authorization_sha256"] == batch["authorization_sha256"]:
+            raise ValueError("targeted correction requires a new authorization hash")
+    elif failed_retry is not None:
+        _check_failed_retry(failed_retry, preview, generation, record, batch, directory)
     elif generation["prompt_sha256"] != preview["prompt_sha256"]:
         raise ValueError("generation prompt mismatch")
-    _primary().parse_iso_z(generation["generated_at"])
+    elif generation["authorization_sha256"] != batch["authorization_sha256"]:
+        raise ValueError("generation authorization hash mismatch")
+    if generation["model_docs_url"] != MODEL_DOCS_URL or generation["model_docs_verified_at"] != MODEL_DOCS_VERIFIED_AT or generation["per_call_model"] != "unavailable":
+        raise ValueError("generation model disclosure invalid")
+    generated_at = _primary().parse_iso_z(generation["generated_at"])
+    if generated_at < _primary().parse_iso_z(batch["authorized_at"]):
+        raise ValueError("generation predates batch authorization")
 
 
 def _find_preview(record, style):
@@ -452,6 +724,11 @@ def _receipt_bindings(record, preview):
             correction_sha256=object_hash(preview["correction"]),
             generation_prompt_sha256=preview["generation"]["prompt_sha256"],
         )
+    if "failed_retry" in preview:
+        bindings.update(
+            failed_retry_sha256=object_hash(preview["failed_retry"]),
+            generation_prompt_sha256=preview["generation"]["prompt_sha256"],
+        )
     return bindings
 
 
@@ -465,35 +742,52 @@ def _native_dimensions(path):
         return [oriented.width, oriented.height]
 
 
-def ingest(root, run_id, style, image, generation, correction=None):
+def ingest(root, run_id, style, image, generation, correction=None, failed_retry=None):
     directory = run_dir(root, run_id)
     record = read_json(directory / "evidence.json")
+    _require_mutable_v5(record)
     _check_plan(root, record, directory)
     preview = _find_preview(record, style)
     if record["status"] not in {"prepared", "awaiting-human-review"}:
         raise ValueError("invalid ingest state")
     candidate = copy.deepcopy(preview)
+    if correction is not None and failed_retry is not None:
+        raise ValueError("correction and failed retry are mutually exclusive")
     if correction is not None:
+        candidate.pop("failed_retry", None)
         candidate["correction"] = copy.deepcopy(correction)
+    if failed_retry is not None:
+        candidate["failed_retry"] = copy.deepcopy(failed_retry)
     candidate["generation"] = copy.deepcopy(generation)
-    _generation(generation, candidate)
+    _generation(generation, candidate, record, directory)
     original = digest(image.read_bytes())
     if correction is not None and original == correction["replaces"]["original_sha256"]:
         raise ValueError("correction must replace a different native output")
-    if "path" in preview:
+    replacing = "path" in preview and correction is not None
+    if replacing:
+        composition = preview.get("composition")
+        replaces = correction["replaces"]
+        if not isinstance(composition, dict) or (
+            replaces["call_id"] != preview["generation"]["call_id"]
+            or replaces["original_sha256"] != preview["original_sha256"]
+            or replaces["native_sha256"] != preview["sha256"]
+            or replaces["display_sha256"] != composition.get("display", {}).get("sha256")
+        ):
+            raise ValueError("correction replacement binding mismatch")
+    elif "path" in preview:
         expected = {key: preview[key] for key in ("sha256", "bytes", "width", "height")}
         if preview["original_sha256"] == original and preview["generation"] == generation and _image(child(directory, preview["path"])) == expected:
             _validate_preview(record, preview, directory, False, True, require_composition=False)
             return record
         raise ValueError("refuse to overwrite registered preview")
     for other in record["previews"]:
-        if other.get("generation", {}).get("call_id") == generation["call_id"]:
+        if generation["call_id"] is not None and other.get("generation", {}).get("call_id") == generation["call_id"]:
             raise ValueError("duplicate native call")
         if other.get("original_sha256") == original:
             raise ValueError("duplicate native output")
     target = child(directory, f"{style}.jpg")
     receipt = child(directory, f"native-receipts/{style}.json")
-    if target.exists() or receipt.exists():
+    if not replacing and (target.exists() or receipt.exists()):
         raise ValueError("refuse to overwrite unregistered asset")
     from PIL import Image, ImageOps
     with tempfile.TemporaryDirectory(dir=directory) as temporary:
@@ -504,7 +798,7 @@ def ingest(root, run_id, style, image, generation, correction=None):
                 raise ValueError("unsupported native image format")
             native_relative = f"native-outputs/{style}.{extension}"
             native = child(directory, native_relative)
-            if native.exists():
+            if native.exists() and not replacing:
                 raise ValueError("refuse to overwrite native output")
             oriented = ImageOps.exif_transpose(opened)
             native_dimensions = [oriented.width, oriented.height]
@@ -512,6 +806,37 @@ def ingest(root, run_id, style, image, generation, correction=None):
         metadata = _image(output)
         if any(other.get("sha256") == metadata["sha256"] for other in record["previews"]):
             raise ValueError("duplicate optimized preview")
+        if replacing:
+            old_receipt = read_json(receipt)
+            call_id = preview["generation"]["call_id"]
+            revision_dir = child(directory, f"revisions/{style}/{call_id}")
+            revision_path = revision_dir / "revision.json"
+            if revision_path.exists():
+                raise ValueError("refuse to overwrite replacement history")
+            revision_dir.mkdir(parents=True)
+            archived_paths = [preview["path"], old_receipt["retained_path"], f"native-receipts/{style}.json"]
+            composition = preview["composition"]
+            archived_paths.extend([
+                composition["layout_path"], composition["display"]["path"], composition["thumbnail"]["path"],
+            ])
+            review_path = f"review-template-{style}.json"
+            if child(directory, review_path).is_file():
+                archived_paths.append(review_path)
+            for relative in archived_paths:
+                archived = revision_dir / relative
+                archived.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(child(directory, relative), archived)
+            write_json(revision_path, {"preview": preview, "receipt": old_receipt})
+            history = copy.deepcopy(preview.get("replacement_history", []))
+            history.append({
+                "path": revision_path.relative_to(directory).as_posix(),
+                "sha256": digest(revision_path.read_bytes()),
+            })
+            for relative in (composition["layout_path"], composition["display"]["path"], composition["thumbnail"]["path"]):
+                child(directory, relative).unlink()
+            planned = _find_preview(_plan_v5(root, record["run_id"], record["source"]["case_id"]), style)
+            preview.clear()
+            preview.update(copy.deepcopy(planned), replacement_history=history)
         shutil.copyfile(output, target)
     native.parent.mkdir(exist_ok=True)
     shutil.copyfile(image, native)
@@ -523,6 +848,9 @@ def ingest(root, run_id, style, image, generation, correction=None):
     })
     if correction is not None:
         preview["correction"] = copy.deepcopy(correction)
+        preview.pop("failed_retry", None)
+    if failed_retry is not None:
+        preview["failed_retry"] = copy.deepcopy(failed_retry)
     preview.update(metadata, path=target.name, original_sha256=original, generation=generation)
     record["status"] = "awaiting-human-review"
     write_json(directory / "evidence.json", record)
@@ -551,9 +879,24 @@ def public_assets(record):
     return assets
 
 
+def _public_record(record):
+    public = copy.deepcopy(record)
+    for preview in public.get("previews", []):
+        if "failed_retry" in preview:
+            preview["failed_retry"].pop("failure_record_path", None)
+        if "replacement_history" in preview:
+            preview["replacement_history"] = [
+                {"sha256": revision["sha256"]} for revision in preview["replacement_history"]
+            ]
+        if "human_review" in preview:
+            preview["human_review"]["evidence_sha256"] = _review_hash(public, preview)
+    return public
+
+
 def compose(root, run_id, style, layout, font):
     directory = run_dir(root, run_id)
     record = read_json(directory / 'evidence.json')
+    _require_mutable_v5(record)
     _check_plan(root, record, directory)
     preview = _find_preview(record, style)
     _validate_preview(record, preview, directory, False, True, require_composition=False)
@@ -652,7 +995,7 @@ def _review_hash(record, preview):
     })
 
 
-def review_template(record, style):
+def _v4_review_template(record, style):
     preview = _find_preview(record, style)
     comp = preview.get('composition', {})
     return {
@@ -685,6 +1028,74 @@ def review_template(record, style):
             for ordinal in range(1, 7)
         ],
     }
+
+
+def _outfit_item_keys(record):
+    outfit = record["source"]["outfit"]
+    core_tokens = {
+        "blazer": "blazer", "top": "top", "jeans": "jeans", "tote": "tote", "loafers": "loafers",
+    }
+    optional_tokens = {"watch": "watch", "jewelry": "jewelry"}
+    core = {
+        key for key, token in core_tokens.items()
+        if any(token in fact.lower() for fact in outfit["core_items"])
+    }
+    optional = {
+        key for key, token in optional_tokens.items()
+        if any(token in fact.lower() for fact in outfit["optional_when_visible"])
+    }
+    if core != set(core_tokens) or optional != set(optional_tokens):
+        raise ValueError("outfit review item mapping invalid")
+    return list(core_tokens), list(optional_tokens)
+
+
+def outfit_review_template(record: dict, style: str) -> dict:
+    preview = _find_preview(record, style)
+    comp = preview.get("composition", {})
+    core, optional = _outfit_item_keys(record)
+    return {
+        "reviewer": "", "reviewed_at": "", "confirmation": "",
+        "preview_sha256": comp.get("display", {}).get("sha256", ""),
+        "original_sha256": preview.get("original_sha256", ""),
+        "native_sha256": preview.get("sha256", ""),
+        "composition_sha256": object_hash(comp) if comp else "",
+        "evidence_sha256": _review_hash(record, preview), "public_use_approved": False,
+        "geometry": {
+            "cells": [None, None, None, None, None, None],
+            "title": None, "subtitle": None, "footer": None,
+        },
+        "checks": {
+            "observed_boundaries": "pending",
+            "full_bilingual_title": "pending",
+            "correct_subtitle": "pending",
+            "readable_ai_footer": "pending",
+            "text_subject_non_overlap": "pending",
+            "complete_panel_extraction": "pending",
+            "padding_no_subject_loss": "pending",
+            "derivative_disclosure": "pending",
+        },
+        "cells": [
+            {
+                "ordinal": ordinal,
+                "core_items": {key: "pending" for key in core},
+                "optional_items": {key: "pending" for key in optional},
+                "complete_outfit_visible": "pending",
+                "adult_identity": "pending",
+                "anatomy": "pending",
+                "pose_layout": "pending",
+                "registered_style_distinct": "pending",
+                "ai_disclosure": "pending",
+                "framing": "pending",
+            }
+            for ordinal in range(1, 7)
+        ],
+    }
+
+
+def review_template(record, style):
+    if record.get("source", {}).get("review_contract") == "coordinated-outfit-v1":
+        return outfit_review_template(record, style)
+    return _v4_review_template(record, style)
 
 
 def _rect(value, width, height):
@@ -743,9 +1154,9 @@ def _check_geometry(geometry, width, height):
         raise ValueError("observed geometry invalid")
 
 
-def _check_review(record, preview):
+def _check_v4_review(record, preview):
     review = preview.get("human_review")
-    template = review_template(record, preview["style"])
+    template = _v4_review_template(record, preview["style"])
     if not isinstance(review, dict) or set(review) != set(template):
         raise ValueError("human review incomplete")
     if not _primary().GITHUB_REVIEWER.fullmatch(str(review["reviewer"])) or review["confirmation"] != confirmation(preview["style"]):
@@ -777,6 +1188,59 @@ def _check_review(record, preview):
         raise ValueError("review predates generation")
 
 
+def _check_outfit_review(record, preview):
+    review = preview.get("human_review")
+    template = outfit_review_template(record, preview["style"])
+    if not isinstance(review, dict) or set(review) != set(template):
+        raise ValueError("human review incomplete")
+    if not _primary().GITHUB_REVIEWER.fullmatch(str(review["reviewer"])) or review["confirmation"] != confirmation(preview["style"]):
+        raise ValueError("human review incomplete")
+    if review["public_use_approved"] is not True or any(
+        review[key] != template[key]
+        for key in ("preview_sha256", "original_sha256", "native_sha256", "composition_sha256", "evidence_sha256")
+    ):
+        raise ValueError("human review incomplete")
+    if review["checks"] != {key: "pass" for key in template["checks"]}:
+        raise ValueError("human review incomplete")
+    if not isinstance(review["cells"], list) or len(review["cells"]) != 6:
+        raise ValueError("human review incomplete")
+    core, optional = _outfit_item_keys(record)
+    required_pass = {
+        "complete_outfit_visible", "adult_identity", "anatomy", "pose_layout",
+        "registered_style_distinct", "ai_disclosure", "framing",
+    }
+    for ordinal, cell in enumerate(review["cells"], start=1):
+        if not isinstance(cell, dict) or set(cell) != {"ordinal", "core_items", "optional_items", *required_pass}:
+            raise ValueError("human review incomplete")
+        if cell["ordinal"] != ordinal or cell["core_items"] != {key: "pass" for key in core}:
+            raise ValueError("human review incomplete")
+        if set(cell["optional_items"]) != set(optional) or any(
+            value not in {"pass", "not-visible-no-contradiction"}
+            for value in cell["optional_items"].values()
+        ):
+            raise ValueError("human review incomplete")
+        if any(cell[key] != "pass" for key in required_pass):
+            raise ValueError("human review incomplete")
+    _check_geometry(review["geometry"], 1200, 1200)
+    contract = preview["display_contract"]
+    if review["geometry"]["cells"] != contract["cells"]:
+        raise ValueError("observed geometry invalid")
+    for name in ("title", "subtitle", "footer"):
+        x, y, width, height = review["geometry"][name]
+        box_x, box_y, box_width, box_height = contract[name]
+        if x < box_x or y < box_y or x + width > box_x + box_width or y + height > box_y + box_height:
+            raise ValueError("observed geometry invalid")
+    if _primary().parse_iso_z(review["reviewed_at"]) < _primary().parse_iso_z(preview["generation"]["generated_at"]):
+        raise ValueError("review predates generation")
+
+
+def _check_review(record, preview):
+    if record.get("source", {}).get("review_contract") == "coordinated-outfit-v1":
+        _check_outfit_review(record, preview)
+    else:
+        _check_v4_review(record, preview)
+
+
 def _validate_preview(record, preview, directory, require_approval, local, require_composition=True):
     style = preview["style"]
     if preview.get("path") != f"{style}.jpg":
@@ -786,7 +1250,7 @@ def _validate_preview(record, preview, directory, require_approval, local, requi
         raise ValueError("preview hash or metadata mismatch")
     if not HASH.fullmatch(str(preview.get("original_sha256"))):
         raise ValueError("original preview hash missing")
-    _generation(preview.get("generation"), preview)
+    _generation(preview.get("generation"), preview, record, directory)
     if local:
         receipt = read_json(child(directory, f"native-receipts/{style}.json"))
         if receipt.get("generation") != preview["generation"] or receipt.get("original_sha256") != preview["original_sha256"]:
@@ -798,7 +1262,8 @@ def _validate_preview(record, preview, directory, require_approval, local, requi
             raise ValueError("native output hash mismatch")
         if receipt.get("native_dimensions") != _native_dimensions(native):
             raise ValueError("native output dimensions mismatch")
-    if _primary().parse_iso_z(preview["generation"]["generated_at"]) < _primary().parse_iso_z(record["source"]["authorization"]["declared_at"]):
+    authorization = record["source"].get("authorization")
+    if authorization is not None and _primary().parse_iso_z(preview["generation"]["generated_at"]) < _primary().parse_iso_z(authorization["declared_at"]):
         raise ValueError("generation predates source authorization")
     if require_composition or 'composition' in preview:
         _check_composition(preview, directory, local)
@@ -830,6 +1295,7 @@ def audit(root, run_id, style=None, require_approval=False):
 def approve(root, run_id, style, review):
     directory = run_dir(root, run_id)
     record = read_json(directory / "evidence.json")
+    _require_mutable_v5(record)
     _check_plan(root, record, directory)
     preview = _find_preview(record, style)
     _validate_preview(record, preview, directory, False, True)
@@ -923,6 +1389,20 @@ def _html(record, style=None, directory=None, local=False):
             f"<section><h2>{html.escape(preview['display_name'])}</h2><p><code>{html.escape(preview['style'])}</code></p>"
             f"{visual}<p>{review}</p><ol>{poses}</ol></section>"
         )
+    if record.get("source", {}).get("review_contract") == "coordinated-outfit-v1" and not local:
+        case_id = html.escape(record["source"]["case_id"])
+        introduction = (
+            f'<figure><img src="../../preview-sources/{case_id}/source.jpg" width="543" height="724" '
+            'alt="Authorized coordinated outfit source"><figcaption>Authorized real physical outfit source / 已授权真实实物套装源图</figcaption></figure>'
+            '<p><strong>AI-generated · locally composed direction preview · not final imagery</strong><br>'
+            '<strong>AI生成 · 排版衍生方向预览 · 非成片</strong></p>'
+            f'<p>Generation documentation: <a href="{MODEL_DOCS_URL}">{MODEL_DOCS_URL}</a>; verified {MODEL_DOCS_VERIFIED_AT}. '
+            'The host did not expose a per-call model identifier (<code>per_call_model: unavailable</code>).</p>'
+            '<p>Media license: <code>ThreadTruth-Demo-Only-1.0</code>. Repository/release display only; no standalone reuse, resale, relicensing or CC0 dedication.</p>'
+            '<h2>Limitations / 局限</h2><p>These 24 whole-sheet direction previews are not 144 independent finals, do not prove universal garment or outfit coverage, and do not count as external adoption or complete primary cases.</p>'
+        )
+    else:
+        introduction = ""
     return (
         '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width">'
         '<title>Style preview review</title><style>body{max-width:1200px;margin:2rem auto;font-family:system-ui}'
@@ -931,7 +1411,7 @@ def _html(record, style=None, directory=None, local=False):
         'ol{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding-left:1.5rem}'
         'li{min-width:0;overflow-wrap:anywhere;word-break:break-word}'
         '@media(max-width:480px){ol{grid-template-columns:1fr}}</style><body>'
-        f'<h1>{AI_LABEL}</h1><p>24 single-style, six-pose sheets. Every thumbnail is the complete sheet; click it for the original display image. '
+        f'<h1>{AI_LABEL}</h1>{introduction}<p>24 single-style, six-pose sheets. Every thumbnail is the complete sheet; click it for the original display image. '
         'Ungenerated entries are text only. Machine checks cannot prove pose layout or visual content.</p><main>'
         + "".join(sections) + "</main></body></html>\n"
     )
@@ -951,7 +1431,7 @@ def gallery(root, run_id, style=None):
     return path
 
 
-def _readme(record):
+def _readme_v4(record):
     return f"""# Style preview collection: {record['run_id']}
 
 {AI_LABEL}
@@ -966,11 +1446,55 @@ CC0 applies only to the extent the project can grant rights; Apache-2.0 does not
 """
 
 
+def _readme_v5(record):
+    case_id = record["source"]["case_id"]
+    return f"""# Coordinated outfit preview collection: {record['run_id']}
+
+AI-generated · locally composed direction preview · not final imagery<br>
+AI生成 · 排版衍生方向预览 · 非成片
+
+[Review all 24 whole sheets](index.html). Each entry applies one registered style to the same complete authorized outfit and shows the six canonical action-0 poses. [Source and rights](../../preview-sources/{case_id}/rights.json).
+
+Generation documentation: {MODEL_DOCS_URL} (verified {MODEL_DOCS_VERIFIED_AT}). The host evidence records `per_call_model: unavailable`; it does not infer a per-call model ID.
+
+The source and every native/display/thumbnail asset use `ThreadTruth-Demo-Only-1.0`: repository and release display only, with no standalone reuse, resale, relicensing or CC0 dedication. Apache-2.0 covers code and documentation, not this media.
+
+These 24 direction previews are not 144 independent finals, do not prove universal apparel coverage, and do not count as external adoption, a complete primary case, or runtime maturity evidence.
+"""
+
+
+def _readme(record):
+    return _readme_v5(record) if record.get("schema_version") == CURRENT_SCHEMA else _readme_v4(record)
+
+
 def _public_record_valid(root, record, directory):
     _check_plan(root, record)
     if record["status"] != "approved":
         raise ValueError("public preview collection is not approved")
     for preview in record["previews"]:
+        _validate_preview(record, preview, directory, True, False)
+    if _primary().has_sensitive_public_text(record):
+        raise ValueError("sensitive public text")
+
+
+def validate_frozen_v4(root: Path, directory: Path, record: dict) -> None:
+    if directory.name != "white-vest-24-v1" or record.get("run_id") != directory.name:
+        raise ValueError("schema 4.0 is reserved for the frozen white-vest collection")
+    manifest_path = child(root, "tests/fixtures/white-vest-24-v1-beta3.sha256.json")
+    manifest = read_json(manifest_path)
+    actual_paths = sorted(path.relative_to(directory).as_posix() for path in directory.rglob("*") if path.is_file())
+    if actual_paths != sorted(manifest):
+        raise ValueError("frozen schema 4.0 file set mismatch")
+    for relative, expected in manifest.items():
+        data = child(directory, relative).read_bytes()
+        if expected != {"sha256": digest(data), "bytes": len(data)}:
+            raise ValueError(f"frozen schema 4.0 asset mismatch: {relative}")
+    if record.get("schema_version") != FROZEN_PUBLIC_SCHEMA or record.get("status") != "approved":
+        raise ValueError("frozen schema 4.0 record invalid")
+    previews = record.get("previews")
+    if not isinstance(previews, list) or len(previews) != 24 or len({item.get("style") for item in previews}) != 24:
+        raise ValueError("frozen schema 4.0 requires 24 unique previews")
+    for preview in previews:
         _validate_preview(record, preview, directory, True, False)
     if _primary().has_sensitive_public_text(record):
         raise ValueError("sensitive public text")
@@ -990,6 +1514,9 @@ def validate_public_previews(root):
                 raise ValueError("historical preview evidence cannot be public under current display standard")
             if record["run_id"] != directory.name:
                 raise ValueError("run id mismatch")
+            if record.get("schema_version") == FROZEN_PUBLIC_SCHEMA:
+                validate_frozen_v4(root, directory, record)
+                continue
             _public_record_valid(root, record, directory)
             expected = {"evidence.json", "README.md", "index.html", *[asset['path'] for asset in public_assets(record)]}
             if {path.name for path in directory.iterdir()} != expected or any(path.is_symlink() or not path.is_file() for path in directory.iterdir()):
@@ -1016,18 +1543,33 @@ def _links_from_record(record):
     }
 
 
-def preview_links(root):
+def all_preview_collections(root: Path) -> dict[str, dict]:
     findings = validate_public_previews(root)
     if findings:
         raise ValueError("; ".join(findings))
-    links = {}
+    collections = {}
     for path in sorted(child(root, "docs/demo/style-previews").glob("*/evidence.json")):
         record = read_json(path)
-        for style, link in _links_from_record(record).items():
-            if style in links:
-                raise ValueError("multiple approved previews for one style")
-            links[style] = link
-    return links
+        run_id = record["run_id"]
+        if run_id in collections:
+            raise ValueError("duplicate preview collection id")
+        collections[run_id] = record
+    return collections
+
+
+def representative_preview_links(root: Path) -> dict[str, dict]:
+    collections = all_preview_collections(root)
+    if not collections:
+        return {}
+    representative = collections.get(REPRESENTATIVE_COLLECTION_ID)
+    if representative is None:
+        raise ValueError("representative preview collection is missing")
+    return _links_from_record(representative)
+
+
+def preview_links(root):
+    """Compatibility alias; new callers must choose the representative projection explicitly."""
+    return representative_preview_links(root)
 
 
 def _project_preview(root, record):
@@ -1067,9 +1609,9 @@ def _project_preview(root, record):
 def promote(root, run_id):
     directory = run_dir(root, run_id)
     record = read_json(directory / "evidence.json")
-    if record.get("schema_version") in LEGACY_SCHEMAS:
-        raise ValueError(_legacy_error(record.get("schema_version")))
+    _require_mutable_v5(record)
     _check_plan(root, record, directory)
+    _check_batches(record, directory, require_complete=True)
     unapproved = [preview["style"] for preview in record["previews"] if "human_review" not in preview]
     if unapproved:
         raise ValueError("unapproved styles: " + ", ".join(unapproved))
@@ -1078,29 +1620,40 @@ def promote(root, run_id):
         raise ValueError("; ".join(findings))
     if record["status"] != "approved":
         raise ValueError("approval state invalid")
+    public_record = _public_record(record)
     target = child(root, f"docs/demo/style-previews/{run_id}")
     if target.exists():
-        if read_json(target / "evidence.json") != record or validate_public_previews(root):
+        if read_json(target / "evidence.json") != public_record or validate_public_previews(root):
             raise ValueError("refuse to overwrite different or invalid public evidence")
-        _project_preview(root, record)
+        _primary().render_rights_index(root)
         return target
     target.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=directory) as temporary:
         stage = Path(temporary) / "public"
         stage.mkdir()
-        for asset in public_assets(record):
+        for asset in public_assets(public_record):
             shutil.copyfile(child(directory, asset['path']), stage / asset['path'])
-        write_json(stage / "evidence.json", record)
-        (stage / "README.md").write_text(_readme(record), encoding="utf-8")
-        (stage / "index.html").write_text(_html(record, directory=stage), encoding="utf-8")
+        write_json(stage / "evidence.json", public_record)
+        (stage / "README.md").write_text(_readme(public_record), encoding="utf-8")
+        (stage / "index.html").write_text(_html(public_record, directory=stage), encoding="utf-8")
         created_target = False
+        rights_path = child(root, "docs/demo/RIGHTS.md")
+        rights_before = rights_path.read_bytes() if rights_path.exists() else None
         try:
             stage.rename(target)
             created_target = True
-            _project_preview(root, record)
+            findings = validate_public_previews(root)
+            if findings:
+                raise ValueError("public preview validation failed: " + "; ".join(findings))
+            _primary().render_rights_index(root)
         except Exception:
             if created_target:
                 shutil.rmtree(target)
+            if rights_before is None:
+                if rights_path.exists():
+                    rights_path.unlink()
+            else:
+                rights_path.write_bytes(rights_before)
             raise
     return target
 
@@ -1109,9 +1662,13 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("prepare", "ingest", "compose", "audit", "gallery", "approve", "promote"):
+    for name in ("prepare", "register-batch", "ingest", "compose", "audit", "gallery", "approve", "promote"):
         command = commands.add_parser(name)
         command.add_argument("--run-id", required=True)
+        if name == "prepare":
+            command.add_argument("--source-case", required=True)
+        if name == "register-batch":
+            command.add_argument("--manifest", type=Path, required=True)
         if name in {"ingest", "compose", "audit", "gallery", "approve"}:
             command.add_argument("--style")
         if name == "ingest":
@@ -1119,6 +1676,7 @@ def main(argv=None):
             command.add_argument("--image", type=Path, required=True)
             command.add_argument("--generation-record", type=Path, required=True)
             command.add_argument("--correction-record", type=Path)
+            command.add_argument("--failed-retry-record", type=Path)
         if name == "approve":
             command.add_argument("--review", type=Path, required=True, help="Completed human review JSON; agents must never fill real QA.")
         if name == 'compose':
@@ -1130,8 +1688,11 @@ def main(argv=None):
     if args.command in {"ingest", "compose", "approve"} and not args.style:
         parser.error(f"{args.command} requires --style <registered-slug>")
     try:
-        if args.command == "ingest":
+        if args.command == "register-batch":
+            result = register_batch(args.root, args.run_id, read_json(args.manifest))
+        elif args.command == "ingest":
             correction = read_json(args.correction_record) if args.correction_record else None
+            failed_retry = read_json(args.failed_retry_record) if args.failed_retry_record else None
             result = ingest(
                 args.root,
                 args.run_id,
@@ -1139,6 +1700,7 @@ def main(argv=None):
                 args.image,
                 read_json(args.generation_record),
                 correction=correction,
+                failed_retry=failed_retry,
             )
         elif args.command == 'compose':
             result = compose(args.root, args.run_id, args.style, read_json(args.layout_json), args.font)
@@ -1147,7 +1709,7 @@ def main(argv=None):
         elif args.command in {"audit", "gallery"}:
             result = globals()[args.command](args.root, args.run_id, style=args.style)
         else:
-            result = globals()[args.command](args.root, args.run_id)
+            result = globals()[args.command](args.root, args.run_id, args.source_case) if args.command == "prepare" else globals()[args.command](args.root, args.run_id)
         print(str(result) if isinstance(result, Path) else json.dumps(result, ensure_ascii=False, indent=2))
         return 1 if args.command == "audit" and result else 0
     except (OSError, ValueError, KeyError, TypeError) as error:

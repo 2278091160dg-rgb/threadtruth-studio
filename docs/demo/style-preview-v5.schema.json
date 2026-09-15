@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://threadtruth.local/schemas/style-preview-v5",
+  "title": "ThreadTruth source-selected preview evidence",
+  "description": "Schema 5 binds a selected controlled source, exact runtime rules, registered style packs, native generation evidence, deterministic display composition and human review. Python validation enforces hashes, paths, batch authorization and promotion state.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "role", "status", "source", "identity_anchor", "rules", "ai_label", "batches", "previews"],
+  "properties": {
+    "schema_version": {"const": "5.0"},
+    "run_id": {"$ref": "#/$defs/id"},
+    "role": {"const": "style-preview"},
+    "status": {"enum": ["prepared", "awaiting-human-review", "approved"]},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case_id", "rights_ref", "rights_sha256", "assets", "subtitle", "outfit", "review_contract"],
+      "properties": {
+        "case_id": {"$ref": "#/$defs/id"},
+        "rights_ref": {"type": "string", "pattern": "^docs/demo/preview-sources/[a-z0-9-]+/rights\\.json$"},
+        "rights_sha256": {"$ref": "#/$defs/hash"},
+        "assets": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/sourceAsset"}},
+        "subtitle": {"type": "string", "minLength": 1},
+        "outfit": {"type": "object"},
+        "review_contract": {"const": "coordinated-outfit-v1"}
+      }
+    },
+    "identity_anchor": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/sourceAsset"}]},
+    "rules": {"type": "object"},
+    "ai_label": {"type": "string"},
+    "batches": {"type": "array", "minItems": 0, "maxItems": 4, "uniqueItems": true, "items": {"$ref": "#/$defs/batch"}},
+    "previews": {"type": "array", "minItems": 24, "maxItems": 24, "uniqueItems": true, "items": {"type": "object", "properties": {"generation": {"$ref": "#/$defs/generation"}, "correction": {"$ref": "#/$defs/correction"}, "failed_retry": {"$ref": "#/$defs/failedRetry"}, "replacement_history": {"type": "array", "items": {"$ref": "#/$defs/replacementRevision"}}, "human_review": {"$ref": "#/$defs/outfitReview"}}}}
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$"},
+    "hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "batch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "batch_id", "run_id", "styles", "maximum_calls", "authorization_sha256", "authorized_at", "scope"],
+      "properties": {
+        "schema_version": {"const": "1.0"},
+        "batch_id": {"$ref": "#/$defs/id"},
+        "run_id": {"$ref": "#/$defs/id"},
+        "styles": {"type": "array", "minItems": 1, "maxItems": 6, "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+        "maximum_calls": {"type": "integer", "minimum": 1, "maximum": 6},
+        "authorization_sha256": {"$ref": "#/$defs/hash"},
+        "authorized_at": {"type": "string", "format": "date-time", "pattern": "Z$"},
+        "scope": {"const": "serial-native-generation;no-auto-retry"}
+      }
+    },
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool", "call_id", "generated_at", "prompt_sha256", "batch_id", "authorization_sha256", "model_docs_url", "model_docs_verified_at", "per_call_model"],
+      "properties": {
+        "tool": {"const": "native-imagegen"},
+        "call_id": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/id"}]},
+        "generated_at": {"type": "string", "format": "date-time", "pattern": "Z$"},
+        "prompt_sha256": {"$ref": "#/$defs/hash"},
+        "batch_id": {"$ref": "#/$defs/id"},
+        "authorization_sha256": {"$ref": "#/$defs/hash"},
+        "model_docs_url": {"const": "https://learn.chatgpt.com/docs/image-generation"},
+        "model_docs_verified_at": {"const": "2026-09-14"},
+        "per_call_model": {"const": "unavailable"}
+      }
+    },
+    "failedRetry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "reason_code", "failure_record_sha256", "generation_prompt_sha256", "generation_authorization_sha256", "authorized_at", "attempt_number", "scope"],
+      "properties": {
+        "kind": {"const": "failed-call-retry"},
+        "reason_code": {"enum": ["prompt-binding-failed", "native-generation-timeout-no-output"]},
+        "failure_record_path": {"type": "string", "pattern": "^failed-calls/[a-z0-9-]+/failure\\.json$"},
+        "failure_record_sha256": {"$ref": "#/$defs/hash"},
+        "generation_prompt_sha256": {"$ref": "#/$defs/hash"},
+        "generation_authorization_sha256": {"$ref": "#/$defs/hash"},
+        "authorized_at": {"type": "string", "format": "date-time", "pattern": "Z$"},
+        "attempt_number": {"type": "integer", "minimum": 2},
+        "scope": {"const": "single-target-retry;no-auto-retry"}
+      }
+    },
+    "correction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "reason_code", "generation_prompt_sha256", "generation_authorization_sha256", "visual_acceptance_sha256", "replaces"],
+      "properties": {
+        "kind": {"const": "targeted-correction"},
+        "reason_code": {"const": "maintainer-requested-visual-fix"},
+        "generation_prompt_sha256": {"$ref": "#/$defs/hash"},
+        "generation_authorization_sha256": {"$ref": "#/$defs/hash"},
+        "visual_acceptance_sha256": {"$ref": "#/$defs/hash"},
+        "replaces": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["call_id", "original_sha256", "native_sha256", "display_sha256"],
+          "properties": {
+            "call_id": {"$ref": "#/$defs/id"},
+            "original_sha256": {"$ref": "#/$defs/hash"},
+            "native_sha256": {"$ref": "#/$defs/hash"},
+            "display_sha256": {"$ref": "#/$defs/hash"}
+          }
+        }
+      }
+    },
+    "replacementRevision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256"],
+      "properties": {
+        "path": {"type": "string", "pattern": "^revisions/[a-z0-9-]+/[A-Za-z0-9._-]+/revision\\.json$"},
+        "sha256": {"$ref": "#/$defs/hash"}
+      }
+    },
+    "outfitReview": {
+      "type": "object",
+      "required": ["reviewer", "reviewed_at", "confirmation", "preview_sha256", "original_sha256", "native_sha256", "composition_sha256", "evidence_sha256", "public_use_approved", "geometry", "checks", "cells"],
+      "properties": {
+        "public_use_approved": {"const": true},
+        "cells": {"type": "array", "minItems": 6, "maxItems": 6, "items": {"$ref": "#/$defs/reviewCell"}}
+      }
+    },
+    "reviewCell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ordinal", "core_items", "optional_items", "complete_outfit_visible", "adult_identity", "anatomy", "pose_layout", "registered_style_distinct", "ai_disclosure", "framing"],
+      "properties": {
+        "ordinal": {"type": "integer", "minimum": 1, "maximum": 6},
+        "core_items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["blazer", "top", "jeans", "tote", "loafers"],
+          "properties": {"blazer": {"const": "pass"}, "top": {"const": "pass"}, "jeans": {"const": "pass"}, "tote": {"const": "pass"}, "loafers": {"const": "pass"}}
+        },
+        "optional_items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["watch", "jewelry"],
+          "properties": {"watch": {"enum": ["pass", "not-visible-no-contradiction"]}, "jewelry": {"enum": ["pass", "not-visible-no-contradiction"]}}
+        },
+        "complete_outfit_visible": {"const": "pass"},
+        "adult_identity": {"const": "pass"},
+        "anatomy": {"const": "pass"},
+        "pose_layout": {"const": "pass"},
+        "registered_style_distinct": {"const": "pass"},
+        "ai_disclosure": {"const": "pass"},
+        "framing": {"const": "pass"}
+      }
+    },
+    "sourceAsset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "role", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "role": {"enum": ["outfit-source", "identity-only"]},
+        "sha256": {"$ref": "#/$defs/hash"}
+      }
+    }
+  }
+}

@@ -35,6 +35,9 @@ class RepositoryContractTests(unittest.TestCase):
         primary = json.loads(
             (ROOT / "docs" / "demo" / "primary-rights-v1.schema.json").read_text()
         )
+        preview_source = json.loads(
+            (ROOT / "docs" / "demo" / "preview-source-v1.schema.json").read_text()
+        )
         self.assertEqual(candidate["$schema"], "https://json-schema.org/draft/2020-12/schema")
         self.assertEqual(candidate["properties"]["schema_version"]["const"], "1.0")
         self.assertIn("human_review", candidate["required"])
@@ -44,6 +47,11 @@ class RepositoryContractTests(unittest.TestCase):
         self.assertEqual(primary["properties"]["role"]["const"], "primary")
         self.assertEqual(primary["properties"]["primary_demo_status"]["const"], "ready")
         self.assertIn("ai_content_label", primary["required"])
+        self.assertEqual(preview_source["properties"]["schema_version"]["const"], "1.0")
+        self.assertEqual(
+            preview_source["properties"]["license"]["properties"]["id"]["const"],
+            "ThreadTruth-Demo-Only-1.0",
+        )
 
     def test_public_primary_demo_and_style_index_are_present(self):
         case = (

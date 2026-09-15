@@ -164,6 +164,21 @@ def write_staging(root, *, state="image-ready", ai_notice="informed"):
 
 
 class PrimaryDemoTests(unittest.TestCase):
+    def test_public_homepages_describe_two_bounded_demonstrations(self):
+        english = (ROOT / "README.md").read_text()
+        chinese = (ROOT / "README.zh-CN.md").read_text()
+        demo = (ROOT / "docs/demo/README.md").read_text()
+        for phrase in ("single garment · 24 styles", "coordinated outfit · 24 styles"):
+            self.assertIn(phrase, english)
+        for phrase in ("单件服饰 · 24种风格", "完整套装 · 24种风格"):
+            self.assertIn(phrase, chinese)
+        for phrase in (
+            "@threadtruth-studio", "$threadtruth-studio", "/skills",
+            "not claiming an official marketplace listing",
+        ):
+            self.assertIn(phrase, english + demo)
+        self.assertIn("do not prove universal garment or outfit coverage", english)
+
     def test_legacy_preview_projection_returns_findings_instead_of_crashing(self):
         module = load_module()
         with tempfile.TemporaryDirectory() as temporary:
@@ -215,7 +230,7 @@ class PrimaryDemoTests(unittest.TestCase):
                 "path": "style-previews/run/korean-display.jpg",
                 "thumbnail": {"path": "style-previews/run/korean-thumb.jpg"},
             }}
-            with patch.object(module, "_preview_module", return_value=SimpleNamespace(preview_links=lambda _root: links)):
+            with patch.object(module, "_preview_module", return_value=SimpleNamespace(representative_preview_links=lambda _root: links)):
                 module.render_readme_previews(root)
             result = readme.read_text()
             self.assertTrue(result.startswith("before\n<!-- STYLE_PREVIEWS:START -->"))
@@ -224,7 +239,7 @@ class PrimaryDemoTests(unittest.TestCase):
             self.assertIn('href="docs/demo/style-previews/run/korean-display.jpg"', result)
             self.assertIn("Korean Cold Editorial", result)
             self.assertNotIn("stale", result)
-            with patch.object(module, "_preview_module", return_value=SimpleNamespace(preview_links=lambda _root: {})):
+            with patch.object(module, "_preview_module", return_value=SimpleNamespace(representative_preview_links=lambda _root: {})):
                 module.render_readme_previews(root)
             self.assertNotIn("<img", readme.read_text())
 

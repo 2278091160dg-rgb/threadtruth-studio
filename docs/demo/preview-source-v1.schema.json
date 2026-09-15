@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://threadtruth.local/schemas/preview-source-v1",
+  "title": "ThreadTruth controlled preview source",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "case_id", "status", "license", "attestation", "original", "public_asset", "outfit", "review_contract"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "case_id": {"const": "beige-blazer-denim-outfit"},
+    "status": {"const": "approved-for-preview"},
+    "license": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "scope", "notice"],
+      "properties": {
+        "id": {"const": "ThreadTruth-Demo-Only-1.0"},
+        "scope": {"type": "string", "minLength": 1},
+        "notice": {"type": "string", "minLength": 1}
+      }
+    },
+    "attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["physical_outfit", "repository_and_release_demo_rights"],
+      "properties": {
+        "physical_outfit": {"const": true},
+        "repository_and_release_demo_rights": {"const": true}
+      }
+    },
+    "original": {"$ref": "#/$defs/image"},
+    "public_asset": {
+      "allOf": [
+        {"$ref": "#/$defs/image"},
+        {
+          "type": "object",
+          "required": ["path", "bytes", "derivation"],
+          "properties": {
+            "path": {"const": "source.jpg"},
+            "bytes": {"type": "integer", "minimum": 1},
+            "derivation": {"const": "EXIF-transposed RGB JPEG transcode; metadata removed"}
+          }
+        }
+      ]
+    },
+    "outfit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name_en", "name_zh", "core_items", "optional_when_visible", "forbidden"],
+      "properties": {
+        "name_en": {"type": "string", "minLength": 1},
+        "name_zh": {"type": "string", "minLength": 1},
+        "core_items": {"type": "array", "minItems": 5, "maxItems": 5, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "optional_when_visible": {"type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "forbidden": {"type": "array", "minItems": 4, "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "review_contract": {"const": "coordinated-outfit-v1"}
+  },
+  "$defs": {
+    "image": {
+      "type": "object",
+      "required": ["sha256", "width", "height", "mime"],
+      "properties": {
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "width": {"const": 1086},
+        "height": {"const": 1448},
+        "mime": {"enum": ["image/png", "image/jpeg"]}
+      }
+    }
+  }
+}
