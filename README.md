@@ -4,11 +4,15 @@
 
 **Source-faithful fashion portrait production for Codex**
 
-ThreadTruth Studio is an independent, community-maintained Codex Plugin. It reads visible facts from a real garment photo, routes among 24 style packs, waits for explicit approval before paid image generation, and governs a six-image delivery with commercial QA. It is not an OpenAI product or endorsement.
+ThreadTruth Studio is an independent, community-maintained Codex Plugin. It reads visible facts from real single-garment or coordinated-outfit photos, routes among 24 style packs, waits for explicit approval before paid image generation, and governs a six-image delivery with commercial QA. For an outfit, it preserves each garment plus the visible layering, proportions, shoes, bag and accessory relationships rather than restyling the look. It is not an OpenAI product or endorsement.
+
+![The same coordinated beige-blazer outfit shown as a six-pose E-commerce Studio direction preview](docs/demo/style-previews/beige-blazer-denim-outfit-24-v1/ecommerce-studio-display.jpg)
+
+This accepted beta.4 direction preview keeps one complete look—beige blazer, white top, dark denim, olive tote and brown loafers—consistent across six poses. It is a preview sheet, not six independent finals. [Browse all 24 outfit styles](docs/demo/style-previews/beige-blazer-denim-outfit-24-v1/index.html) · [Media rights](docs/demo/RIGHTS.md)
 
 ![A real white hooded puffer vest source beside six independent Korean Cold Editorial results](docs/demo/primary-cases/white-hooded-puffer-vest-korean-cold/hero.jpg)
 
-This is a real, rights-cleared source-to-six-result case: four photos of one white hooded puffer vest produced six independent Korean Cold Editorial B1 images, with SHA-256 records and closed human review. [Open the case](docs/demo/primary-cases/white-hooded-puffer-vest-korean-cold/README.md) · [Media rights](docs/demo/RIGHTS.md)
+The white-vest example remains the complete, rights-cleared source-to-six-result case: four photos of one garment produced six independent Korean Cold Editorial B1 images, with SHA-256 records and closed human review. [Open the complete case](docs/demo/primary-cases/white-hooded-puffer-vest-korean-cold/README.md)
 
 ## Install and try recognition
 
@@ -56,7 +60,7 @@ In ChatGPT, use the Plugin picker or `@threadtruth-studio`. On supported Codex s
 
 ## Why it exists and its boundaries
 
-The uploaded garment remains authoritative for color, material appearance, silhouette, length, construction, pattern, logo placement, and accessories. Style changes treatment, never product facts. The workflow adds a real-garment input gate, deterministic style routing, a separate paid-generation consent gate, serial six-image delivery, identity anchoring, canvas checks, and evidence-backed QA.
+The uploaded garment or locked coordinated outfit remains authoritative for color, material appearance, silhouette, length, construction, pattern, logo placement, and accessories. For a complete outfit, the same rule also covers every included item, layering, proportions, and visible shoe/bag/accessory relationships. Style changes treatment, never product facts or styling. The workflow adds a real-garment input gate, deterministic style routing, a separate paid-generation consent gate, serial six-image delivery, identity anchoring, canvas checks, and evidence-backed QA.
 
 Use it for apparel portraits, fashion editorial, and ecommerce portrait sets. Do not use it for non-apparel products, text-only concept generation, general virtual try-on, CAD-grade fit simulation, API integration, or unattended commercial delivery. It does not promise exact small text/logo reproduction, platform approval, or sales performance.
 

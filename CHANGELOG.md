@@ -4,6 +4,27 @@ All notable changes are documented here. Versions follow Semantic Versioning.
 
 ## Unreleased
 
+### Trigger
+
+- The maintainer noted that the README hero and capability wording still presented only the single-garment white-vest case after the coordinated-outfit gallery shipped.
+
+### Behavior before
+
+- The runtime already governed a locked outfit/SKU and its item relationships, but the public hero and discovery metadata described only a singular garment photo.
+
+### Behavior after
+
+- The README now leads with the accepted coordinated-outfit preview while retaining the white vest as the distinct six-independent-final case.
+- Skill and Plugin discovery metadata now explicitly cover both real single-garment and coordinated-outfit photos. Outfit fidelity means preserving every visible item, layering, proportions and shoe/bag/accessory relationships; it does not add virtual try-on or automatic restyling.
+
+### Eval coverage
+
+- Updated the exact Skill description contract; existing recognition and prompt rules continue to cover complete-outfit fact locking.
+
+### Verification
+
+- Repository contracts, Skill validation, public link/privacy checks and bilingual README rendering are rerun before publication.
+
 ## 2026-09-15 — 1.0.0-beta.4
 
 ### Trigger

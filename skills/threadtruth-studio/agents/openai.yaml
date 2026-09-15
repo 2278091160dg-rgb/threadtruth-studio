@@ -1,7 +1,7 @@
 interface:
   display_name: "ThreadTruth Studio｜服饰保真人像工坊"
-  short_description: "真实服饰图驱动的 24 风格人像生产与商业 QA"
-  default_prompt: "上传一张真实服饰图,用 $threadtruth-studio 识别服饰,给出主推+2备选并展示完整24风格供我自由选择;确认风格代号+动作后生成 6 张独立草稿,锁定同一 AI 模特与统一画幅,逐张做商业 QA。"
+  short_description: "真实单件或完整套装驱动的 24 风格人像与商业 QA"
+  default_prompt: "上传真实单件服饰或完整搭配套装图,用 $threadtruth-studio 识别并锁定商品事实,给出主推+2备选和完整24风格;确认风格代号+动作后生成 6 张独立草稿并逐张做商业 QA。"
   brand_color: "#1A1A1A"
 policy:
   allow_implicit_invocation: true
